@@ -1,0 +1,171 @@
+{
+  "document": "spec_milestone_4",
+  "pass": 2,
+  "round": 2,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_4.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "Non-stub rule defines threshold as '\u2265200 words for prose files', but does not clarify whether standard legal/config/history files like `LICENSE` (~170 words standard MIT), `.gitignore`, and initial `CHANGELOG.md` are subject to or exempt from this threshold.",
+          "why_it_matters": "Automated non-stub validation scripts will flag standard `LICENSE` or initial `CHANGELOG.md` files as non-compliant stubs if non-prose files are not explicitly exempted.",
+          "suggested_fix": "Clarify that `LICENSE`, `.gitignore`, and `CHANGELOG.md` are exempt from the \u2265200 words rule, provided they contain valid full license text, proper rule patterns, and substantive initial release entries respectively."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "Edge Cases specifies 'README/GUIDE include an Examples pointer to the M5 examples/ location', but this requirement is omitted from Acceptance Criteria (AC-2/AC-4).",
+          "why_it_matters": "Verification tests based strictly on Acceptance Criteria will fail to validate the presence of the required `examples/` pointer.",
+          "suggested_fix": "Update AC-2 or AC-4 to explicitly include verification of the `examples/` directory pointer in both `README.md` and `docs/GUIDE.md`."
+        },
+        {
+          "section": "FR-6",
+          "category": "needs_clarify",
+          "problem": "FR-6 requires 'Project instructions for agents working in the repo' for `CLAUDE.md` and `AGENTS.md` but does not define mandatory topics or domains (e.g., build/test commands, code conventions, execution scripts).",
+          "why_it_matters": "Without explicit topic requirements, minimal or generic agent guidance will satisfy the FR while failing to provide necessary runtime context for unfamiliar AI tools.",
+          "suggested_fix": "Specify the minimum mandatory topics required in `AGENTS.md` and `CLAUDE.md` (e.g., development/testing commands, repository structure guidelines, workflow conventions, and adapter contribution rules)."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_4.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements FR-1",
+          "category": "needs_clarify",
+          "problem": "The quickstart command `npm install -g sdd-multiagent-kit && sdd-setup` is ambiguous: does `sdd-setup` require arguments (e.g., a target directory) or is it interactive? The spec does not specify the command's interface, which affects both documentation accuracy and testability.",
+          "why_it_matters": "If the command signature is wrong or incomplete, the README quickstart will mislead users and the acceptance criteria (AC-2) cannot be verified against the actual installer behavior.",
+          "suggested_fix": "Clarify the exact invocation (e.g., `sdd-setup [target-dir]` or `sdd-setup --interactive`) and reference the M3 installer spec for the definitive interface."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The non-stub definition requires '\u2265200 words for prose files' but does not specify a minimum for non-prose files like LICENSE, CHANGELOG, or .gitignore. The acceptance criteria (AC-1) says 'each non-stub per the Edge-Cases definition', which is ambiguous for these file types.",
+          "why_it_matters": "Without a clear definition, a LICENSE with only the MIT header or a CHANGELOG with a single line could be considered non-stub, weakening the completeness gate.",
+          "suggested_fix": "Define separate non-stub criteria for non-prose files (e.g., LICENSE must contain the full MIT text; CHANGELOG must have at least one dated entry with version and summary; .gitignore must include the required patterns)."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The .gitignore rule says 'never excluding legitimate source' but does not define what constitutes 'legitimate source'. This is subjective and could lead to over-exclusion (e.g., ignoring `*.js` files) or under-exclusion (e.g., missing `outputs/` artifacts).",
+          "why_it_matters": "The acceptance criterion AC-5 depends on this rule; ambiguity makes it impossible to objectively verify whether the .gitignore is correct.",
+          "suggested_fix": "Provide an explicit list of what must NOT be ignored (e.g., `kit/`, `installers/`, `docs/`, `*.md`, `*.js`, `*.yaml`) and state that any ignore pattern that matches these is a violation."
+        },
+        {
+          "section": "Functional Requirements FR-6",
+          "category": "needs_clarify",
+          "problem": "The spec says CLAUDE.md and AGENTS.md 'must not conflict' but does not define what constitutes a conflict. For example, if AGENTS.md says 'use npm' and CLAUDE.md says 'use pnpm', is that a conflict? The spec also does not specify which file takes precedence if both exist.",
+          "why_it_matters": "Without a clear conflict definition, the acceptance criteria cannot be tested, and future maintainers may introduce contradictory instructions unknowingly.",
+          "suggested_fix": "Define conflict as 'any contradictory instruction regarding commands, paths, or workflow steps' and specify that AGENTS.md is the canonical source, with CLAUDE.md only adding Claude-specific details."
+        },
+        {
+          "section": "Functional Requirements FR-8",
+          "category": "objective",
+          "problem": "The spec lists 'kit/skills/*' as a path but does not specify what files are expected there or whether the path is a directory or a glob. This is inconsistent with the other explicit paths (e.g., `kit/SKILL.md`).",
+          "why_it_matters": "Documentation referencing an undefined path could mislead contributors and fail the consistency gate (AC-4) if the actual kit structure differs.",
+          "suggested_fix": "Replace `kit/skills/*` with the exact directory name (e.g., `kit/skills/`) and list the expected skill files or reference the M1 spec for the kit structure."
+        },
+        {
+          "section": "Out of Scope (deferred)",
+          "category": "objective",
+          "problem": "The spec defers the 'Guide for Pakistani users' content to PLAN.md \u00a712 but does not specify whether a placeholder file or section should exist in the docs (e.g., `docs/GUIDE.md` with a reserved section). This creates ambiguity about whether the deferred content should be mentioned in the documentation.",
+          "why_it_matters": "If the docs are expected to be complete for cold readers, a missing reference to the deferred guide could confuse users looking for localized content, and the acceptance criteria do not address this.",
+          "suggested_fix": "Add a requirement that README or GUIDE includes a note about the upcoming localized guide, or explicitly state that no mention is required until M5."
+        },
+        {
+          "section": "Acceptance Criteria AC-1",
+          "category": "objective",
+          "problem": "AC-1 lists 'eleven files' but the enumeration includes README, CLAUDE, AGENTS, CONTRIBUTING, SECURITY, SUPPORT, LICENSE, CHANGELOG, docs/GUIDE, docs/ARCHITECTURE, docs/BOOTSTRAP \u2014 that is 11 files, but the spec also requires `.gitignore` at the repo root. The count is misleading because it excludes `.gitignore` from the 'eleven' but AC-5 separately requires it.",
+          "why_it_matters": "The inconsistency in counting could lead to a reviewer missing the `.gitignore` requirement or misinterpreting the acceptance criteria.",
+          "suggested_fix": "Rephrase AC-1 to 'All eleven files exist, plus `.gitignore` at the repo root' or change the count to twelve to include `.gitignore`."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The spec requires README/GUIDE to include an 'Examples' pointer to the M5 `examples/` location, but does not specify the exact path or format (e.g., `examples/` at repo root or under `docs/`). This could lead to inconsistent documentation.",
+          "why_it_matters": "If the pointer is vague, users may not find the examples when M5 lands, and the consistency gate (AC-4) cannot be verified.",
+          "suggested_fix": "Specify the exact path (e.g., `examples/` at repo root) and the required wording (e.g., 'Examples will be available in the `examples/` directory in a future release')."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_4.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 5,
+      "scores": {
+        "clarity": 5,
+        "completeness": 5,
+        "edge_case_coverage": 4,
+        "internal_consistency": 6,
+        "testability": 3
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements \u2013 FR-6",
+          "category": "needs_clarify",
+          "problem": "The requirement that AGENTS.md and CLAUDE.md \"must not conflict\" is vague; no definition of what constitutes a conflict or how to detect it is provided.",
+          "why_it_matters": "Without a clear conflict\u2011resolution rule, contributors may unintentionally diverge the two files, leading to agents receiving contradictory instructions and breaking the kit's cross\u2011tool operation.",
+          "suggested_fix": "Add an explicit rule: CLAUDE.md may only reference AGENTS.md for shared content and must include a statement such as \"All instructions in AGENTS.md apply to Claude unless explicitly overridden here\". Provide a checklist or automated lint rule that flags differing sections."
+        },
+        {
+          "section": "Edge Cases & Rules \u2013 Non\u2011stub definition",
+          "category": "objective",
+          "problem": "The spec defines a non\u2011stub file as having \u2265200 words and no placeholder text, but it does not prescribe any verification mechanism (e.g., a script or CI check).",
+          "why_it_matters": "Implementers could mistakenly ship stub files that meet the textual description but fail the intended quality gate, reducing documentation usefulness.",
+          "suggested_fix": "Specify a verification step, such as a CI job that runs a word\u2011count script and scans for prohibited tokens (TODO, lorem ipsum, TBD). Reference this script in the CONTRIBUTING guide."
+        },
+        {
+          "section": "Acceptance Criteria \u2013 AC\u20115",
+          "category": "needs_clarify",
+          "problem": "AC\u20115 requires the repo to be a git repository with a .gitignore, yet the spec never mandates initializing a Git repository or committing the .gitignore.",
+          "why_it_matters": "A plain directory could satisfy the file\u2011presence check while lacking version control, breaking downstream tooling that assumes a Git repo.",
+          "suggested_fix": "Add a requirement that the repository must be initialized with `git init` and contain a `.git` directory, and optionally include a CI check that verifies `git rev-parse --is-inside-work-tree` succeeds."
+        },
+        {
+          "section": "Functional Requirements \u2013 FR\u20118 Kit identity constants",
+          "category": "objective",
+          "problem": "The spec lists env\u2011var names and paths that docs must reference consistently, but it does not enforce a uniform presentation style (e.g., code fences, backticks).",
+          "why_it_matters": "Inconsistent formatting can cause confusion for readers and make automated consistency checks brittle.",
+          "suggested_fix": "Define a formatting convention (e.g., wrap all identifiers in backticks and present paths in fenced code blocks) and require each doc to follow it."
+        },
+        {
+          "section": "Testability",
+          "category": "objective",
+          "problem": "No explicit tests, validation scripts, or CI checks are described for verifying that the documentation meets the spec.",
+          "why_it_matters": "Without testability, reviewers cannot automatically confirm compliance, leading to manual, error\u2011prone verification.",
+          "suggested_fix": "Add a dedicated test suite (e.g., `npm run docs:test`) that parses each required file, checks for required sections, word counts, presence of the acknowledgement block, and consistency of constants. Reference this suite in the CONTRIBUTING guide."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 3
+}

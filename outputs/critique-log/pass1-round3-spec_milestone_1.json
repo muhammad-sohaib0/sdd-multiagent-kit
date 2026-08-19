@@ -1,0 +1,293 @@
+{
+  "document": "spec_milestone_1",
+  "pass": 1,
+  "round": 3,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 10,
+      "scores": {
+        "clarity": 10,
+        "completeness": 10,
+        "edge_case_coverage": 10,
+        "internal_consistency": 10,
+        "testability": 10
+      },
+      "issues": [],
+      "verdict": "pass"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "The `clarify-interview` sub-skill input is defined as a set of `{section, problem, why_it_matters}` tuples, but the critique schema used by the six-model loop (referenced in PLAN.md \u00a74.3) is not fully quoted here. It is unclear if the schema strictly enforces these exact three fields for `needs_clarify` issues or if `suggested_fix` is also passed along and intentionally omitted from the Clarify input to avoid leading the human.",
+          "why_it_matters": "If the schema includes `suggested_fix` for objective issues, the `clarify-interview` sub-skill needs to know whether to filter it out when presenting questions to the human, as showing AI-suggested fixes might bias the human's answer during the Clarify phase."
+        },
+        {
+          "section": "AC-7",
+          "category": "needs_clarify",
+          "problem": "The Stranger Test acceptance criterion defines 'Reproduce' as contract parity rather than byte parity. It checks for the 13 paths, the 6 model IDs, and the 7 constitution articles, but does not explicitly state whether the content of the 10 sub-skills themselves needs to be reproduced verbatim or just their structural presence (input/output/edge-case).",
+          "why_it_matters": "Determining if the Stranger Test passes requires knowing if a fresh session generating different but functionally equivalent text for the sub-skills counts as a success, or if the specific wording of the edge-case rules in FR-2 must be matched exactly."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "Step 4i 'Build the milestone' is defined as executing the milestone's ordered tasks to materialize artifacts, but for the kit's own bootstrap build (M1), it states this realizes the 13 files listed in \u00a73. However, the 13 files are the *specification* of the content, and the actual 'tasks' to build them will be in `tasks_milestone_1.md`. The spec does not explicitly state whether the master skill itself writes these 13 files directly during step 4i, or if it dispatches to an external build tool/agent.",
+          "why_it_matters": "The orchestration boundary is ambiguous. If the master skill is supposed to write the files, it needs write-access instructions. If it dispatches to the host CLI agent's default coding capabilities, that dependency should be stated.",
+          "suggested_fix": "Clarify in FR-1 step 4i that 'Build the milestone' dispatches the ordered tasks to the host CLI coding agent's standard execution environment, and that the master skill's role is to enforce the order and gate the transitions, not to write files itself."
+        },
+        {
+          "section": "FR-2",
+          "category": "objective",
+          "problem": "The `history-logger` edge-case rule states 'A transition with no produced artifact \u2192 record it anyway (requested, produced, rationale)'. This implies the PHR format requires a 'produced' field even when empty, but the Data Model (\u00a74.4) defines PHR only as 'narrative (what was requested, what was produced, short rationale)'. It does not specify if this is structured data or free text.",
+          "why_it_matters": "If the `history-logger` sub-skill needs to programmatically ensure a 'produced' field exists even when empty, the PHR format needs to be structured (e.g., YAML frontmatter or JSON), not just free-text narrative.",
+          "suggested_fix": "Specify in \u00a74.4 whether the PHR narrative is free-text Markdown or requires a specific structured header (e.g., YAML frontmatter with `requested`, `produced`, `rationale` fields) to allow the `history-logger` to reliably parse and record 'empty' artifacts."
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 8,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-2 (clarify-interview row)",
+          "category": "objective",
+          "problem": "The sub-skill description has an awkward mid-sentence insertion: \"the compiled `needs_clarify` list **Input = a set of `{section, problem, why_it_matters}` tuples** compiled by Pass 1 from critics' `needs_clarify`-tagged issues \u2192 human answers folded into the spec\". The bolded \"Input =...\" breaks the prose flow and partially duplicates the column header.",
+          "why_it_matters": "Reads as a drafting glitch; could confuse downstream implementers writing the actual `clarify-interview/SKILL.md` about whether the tuple shape is binding contract or narrative shorthand.",
+          "suggested_fix": "Restructure to either place \"Input: a set of {section, problem, why_it_matters} tuples (compiled by Pass 1 from critics' needs_clarify-tagged issues)\" cleanly in the Input column, or move the tuple shape to a separate sentence: \"Input: the compiled `needs_clarify` list \u2014 a set of `{section, problem, why_it_matters}` tuples produced by Pass 1 from critics' `needs_clarify`-tagged issues. Output: human answers folded into the spec.\""
+        },
+        {
+          "section": "FR-1 step 4b",
+          "category": "objective",
+          "problem": "\"the Structural Completeness and Simplicity gates (defined in \u00a73)\" points at \u00a73, but the gates are actually in \u00a73A. \u00a73A is technically a subsection of \u00a73, so it is not strictly ambiguous given the convention, but the cross-reference convention explicitly says \"No bare number is ever left ambiguous\" and the master skill file will be read in isolation by implementers.",
+          "why_it_matters": "Inconsistency between cross-reference convention and the actual pointer. Implementers writing `kit/SKILL.md` who skim the section headings may look under \u00a73 and find no gate definition.",
+          "suggested_fix": "Change \"(defined in \u00a73)\" to \"(defined in \u00a73A)\" in FR-1 step 4b."
+        },
+        {
+          "section": "FR-2 (research-ct-scan installed-skill awareness)",
+          "category": "needs_clarify",
+          "problem": "The \"installed-skill awareness\" rule for `research-ct-scan` is stated as a concept (\"inspect the target tool's installed skills/plugins; if one matches a conditional category, draft that category with that skill's conventions\") but the actual mechanism for inspecting installed skills across the four target CLI tools (Claude Code, Claude Desktop, OpenCode, Antigravity) is not specified, and these tools expose very different discovery APIs.",
+          "why_it_matters": "This is a real product decision: the sub-skill cannot implement \"installed-skill awareness\" without knowing which filesystem path, env var, or CLI command each tool exposes for skill/plugin discovery. An AI cannot correctly infer tool-specific discovery semantics.",
+          "suggested_fix": "(No suggested_fix \u2014 this is for the human in Clarify.) Question to ask: For each of the four target tools, what is the authoritative source for \"what skills/plugins are currently installed\" (filesystem path, manifest file, or runtime query), and should M1's sub-skill assume a uniform abstraction or have a per-tool detection table deferred to M3?"
+        },
+        {
+          "section": "US-1",
+          "category": "needs_clarify",
+          "problem": "US-1 says M1 content \"is placed manually\" into a target CLI tool until M3 ships the installer. The exact manual placement \u2014 i.e. which skills directory per tool, and whether `kit/SKILL.md` and `kit/config/providers.yaml` live inside any specific subfolder \u2014 is not documented anywhere in the spec.",
+          "why_it_matters": "Without this, M1 cannot be Real-World Tested against any of the four target tools (one of the constitution's seven articles), and the AC-7 Stranger Test cannot be executed end-to-end with a real CLI agent.",
+          "suggested_fix": "(No suggested_fix \u2014 this is for the human in Clarify.) Question to ask: Should the spec include a short `kit/INSTALL-MANUAL.md` (or equivalent) that documents per-tool manual placement for M1, and is that file part of the 13-file inventory or an M3 deliverable?"
+        },
+        {
+          "section": "AC-7",
+          "category": "objective",
+          "problem": "AC-7 includes a parenthetical \"(spec + plan + tasks + workflow + tests together \u2014 the set *is* the brief, per PLAN.md \u00a77.6)\" that mixes two different framings \u2014 the set is the five M1-document outputs AND the set is the brief that drives the Stranger Test \u2014 without making clear which artifact is the input to the fresh session (i.e. is it the kit's own M1 five-document set, or the downstream project's five-document set produced by the kit?).",
+          "why_it_matters": "The Stranger Test is the most consequential acceptance criterion; ambiguity about what is being reproduced will cause inconsistent grading in Pass 2 and across critics.",
+          "suggested_fix": "Rephrase to be explicit: \"The kit's own M1 five-document set (this spec + its companion plan/tasks/workflow/tests) is the input to a fresh zero-context session with the single instruction *implement this kit, ask no questions*. Reproduce = contract parity per the three sub-criteria below, applied to the produced 13-file M1 inventory.\""
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-1 (master skill pipeline step 4c)",
+          "category": "objective",
+          "problem": "The critique phase Pass 1 step (4c) is not marked with '(automation arrives in M2)' despite the document explicitly stating that M1's master skill should mark executable critique steps this way. The note after FR-1 says 'In M1 the master skill states the invariant and marks the executable step as \"(automation arrives in M2)\"' but step 4c lacks this marker.",
+          "why_it_matters": "Without the marker, implementers may attempt to build critique automation in M1 instead of deferring to M2, violating milestone boundaries and the declared scope.",
+          "suggested_fix": "Add '(automation arrives in M2)' to step 4c in the master skill pipeline, consistent with the critique-loop deferral note."
+        },
+        {
+          "section": "\u00a76 Authentication/Security (Concrete detection rule)",
+          "category": "objective",
+          "problem": "The secret detection rule references 'allowlisted constants (e.g. example placeholders, hex color codes) are named by file+context' but provides no actual allowlist. The rule is incomplete without enumerating the allowed exceptions for the 13 shipped files.",
+          "why_it_matters": "An incomplete detection rule will either produce false positives (blocking legitimate content) or require implementers to guess the allowlist, leading to inconsistent secret scanning.",
+          "suggested_fix": "Add an explicit allowlist table mapping file+context to permitted constant patterns (e.g., 'kit/config/providers.yaml: example placeholder values like YOUR_KEY_HERE', 'kit/skills/*/SKILL.md: hex color codes in documentation')."
+        },
+        {
+          "section": "\u00a73A Simplicity Gate",
+          "category": "needs_clarify",
+          "problem": "The gate states 'no more standalone projects/services/libraries than the milestone needs (each beyond a small justified number needs a documented reason)' but does not define what constitutes 'a small justified number'.",
+          "why_it_matters": "Without a concrete threshold or decision procedure, the gate cannot be applied objectively; different reviewers will reach different conclusions on the same milestone.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "FR-2 research-ct-scan (installed-skill awareness)",
+          "category": "needs_clarify",
+          "problem": "The edge-case rule says 'inspect the target tool's installed skills/plugins; if one matches a conditional category, draft that category with that skill's conventions' but does not specify how a sub-skill running in a CLI agent can programmatically inspect that tool's installed skills/plugins.",
+          "why_it_matters": "This is an integration mechanism between the kit content and the host CLI tool. If the inspection method is not defined, the sub-skill cannot be implemented reliably across the four target tools (Claude Code, Claude Desktop, OpenCode, Antigravity).",
+          "suggested_fix": ""
+        },
+        {
+          "section": "FR-2 clarify-interview (Input structure)",
+          "category": "objective",
+          "problem": "The Input description references 'critics' needs_clarify-tagged issues' but does not specify the exact JSON schema for those tuples. The critique schema is defined in PLAN.md \u00a74.3, but the sub-skill contract should either inline the tuple structure or normatively reference the exact schema version.",
+          "why_it_matters": "Without a fixed tuple schema, the clarify-interview sub-skill cannot reliably parse the Pass 1 output, causing interoperability failures between the critique phase and the clarify phase.",
+          "suggested_fix": "Add a normative reference to the exact critique JSON schema (e.g., 'per PLAN.md \u00a74.3 critique schema v1.0, the needs_clarify issue object shape is...') or inline the required tuple fields: {section: string, problem: string, why_it_matters: string}."
+        },
+        {
+          "section": "\u00a74.3 providers.yaml schema (critic_slots validation)",
+          "category": "objective",
+          "problem": "The schema description states 'Each model ID in critic_slots must also exist under a providers[].models entry of the same provider id' but this cross-validation rule is not expressed in the YAML itself (e.g., as a JSON Schema or comment) and is not listed as an acceptance criterion.",
+          "why_it_matters": "A malformed providers.yaml with a critic_slot referencing a non-existent model/provider pair would pass file-level validation but break the critique engine at runtime.",
+          "suggested_fix": "Add AC-2.1: 'providers.yaml passes cross-validation: every critic_slots[i].model exists in providers[?id==critic_slots[i].provider].models[].id'."
+        },
+        {
+          "section": "FR-2 Shared sub-skill failure policy",
+          "category": "needs_clarify",
+          "problem": "The policy mandates exactly one retry before blocking escalation. The number of retries (1) is a policy choice that may need adjustment per sub-skill or failure type (transient vs. permanent).",
+          "why_it_matters": "A uniform retry count may be too aggressive for transient network issues or too lenient for systematic failures, affecting user experience and resource consumption.",
+          "suggested_fix": ""
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-4 \u2014 Provider configuration",
+          "category": "objective",
+          "problem": "No validation rule ensuring each model listed in `critic_slots` is also defined under the corresponding provider's `models` array.",
+          "why_it_matters": "A mismatch would cause the critique engine to reference undefined models, breaking the panel composition at runtime.",
+          "suggested_fix": "Add an explicit validation step in the spec (e.g., \"Each entry in `critic_slots` must have a matching model entry under the same provider in `providers[].models`.\") and require the build to fail if the rule is violated."
+        },
+        {
+          "section": "FR-2 \u2014 Sub-skill contract",
+          "category": "objective",
+          "problem": "The spec does not require that each sub\u2011skill's `SKILL.md` contain the mandatory front\u2011matter fields (`name`, `description`, `version`).",
+          "why_it_matters": "Missing or malformed front\u2011matter would make sub\u2011skills undiscoverable or cause orchestration failures in the master skill.",
+          "suggested_fix": "Add an edge\u2011case rule: \"Each `SKILL.md` must include non\u2011empty `name`, `description`, and `version` fields in its YAML front\u2011matter; validation failure blocks the pipeline.\""
+        },
+        {
+          "section": "6. Authentication / Security",
+          "category": "needs_clarify",
+          "problem": "The spec references an \"allowlist of constants\" for secret detection but does not define which constants are allowed.",
+          "why_it_matters": "Without a concrete allowlist, automated secret\u2011scan tooling may produce false positives or miss real secrets, undermining security guarantees."
+        },
+        {
+          "section": "3A. The Two Gates",
+          "category": "needs_clarify",
+          "problem": "The forward\u2011reference check in the Structural Completeness Gate is described only qualitatively; the exact criteria for what constitutes a reference and how to verify its target exist are unclear.",
+          "why_it_matters": "Ambiguous gate logic can lead to inconsistent enforcement, allowing invalid specifications to pass or valid ones to be incorrectly rejected."
+        },
+        {
+          "section": "8. Acceptance Criteria AC-7",
+          "category": "needs_clarify",
+          "problem": "The definition of \"contract parity, not byte parity\" for the Stranger Test verification is not specified.",
+          "why_it_matters": "Unclear verification criteria make it impossible to reliably judge whether the five\u2011document set satisfies the acceptance condition, risking subjective pass/fail decisions."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-2 / FR-4",
+          "category": "needs_clarify",
+          "problem": "The spec states that adding a new critic model is a data-only change to providers.yaml, but it does not specify how the system should handle the case where a provider's free-tier availability changes or a model is retired (as happened with Qwen). The ADR-001 correction is mentioned, but the process for updating the panel when a model becomes unavailable is not defined.",
+          "why_it_matters": "The kit must remain operational on free tiers; if a model is retired or becomes paid, the system needs a defined fallback or update path. Without this, the 'data-only change' claim may be misleading and the system could break.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "FR-1 / \u00a73A",
+          "category": "objective",
+          "problem": "The spec says the gates are 'master-skill orchestration checkpoints, not sub-skills' and that G1 runs on the spec before Pass 1 and G2 on all five before Pass 2. However, it does not explicitly state that the gates are also applied to the final five-document set after the stranger-test or after any Clarify-driven edits. The acceptance criteria AC-1 says 'enforced by G1/G2 and the six-critic panel' but the exact timing of gate re-runs after edits is ambiguous.",
+          "why_it_matters": "If gates are not re-run after Clarify folds answers or after stranger-test feedback, the final set may violate structural completeness or simplicity without detection, undermining the gate's purpose.",
+          "suggested_fix": "Add an explicit statement that G1 and G2 are re-run on the final five-document set after all edits (including Clarify and stranger-test feedback) before the milestone is considered complete."
+        },
+        {
+          "section": "\u00a74.4",
+          "category": "objective",
+          "problem": "The PHR numbering rule says 'Numbering resets per milestone within each milestone's folder (001, 002, \u2026)'. However, the cumulative history section references PHR 003 and the retry policy is labeled 'PHR 003', which appears to be a global reference. This creates ambiguity: is PHR 003 from milestone 1 or a global counter? The spec does not clarify whether PHRs are also logged for the bootstrap build (this project) and how they are numbered in that context.",
+          "why_it_matters": "Ambiguity in PHR numbering could lead to inconsistent history logging, making it hard to trace decisions and retries across milestones, violating the 'automatic PHR/ADR history logging' goal.",
+          "suggested_fix": "Clarify that PHR numbering resets per milestone, and that the 'PHR 003' reference in the cumulative history is from the bootstrap build's milestone 1 (or a global bootstrap counter). Specify how bootstrap PHRs are numbered."
+        },
+        {
+          "section": "\u00a77 / \u00a78 AC-5",
+          "category": "objective",
+          "problem": "AC-5 requires the master skill to state 'Clarify runs once per milestone after the spec's Pass 1'. However, FR-1 step 4d says 'clarify-interview \u2192 fold the compiled needs_clarify list into concise questions' and the clarify-interview sub-skill's edge-case rule says 'a folded answer that breaks consistency elsewhere \u2192 surfaced again in Pass 2'. This implies Clarify could effectively run again (via Pass 2 surfacing) but the spec does not explicitly forbid a second Clarify round. The AC-5 wording 'once per milestone' is clear, but the workflow description could be interpreted as allowing a second round.",
+          "why_it_matters": "If Clarify is allowed to run more than once, it could lead to unbounded loops and violate the 'once per milestone' invariant, affecting the pipeline's determinism and the Stranger Test's reproducibility.",
+          "suggested_fix": "Add an explicit statement in FR-1 that Clarify runs exactly once per milestone, and that any issues surfaced in Pass 2 that require human input are handled as blocking escalation (per the shared failure policy) rather than a second Clarify round."
+        },
+        {
+          "section": "\u00a74.3 / \u00a75",
+          "category": "needs_clarify",
+          "problem": "The spec says 'Preflight verification is a documented claim + acceptance-criterion check, not a shipped M1 script'. It does not specify who performs this preflight verification (the human? a CI check? a manual step?) or how the 'documented claim' is recorded (in the spec? in a PHR? in an ADR?).",
+          "why_it_matters": "Without a defined verification owner and record, the claim that the six models are 'verified reachable on free tiers' may be unverifiable, undermining AC-2 and the framework's 'Real-World Testing' constitution principle.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a76",
+          "category": "objective",
+          "problem": "The secret-detection rule says 'reject any token matching ... or a base64/hex blob \u2265 32 chars that is not an obvious, allowlisted constant'. The spec does not define what constitutes an 'obvious, allowlisted constant' or how the allowlist is maintained (file? section? process?). This makes the rule ambiguous and hard to test deterministically.",
+          "why_it_matters": "Without a clear allowlist definition, the regex scan (AC-3) may produce false positives or false negatives, making the security check unreliable and potentially blocking legitimate content.",
+          "suggested_fix": "Define the allowlist as a named list of constants (e.g., example placeholders, hex color codes) with their file+context, and specify that the allowlist is maintained in a dedicated section of the spec or a separate file (e.g., `outputs/security-allowlist.md`)."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 6
+}

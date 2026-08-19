@@ -1,0 +1,394 @@
+{
+  "document": "spec_milestone_3",
+  "pass": 2,
+  "round": 10,
+  "critics": [
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The spec mentions a constant `GUIDE_SLOT` that points to `docs/GUIDE.md`\u2019s `#guide-for-pakistani-users` section and says the wizard should print a link to the reserved guide location, but it never defines where the actual URL or link text comes from.",
+          "why_it_matters": "Without a concrete source for the link, implementers may either hard\u2011code a placeholder, fabricate content, or fail at runtime when the file is missing, violating the \u201cnever fabricate\u201d rule.",
+          "suggested_fix": "Add a clear definition, e.g., `const GUIDE_URL = 'https://example.com/guide-pakistani-users'` or specify that the wizard reads the first line of `docs/GUIDE.md` under that heading and prints it verbatim."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "Key\u2011entry validation says keys containing \u201cinternal whitespace or control characters\u201d are rejected, but it does not specify whether Unicode whitespace (e.g.,\u202fU+00A0) counts, nor does it define what constitutes a control character on all platforms.",
+          "why_it_matters": "Ambiguity can lead to inconsistent validation across environments, causing legitimate keys to be rejected or malformed keys to be accepted, breaking downstream tool authentication.",
+          "suggested_fix": "Define the whitelist/blacklist precisely, e.g., reject any character matching `/[\\s\\p{C}]/u` after trimming, and document that only ASCII space (`0x20`) is allowed as internal whitespace."
+        },
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "The behavior when `os.homedir()` returns an empty string is described as \u201cerrors clearly and exits 2\u201d, but the exact error message format is not specified.",
+          "why_it_matters": "Consistent error messaging is required for reliable automated testing and for users to understand the failure cause.",
+          "suggested_fix": "Specify a concrete message, e.g., `Error: Unable to resolve user home directory (os.homedir() returned empty).`"
+        },
+        {
+          "section": "FR-3 \u2013 OpenCode detection",
+          "category": "needs_clarify",
+          "problem": "Detection of the `opencode` executable on the PATH is said to use only the Node `fs` module, but on Windows the executable may be `opencode.exe`, `opencode.cmd`, or `opencode.bat`. The spec does not clarify how these extensions are handled.",
+          "why_it_matters": "Implementers might only check for a file named exactly `opencode`, causing false negatives on Windows and preventing installation for Windows users.",
+          "suggested_fix": "Explicitly state that on Windows the detection should check for any of `opencode.exe`, `opencode.cmd`, or `opencode.bat` in each PATH entry."
+        },
+        {
+          "section": "FR-3 \u2013 OpenCode install idempotence",
+          "category": "objective",
+          "problem": "The OpenCode adapter\u2019s `install()` is described as a no\u2011op when the shared folder is populated with the kit, but it also says the adapter \u201cnever overwrites kit content that is already current\u201d. However, the spec does not define how the adapter determines \u201ccurrent\u201d (e.g., checksum, timestamp, or just presence of `SKILL.md`).",
+          "why_it_matters": "Without a deterministic check, the adapter may incorrectly treat outdated or corrupted kit copies as current, leaving users with broken installations.",
+          "suggested_fix": "Define the idempotence check, e.g., verify that `SKILL.md` contains `name: sdd-multiagent-kit` **and** that its SHA\u2011256 hash matches the shipped version."
+        },
+        {
+          "section": "Edge Cases \u2013 Re\u2011runs and partial installs",
+          "category": "needs_clarify",
+          "problem": "The spec notes that a Ctrl\u2011C during `install()` may leave a partial destination folder and that a subsequent re\u2011run \u201cheals\u201d it, but it does not describe how detection or confirmation should behave when the folder exists but is incomplete.",
+          "why_it_matters": "Partial folders could cause `detect()` to report `installed: true` with a `location` that lacks required files, leading to false confidence that the trigger is enabled.",
+          "suggested_fix": "Specify that `detect()` must verify the presence of required files (e.g., `SKILL.md` and any adapter\u2011added files) and treat missing files as `installed: false`."
+        },
+        {
+          "section": "FR-1 \u2013 Non\u2011TTY handling",
+          "category": "needs_clarify",
+          "problem": "The spec says that on a non\u2011TTY stdin the key prompts **and** the Pakistani\u2011guide prompt are skipped, but it also repeats that key prompts require a TTY. It is unclear whether the guide prompt is also skipped when only the key prompts are skipped, or if it should still appear in a non\u2011interactive pipeline.",
+          "why_it_matters": "In CI pipelines where stdin is not a TTY, users might expect the guide prompt to be available via piped input; inconsistent behavior could cause confusion.",
+          "suggested_fix": "Clarify that *all* interactive prompts (keys and guide) are omitted when stdin is not a TTY, and that the guide can only be accessed in an interactive run."
+        },
+        {
+          "section": "Testability",
+          "category": "objective",
+          "problem": "The document lists many functional requirements and edge cases but does not provide concrete test vectors, e.g., sample input/output sequences, expected exit codes for each scenario, or a test harness description.",
+          "why_it_matters": "Without explicit test cases, reviewers cannot verify compliance automatically, reducing confidence that the implementation meets the spec.",
+          "suggested_fix": "Add a concise test matrix in the `tests` document (or within this spec) enumerating each user scenario, the simulated inputs, and the expected console output and exit code."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "mistralai/mistral-nemotron",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 8,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1 \u2014 `bin/setup-wizard.js`",
+          "category": "needs_clarify",
+          "problem": "The description of how the wizard handles non-TTY stdin is ambiguous. It states that key prompts are skipped, but it's unclear whether the wizard exits immediately or proceeds to tool detection/installation.",
+          "why_it_matters": "Non-TTY behavior must be unambiguous to ensure consistent behavior in automated environments.",
+          "suggested_fix": "Explicitly state whether the wizard exits after printing the reminder or proceeds to tool detection/installation."
+        },
+        {
+          "section": "FR-2 \u2014 Adapter interface",
+          "category": "needs_clarify",
+          "problem": "The spec does not define what happens if an adapter's `install()` or `confirmEnabled()` throws an error that is not an `Error` object (e.g., a string or number).",
+          "why_it_matters": "Error handling must be robust to avoid crashes or undefined behavior.",
+          "suggested_fix": "Specify that adapters must throw only `Error` objects and that the wizard will handle them as described."
+        },
+        {
+          "section": "FR-3 \u2014 Per-tool install locations",
+          "category": "needs_clarify",
+          "problem": "The spec does not clarify whether the OpenCode adapter's `install()` should fail if the shared `.claude/skills/sdd-multiagent-kit/` folder exists but contains non-kit files (e.g., leftover from a manual install).",
+          "why_it_matters": "Ambiguity in this case could lead to inconsistent behavior or data loss.",
+          "suggested_fix": "Explicitly state whether the OpenCode adapter should fail or overwrite in this scenario."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The spec does not address what happens if the user's home directory (`os.homedir()`) is a symlink or has unusual permissions.",
+          "why_it_matters": "Edge cases like symlinks or restrictive permissions could cause unexpected behavior.",
+          "suggested_fix": "Add a rule specifying how symlinks or unusual permissions in the home directory should be handled."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The spec mentions that the wizard checks `process.version` at startup but does not specify whether it checks for exact Node versions (e.g., 18.0.0) or just the major version (18.x).",
+          "why_it_matters": "Version checks must be precise to avoid compatibility issues.",
+          "suggested_fix": "Clarify whether the check is for Node 18.x or a specific minor/patch version."
+        },
+        {
+          "section": "Out of Scope (deferred)",
+          "category": "needs_clarify",
+          "problem": "The spec does not explain why the 'Guide for Pakistani users' is deferred to M4 while the slot is reserved in this milestone.",
+          "why_it_matters": "Readers may wonder why this content is split across milestones.",
+          "suggested_fix": "Add a brief justification for deferring the content while reserving the slot."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 6,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-1 \u2014 bin/setup-wizard.js.",
+          "category": "objective",
+          "problem": "The spec explicitly requires key collection during setup but specifies that keys are 'held in memory for the session and are never written to disk, echoed back, transmitted, or used by the wizard \u2014 the kit reads them from the process environment at runtime (the user sets them in their own environment, e.g. a shell profile or .env)'. Because Node exits upon wizard completion, keys held strictly in memory are discarded, rendering key entry completely non-functional for future kit executions.",
+          "why_it_matters": "Prompting users to input sensitive API keys into an interactive CLI tool when those inputs are discarded without persisting to `.env` or tool config creates a misleading UX and fails to configure the runtime environment.",
+          "suggested_fix": "Clarify the intent of key collection: either have the wizard offer to append/write key definitions to a local `.env` file / user shell profile (e.g. `~/.bashrc`), or explicitly specify that key entry in FR-1 is strictly an interactive prompt dry-run / format validation step, clarifying why in-memory storage is used."
+        },
+        {
+          "section": "FR-2 \u2014 Adapter interface (extension pattern, \u00a711.4).",
+          "category": "needs_clarify",
+          "problem": "The `kitPath` derivation algorithm specifies walking parent directories from the wizard's 'own location' until finding `package.json`, but does not explicitly require resolving symlinks via `fs.realpathSync` prior to walking.",
+          "why_it_matters": "When `sdd-setup` is installed globally (`npm install -g`), `bin/setup-wizard.js` is symlinked from the global `bin/` directory (e.g., `/usr/local/bin/sdd-setup`). Walking parent directories from `__dirname` without resolving symlinks will search `/usr/local` instead of the actual package directory, failing with exit code 2.",
+          "suggested_fix": "Specify that the directory walk must originate from the real directory path of `setup-wizard.js`, resolved via `fs.realpathSync(__filename)` or `fs.realpathSync(__dirname)`."
+        },
+        {
+          "section": "FR-2 \u2014 Adapter interface / FR-3 \u2014 Per-tool install locations",
+          "category": "needs_clarify",
+          "problem": "The spec states that the Antigravity adapter ensures `SKILL.md` contains the line `Invocation: /sdd` in its description, but does not specify whether this is added to the YAML frontmatter `description` property or inserted into the Markdown body.",
+          "why_it_matters": "Without an exact manipulation rule, adapter implementations may format `SKILL.md` differently, potentially invalidating YAML syntax or causing `confirmEnabled()` checks to fail across different implementations.",
+          "suggested_fix": "Explicitly specify the location: e.g., 'The Antigravity adapter updates the YAML frontmatter `description` field of `SKILL.md` to include ` (Invocation: /sdd)` if not already present, maintaining valid YAML frontmatter.'"
+        },
+        {
+          "section": "FR-3 \u2014 Per-tool install locations / OpenCode",
+          "category": "edge_case_coverage",
+          "problem": "OpenCode detection includes scanning `process.env.PATH`, but does not specify how to handle environments where `process.env.PATH` is `undefined` or null.",
+          "why_it_matters": "In minimal execution environments, containers, or custom subshells where `PATH` is unset, calling `.split()` on `process.env.PATH` will throw an unhandled `TypeError` and crash the setup wizard.",
+          "suggested_fix": "Specify that PATH scanning must safely fallback to an empty string if `process.env.PATH` is `undefined` (e.g., `(process.env.PATH || '').split(...)`)."
+        },
+        {
+          "section": "FR-2 \u2014 Adapter interface",
+          "category": "edge_case_coverage",
+          "problem": "The spec details error handling when `detect()` or `install()` throw exceptions, but does not specify handling when an adapter's `confirmEnabled()` method throws an unhandled error (e.g., `EACCES` when reading destination files).",
+          "why_it_matters": "Uncaught errors during confirmation could cause an unhandled promise rejection or crash the wizard process instead of recording the tool status as 'not confirmed' and setting exit status 1.",
+          "suggested_fix": "Explicitly specify that filesystem or runtime errors thrown inside `confirmEnabled()` must be caught, reported per-tool as unconfirmed, logged as a warning, and contribute to exit code 1."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_3.md",
+      "round": 3,
+      "pass": 2,
+      "overall_score": 4,
+      "scores": {
+        "clarity": 4,
+        "completeness": 5,
+        "edge_case_coverage": 5,
+        "internal_consistency": 3,
+        "testability": 4
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "Contradiction on Pakistani-guide prompt frequency: spec says offered 'every run regardless of whether the key is already set in env' but also 'on a non-TTY stdin the key prompts and the Pakistani-guide prompt are skipped' \u2014 these cannot both be true.",
+          "why_it_matters": "Implementation cannot satisfy both requirements; test cases will fail depending on which interpretation is chosen.",
+          "suggested_fix": "Clarify: the guide prompt is offered on every *interactive* (TTY) run, skipped on non-TTY. Remove 'every run' absolute language."
+        },
+        {
+          "section": "FR-1 / Edge Cases (Re-runs)",
+          "category": "objective",
+          "problem": "OpenCode install behavior contradicts itself: 're-running setup overwrites the kit files in place' vs 'OpenCode's install() is a no-op only when the shared folder is populated with the kit... it never overwrites kit content that is already current'.",
+          "why_it_matters": "Adapter implementer cannot know whether to overwrite or skip; re-run behavior becomes undefined for OpenCode.",
+          "suggested_fix": "Pick one semantics: either OpenCode install() always overwrites (like other adapters) or it never overwrites a kit-marked copy. State the chosen rule explicitly and remove the contradictory sentence."
+        },
+        {
+          "section": "FR-2 (confirmEnabled)",
+          "category": "objective",
+          "problem": "confirmEnabled() takes no arguments but must 're-check the filesystem at the tool's own location internally' \u2014 yet the location is only returned by detect(). No mechanism passes location to confirmEnabled().",
+          "why_it_matters": "Adapter cannot implement confirmEnabled() without storing location in module state, which breaks if multiple tools share a location (Claude Code/Desktop) or if detect() hasn't been called recently.",
+          "suggested_fix": "Change confirmEnabled(location) to accept the location string (as returned by detect/install) or require adapters to cache location internally and document the lifecycle contract precisely."
+        },
+        {
+          "section": "FR-5 / Cross-Reference",
+          "category": "objective",
+          "problem": "package.json files list includes LICENSE and README.md, but Cross-Reference table and Out of Scope explicitly defer LICENSE, README, CHANGELOG, CONTRIBUTING, docs/ to M4.",
+          "why_it_matters": "npm pack will fail or package will be incomplete if those files don't exist at M3 publish time.",
+          "suggested_fix": "Either move LICENSE/README to M3 scope, or remove them from the files list and accept that npm will warn (which is fine). Update spec to match reality."
+        },
+        {
+          "section": "FR-1 (Key entry rules)",
+          "category": "needs_clarify",
+          "problem": "Rejecting keys containing 'internal whitespace or control characters' is overly restrictive \u2014 real API keys often contain hyphens, underscores, dots, or base64 chars (+/=). 'Control characters' is reasonable but 'internal whitespace' is not.",
+          "why_it_matters": "Valid keys will be rejected, blocking users. The wizard performs 'no provider validation' but imposes its own arbitrary format rule.",
+          "suggested_fix": "Only reject control characters (char codes < 32, DEL). Allow any printable non-whitespace and whitespace characters; trim only leading/trailing for skip detection."
+        },
+        {
+          "section": "FR-2 (Adapter discovery)",
+          "category": "needs_clarify",
+          "problem": "If installers/ exists but contains zero .js files (only .md, .txt), wizard errors at startup (exit 2). But 'non-.js files are ignored \u2014 they may ship for other purposes'. These statements conflict: ignored files shouldn't cause a 'no adapters' error.",
+          "why_it_matters": "Documentation files in installers/ would break the wizard. The error condition should be 'no valid adapter exports found', not 'no .js files'.",
+          "suggested_fix": "Discover all .js files, attempt to require each, validate exports. Error only if zero valid adapters after scanning all .js files. Ignore non-.js files silently."
+        },
+        {
+          "section": "FR-3 (Antigravity detect)",
+          "category": "needs_clarify",
+          "problem": "detect() considers tool installed when ~/.agents/skills/ exists, but location is ~/.agents/skills/sdd-multiagent-kit/ when populated else null. The detection signal (parent dir) and location (child dir) are different paths \u2014 but detect() returns a single location field. What should location be when parent exists but child doesn't? Null per spec, but then installed=true, location=null \u2014 which matches the OpenCode pattern. However, the spec says 'location is the absolute path of the folder where the kit is installed (or will be installed)' \u2014 'will be installed' suggests it should return the child path even if empty.",
+          "why_it_matters": "Adapter implementer must guess whether location=null or location=child-path when kit not yet installed. This affects install() behavior and confirmEnabled().",
+          "suggested_fix": "Explicitly state: for Antigravity, detect() returns {installed: true, location: '~/.agents/skills/sdd-multiagent-kit/'} whenever ~/.agents/skills/ exists, regardless of whether the child folder exists. Null only if parent missing."
+        },
+        {
+          "section": "FR-1 (Non-TTY behavior)",
+          "category": "objective",
+          "problem": "Spec says 'on a non-TTY stdin the key prompts and the Pakistani-guide prompt are skipped... and the reminder is printed instead' but also 'piped input (e.g. echo all | sdd-setup) works for selection'. It's unclear whether tool selection prompt runs on non-TTY. If key prompts are skipped but selection runs, the wizard would prompt for tool selection without keys \u2014 but keys are collected first in the flow.",
+          "why_it_matters": "Execution flow on non-TTY is ambiguous: does it skip straight to tool selection? Does it exit? The reminder prints 'instead' of key prompts \u2014 but then what?",
+          "suggested_fix": "Define a clear non-TTY mode: skip all interactive prompts (keys, guide, tool selection), auto-select 'all' detected tools, print reminder, proceed to install. Or require TTY for the entire wizard and exit 2 on non-TTY. Pick one."
+        },
+        {
+          "section": "FR-1 (EOF handling)",
+          "category": "needs_clarify",
+          "problem": "'EOF on stdin: EOF with no pending input (e.g. a closed pipe) is treated as a user abort \u2014 exit 130; EOF after a complete selection proceeds normally.' What constitutes 'complete selection'? After tool selection? After key entry? After confirmEnabled?",
+          "why_it_matters": "Implementation cannot determine at which point EOF becomes 'proceed normally' vs 'abort'.",
+          "suggested_fix": "Define explicit states: EOF during key prompts \u2192 abort (130). EOF during tool selection \u2192 abort (130). EOF after tool selection (i.e., during install/confirm) \u2192 proceed (install runs unattended)."
+        },
+        {
+          "section": "FR-2 (kitPath derivation)",
+          "category": "needs_clarify",
+          "problem": "Walking parent directories until package.json with name: sdd-multiagent-kit whose sibling kit/ exists and contains SKILL.md. What if multiple such package.json exist (monorepo with nested packages)? What if symlinks cause cycles? 'Robust under npm's bin symlink' is hand-wavy.",
+          "why_it_matters": "kitPath resolution may pick wrong root in monorepos or fail on symlinked structures.",
+          "suggested_fix": "Specify: start from __dirname of setup-wizard.js, walk up. Stop at first match. Document that the package must not be nested inside another sdd-multiagent-kit package. Add a fallback: if walk reaches root, error exit 2."
+        },
+        {
+          "section": "FR-3 (OpenCode detect locations)",
+          "category": "needs_clarify",
+          "problem": "OpenCode detect checks ~/.opencode/ OR ~/.config/opencode/ OR opencode on PATH. But XDG Base Directory spec says config is $XDG_CONFIG_HOME/opencode (default ~/.config/opencode). ~/.opencode is non-standard. Why both?",
+          "why_it_matters": "False positives if user has ~/.opencode for unrelated purpose. Inconsistent with XDG.",
+          "suggested_fix": "Use only ~/.config/opencode (respecting XDG_CONFIG_HOME) and PATH executable. Drop ~/.opencode unless OpenCode officially documents it."
+        },
+        {
+          "section": "FR-1 (Masked entry with stdlib only)",
+          "category": "objective",
+          "problem": "Spec requires 'raw-mode stdin for masked key entry' using 'only the Node stdlib'. Node's readline does not support raw mode / character-by-character input without external modules (e.g., tty.setRawMode). This is not possible with stdlib alone in a portable way.",
+          "why_it_matters": "Implementation will either fail the 'stdlib only' constraint or fail the 'masked entry' requirement.",
+          "suggested_fix": "Either allow a tiny dependency (e.g., readline-sync or a 20-line raw-mode helper), or accept that masked entry on non-TTY is best-effort (e.g., readline with stdin.setRawMode if available, fallback to visible input with warning). Be honest about constraints."
+        },
+        {
+          "section": "FR-2 (Antigravity SKILL.md modification)",
+          "category": "objective",
+          "problem": "Adapter 'writes the canonical phrase, replacing any stale invocation line' \u2014 but install() copies the entire kit/ tree. Does the adapter modify the copied SKILL.md *after* copy? Or does it inject during copy? The spec says 'adapter-owned content layered on the kit-owned copy, not part of the shipped kit/ tree' \u2014 this implies post-copy mutation.",
+          "why_it_matters": "If install() is a simple recursive copy, the Antigravity adapter must then open the destination SKILL.md and rewrite the description line. This is a side effect not described in the install() contract.",
+          "suggested_fix": "Explicitly state: Antigravity install() copies kit/ tree, then reads destination SKILL.md, ensures description contains 'Invocation: /sdd' (replacing any existing Invocation: line), writes back. Other adapters do not modify copied files."
+        },
+        {
+          "section": "AC-1 (non-stub definition)",
+          "category": "needs_clarify",
+          "problem": "'non-stub (a stub = empty, placeholder, or TODO-only with no real implementation)' \u2014 'real implementation' is subjective. An adapter that returns {installed: false, location: null} for everything compiles and exports functions but is a stub.",
+          "why_it_matters": "Acceptance test cannot objectively verify 'non-stub'.",
+          "suggested_fix": "Define minimal functional requirements: detect() must perform at least one filesystem check; install() must attempt copy (or no-op with check); confirmEnabled() must read a file. Or drop 'non-stub' and rely on AC-3/AC-4 behavioral tests."
+        },
+        {
+          "section": "Edge Cases (Exit codes)",
+          "category": "needs_clarify",
+          "problem": "Exit code 1 = 'completed but one or more tools failed/not confirmed (partial success)'. But 'nothing selected' (no tools detected) exits 0. What if tools detected, user selects one, it fails \u2014 exit 1. What if user selects multiple, one fails \u2014 exit 1. What if user aborts during tool selection \u2014 exit 130. What if install() throws for all selected tools \u2014 exit 1. This is mostly clear but 'partial success' needs to include 'at least one tool succeeded' vs 'all failed'.",
+          "why_it_matters": "If all selected tools fail, is that exit 1 or exit 2? Spec says 'install failure... contributes to exit 1 \u2014 it never aborts the run' and 'exit 1 = completed but one or more tools failed/not confirmed'. So all-failed \u2192 exit 1. But exit 2 is 'configuration/usage error before any install'. The boundary is fuzzy.",
+          "suggested_fix": "Add: 'If at least one tool install() succeeds, exit 1 on any failure. If zero tools succeed (all fail), exit 1 (not 2) because install was attempted.'"
+        },
+        {
+          "section": "FR-5 (Node version check)",
+          "category": "needs_clarify",
+          "problem": "engines field in package.json is advisory; npm warns but doesn't block. Wizard duplicates check at runtime and exits 2 on Node < 18. Why both? Also, process.version returns 'v18.0.0' \u2014 parsing needed.",
+          "why_it_matters": "Redundant check; if npm is used, the engines warning suffices. If run via node directly, the check matters. Spec should justify duplication or remove one.",
+          "suggested_fix": "Keep runtime check (for npx/node direct runs), document that engines field is for npm consumers. Specify exact check: parse major version from process.version, exit 2 if < 18."
+        },
+        {
+          "section": "FR-3 (Claude Desktop detect)",
+          "category": "needs_clarify",
+          "problem": "Claude Desktop detect() verifies 'its app config directory' with per-platform paths. But 'location is the shared folder when populated, else null'. The shared folder is ~/.claude/skills/sdd-multiagent-kit/ (same as Claude Code). So detect() for Claude Desktop checks for Claude Desktop app config, but returns location of shared skill folder. This means Claude Desktop detect() can return installed=true, location=null even if Claude Code already installed the kit (shared folder populated). But then location should be non-null. The spec says 'location is the shared folder when populated, else null' \u2014 populated by whom? Either tool.",
+          "why_it_matters": "If Claude Code installed kit first, Claude Desktop detect() should see location=shared-path. But detect() only checks for Claude Desktop app config. It must also check shared folder.",
+          "suggested_fix": "Claude Desktop detect(): check app config exists \u2192 installed=true. Then check shared folder ~/.claude/skills/sdd-multiagent-kit/ populated \u2192 location=that-path else null. Same as OpenCode pattern."
+        },
+        {
+          "section": "General",
+          "category": "needs_clarify",
+          "problem": "No specification for the exact CLI usage text (--help), version output format, or prompt wording. 'Clear message' appears 5+ times without content.",
+          "why_it_matters": "Implementers will invent different messages; tests cannot verify exact output.",
+          "suggested_fix": "Add an appendix with exact strings: usage text, version format, each prompt, each reminder line, each success/failure message template."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "muse-glimmer-30b",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 6,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 5,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-2 Adapter interface",
+          "category": "objective",
+          "problem": "detect() location is described as 'absolute path of the folder where the kit is installed (or will be installed)' but then stated 'location is null whenever the kit is not yet installed even if the tool is present' and 'location is non-null only when the kit is actually installed'.",
+          "why_it_matters": "Implementers cannot know whether detect should return a future install path for an installed-but-not-yet-populated tool. This creates ambiguity for UI selection and for confirmEnabled expectations.",
+          "suggested_fix": "Remove 'or will be installed' and define location strictly as the kit install path, null when kit not installed. If a future path is needed, expose a separate field."
+        },
+        {
+          "section": "FR-3 OpenCode / Edge Cases Re-runs",
+          "category": "objective",
+          "problem": "General re-run rule states install overwrites kit files in place and is idempotent, while FR-3 explicitly exempts OpenCode from overwriting an existing kit-marked copy: 'OpenCode's install() is the one deliberate exception to the in-place re-run rule... it never overwrites kit content that is already current'.",
+          "why_it_matters": "Contradicts FR-2 install contract and the Re-runs edge case, making test expectations and idempotency guarantees tool-specific without a clear contract.",
+          "suggested_fix": "Make the OpenCode exception part of the formal FR-2 install contract and update the Re-runs rule to state the exception explicitly, with conditions for when a refresh is allowed."
+        },
+        {
+          "section": "FR-3 Claude Desktop install",
+          "category": "objective",
+          "problem": "FR-2 requires install(kitPath) to copy the entire kit/ directory tree into the tool's location. FR-3 says Claude Desktop install() 'copies only if the shared folder is not populated with the kit'.",
+          "why_it_matters": "Conditional copy conflicts with the unconditional copy contract and with the return-value expectation for install().",
+          "suggested_fix": "Clarify that install() may be a no-op when the destination is already populated, but still conforms to FR-2 by returning the destination path and performing an idempotent copy; document the condition in FR-2."
+        },
+        {
+          "section": "FR-1 Key collection",
+          "category": "needs_clarify",
+          "problem": "Wizard collects three API keys in one pass, holds them in memory, and spec states they are 'never written to disk, echoed back, transmitted, or used by the wizard'. No defined use for the collected values is given.",
+          "why_it_matters": "Purpose of collection is unclear, leading to potential dead code or confusion about whether validation or prompting is required.",
+          "suggested_fix": "Explicitly state the keys are collected only for user onboarding prompting and are discarded after the session, or remove collection if it serves no functional purpose."
+        },
+        {
+          "section": "FR-1 Pakistani guide prompt",
+          "category": "objective",
+          "problem": "Spec says the 'Guide for Pakistani users' Learn more prompt is 'offered every run regardless of whether the key is already set in env', but also states 'On a non-TTY stdin the key prompts and the Pakistani-guide prompt are skipped'.",
+          "why_it_matters": "'Every run' is false for non-TTY runs, creating implementation ambiguity.",
+          "suggested_fix": "Qualify the offer to 'every TTY run' and make the non-TTY skip explicit in FR-1."
+        },
+        {
+          "section": "FR-2 detect error handling",
+          "category": "needs_clarify",
+          "problem": "Detection errors are said to be caught and treated as installed:false, with examples EACCES, ENOTDIR, ELOOP, EMFILE listed, but the text also says 'Any filesystem error during detection... is caught'. Scope of 'any' vs listed errors is ambiguous.",
+          "why_it_matters": "Affects testability and robustness guarantees.",
+          "suggested_fix": "State that the listed errors are examples and that all filesystem errors are caught with the same warning + installed:false handling."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

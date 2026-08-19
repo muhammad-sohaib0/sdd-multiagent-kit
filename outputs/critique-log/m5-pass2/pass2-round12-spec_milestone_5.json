@@ -1,0 +1,126 @@
+{
+  "document": "spec_milestone_5",
+  "pass": 2,
+  "round": 12,
+  "critics": [
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 6,
+        "internal_consistency": 8,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-2 \u2014 Example milestone set",
+          "category": "needs_clarify",
+          "problem": "The requirement that \u201cevery FR has a corresponding workflow node, and every AC has a test row\u201d relies on identifier strings but does not specify how many FR/AC entries are expected, nor how to handle multiple FRs mapping to a single workflow node.",
+          "why_it_matters": "Without concrete guidance, implementers may produce an example set with too few identifiers or ambiguous many\u2011to\u2011one mappings, causing the acceptance criteria to be unverifiable.",
+          "suggested_fix": "State a minimum number of functional requirements (e.g., at least three FR\u2011<n> entries) and describe the allowed mapping patterns (one\u2011to\u2011one, many\u2011to\u2011one, etc.), including how to represent multiple FRs in the workflow traceability table."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The word\u2011count rule excludes markdown markers and code blocks but does not define how to count words inside tables, bullet lists, or inline code.",
+          "why_it_matters": "Implementers could either over\u2011count or under\u2011count, leading to false positives/negatives for the non\u2011stub requirement.",
+          "suggested_fix": "Add a brief algorithm for counting words in tables and lists (e.g., count only plain\u2011text tokens, ignore pipe characters and table delimiters) or explicitly exempt those structures from the 200\u2011word threshold."
+        },
+        {
+          "section": "FR-2 \u2014 Example milestone set (tasks file)",
+          "category": "objective",
+          "problem": "The spec mandates a blockquote note at the top of `tasks_milestone_1.md` but does not specify its required content.",
+          "why_it_matters": "Reviewers may interpret an empty blockquote or a generic placeholder as non\u2011compliant, causing unnecessary revision cycles.",
+          "suggested_fix": "Specify the exact wording or at least the intent, e.g., \u201c> **Note:** The following build steps are illustrative only and do not correspond to actual files in the repository.\u201d"
+        },
+        {
+          "section": "Platform\u2011agnostic rule",
+          "category": "needs_clarify",
+          "problem": "The rule forbids shell keywords like `export` but permits generic env\u2011var assignment notation; however the boundary between acceptable and prohibited syntax is vague.",
+          "why_it_matters": "Authors might inadvertently include disallowed shell\u2011specific commands, breaking the platform\u2011agnostic guarantee.",
+          "suggested_fix": "Provide concrete examples of allowed and disallowed env\u2011var assignments, e.g., allowed: `QUOTE_DATA_DIR=<path>`; disallowed: `export QUOTE_DATA_DIR=<path>`."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements / FR-2",
+          "category": "needs_clarify",
+          "problem": "The definition of 'faithful to the kit's shape' requires each file to contain 'at least' the required headings in 'relative order', but the spec does not define what 'relative order' means when additional headings are interleaved. It says 'required headings appear in the listed order; additional headings may be interleaved anywhere' \u2014 this is ambiguous: if an additional heading is inserted between two required headings, does the relative order of the required headings still hold? The phrase 'interleaved anywhere' suggests yes, but the phrase 'in their relative order' could be read as requiring the required headings to be contiguous. This ambiguity affects testability of AC-2.",
+          "why_it_matters": "Without a precise definition of 'relative order' under interleaving, a validator cannot deterministically check AC-2, and implementers may produce files that pass one interpretation but fail another.",
+          "suggested_fix": "Explicitly state: 'Required headings must appear in the listed sequence, but non-required headings may appear before, between, or after them. The relative order of the required headings is preserved regardless of interleaving.'"
+        },
+        {
+          "section": "Edge Cases & Rules / Non-stub",
+          "category": "needs_clarify",
+          "problem": "The word-count rule says 'counting whitespace-delimited tokens with markdown marker characters and code blocks excluded \u2014 a rough threshold, not a lint'. The exclusion of 'markdown marker characters' is underspecified: does it mean removing all markdown syntax (e.g., `#`, `*`, backticks) before tokenizing, or only excluding lines that are purely markers? Also, 'code blocks excluded' \u2014 are inline code spans excluded too, or only fenced blocks? This ambiguity makes the threshold non-reproducible.",
+          "why_it_matters": "The non-stub rule is a key acceptance gate (AC-1, AC-2). If the counting method is not precisely defined, different reviewers will compute different word counts, leading to inconsistent pass/fail decisions.",
+          "suggested_fix": "Define the counting algorithm precisely: 'Strip all markdown formatting (headings markers, bold/italic markers, inline code backticks, fenced code blocks, blockquote markers, list markers, links), then split on whitespace and count tokens. Fenced code blocks are removed entirely before tokenization; inline code spans are removed as well.'"
+        },
+        {
+          "section": "Edge Cases & Rules / Platform-agnostic",
+          "category": "needs_clarify",
+          "problem": "The rule permits 'Generic env-var assignment notation (e.g., QUOTE_DATA_DIR=<path>)' but forbids 'shell keywords like export/set' and 'shell expansion like $VAR in command examples'. The boundary is unclear: is `QUOTE_DATA_DIR=<path>` in a command example considered a shell assignment (which would be OS-specific) or a generic notation? The example given is itself a shell assignment syntax. This creates a contradiction: the rule allows what it also forbids.",
+          "why_it_matters": "Implementers of the tasks document cannot reliably distinguish allowed from forbidden notation, risking either over-restriction (making the example less useful) or under-restriction (violating platform-agnosticism).",
+          "suggested_fix": "Clarify: 'Env-var assignment notation is permitted only in prose or as a standalone line (e.g., a code block showing `QUOTE_DATA_DIR=<path>` as a conceptual placeholder), but must not be embedded in a shell command line that includes other shell syntax (e.g., `export QUOTE_DATA_DIR=<path> && python3 quote.py`).'"
+        },
+        {
+          "section": "Acceptance Criteria / AC-1",
+          "category": "objective",
+          "problem": "AC-1 states the brief must be 'directly invokable by the kit' and defines invocation as '/sdd run against the folder containing the brief, with the kit installed in a supported tool (per docs/GUIDE.md \u00a72; no additional configuration or prerequisites beyond the kit)'. However, the spec does not define what 'supported tool' means, nor does it specify how to verify that the kit actually runs successfully (e.g., exit code, expected output). The testable check only verifies file existence, headings, and non-stub \u2014 it does not verify invokability.",
+          "why_it_matters": "The acceptance criterion claims invokability but provides no testable method to confirm it. A file could pass all listed checks yet fail to run with the kit (e.g., due to a subtle format issue), making AC-1 untestable in practice.",
+          "suggested_fix": "Add a testable check: 'Run `/sdd` against the folder in a clean copy; the command must exit with code 0 and produce a milestone set under the expected output directory. If automated testing is not feasible in CI, document the manual verification step explicitly.'"
+        },
+        {
+          "section": "Functional Requirements / FR-2",
+          "category": "objective",
+          "problem": "FR-2 requires that 'every FR has a corresponding workflow node, and every AC has a test row \u2014 verified by string match: identifiers are exactly FR-<n> and AC-<n>'. However, the spec does not specify whether the workflow node must use the exact identifier `FR-<n>` in the traceability entry (e.g., `FR-1\u2192C1`) or whether the identifier may appear anywhere in the workflow document. The example given (`FR-1\u2192C1`) suggests a specific format, but the rule says 'appear at least once in the workflow's traceability section' \u2014 this is looser than the example implies. This ambiguity affects automated verification.",
+          "why_it_matters": "If the verification is by string match, the exact format matters. A workflow entry like `Feature FR-1 maps to C1` would pass the loose rule but fail the strict format implied by the example. Without a precise definition, the verification is non-deterministic.",
+          "suggested_fix": "Define the exact pattern: 'Each FR-<n> must appear as a standalone token (word-boundary match) in the workflow's traceability section, and each AC-<n> must appear as a standalone token in the tests' mapping section. The format `FR-<n>\u2192C<m>` is recommended but not required; any occurrence of the identifier as a standalone token satisfies the check.'"
+        },
+        {
+          "section": "Edge Cases & Rules / Internal consistency",
+          "category": "needs_clarify",
+          "problem": "The rule states 'Any tasks build steps are illustrative and reference files that need not exist in the repo' and 'Illustrative references to unshipped files are documentation, not dependencies'. However, it also says 'references to files that do ship (e.g., the brief) must use their real paths'. The spec does not define how to distinguish an illustrative reference from a real one when the same filename could be ambiguous (e.g., `quote.py` is illustrative, but what about `PLAN.md`? It ships, so it must use the real path \u2014 but the rule does not specify whether the path must be relative to the example folder or absolute).",
+          "why_it_matters": "Without a clear path-resolution rule, implementers may use inconsistent path formats, and reviewers cannot verify the 'real paths' requirement objectively.",
+          "suggested_fix": "State: 'References to files that ship must use paths relative to the example project root (e.g., `PLAN.md`, not `/abs/path/PLAN.md` or `../PLAN.md`). References to unshipped files (e.g., `quote.py`) are illustrative and may use any filename, but should be clearly marked as illustrative in the blockquote note.'"
+        },
+        {
+          "section": "Out of Scope",
+          "category": "objective",
+          "problem": "The Out-of-Scope section says 'A freshly kit-generated build for the example' is out of scope, but the User Scenario US-1 says 'running the kit against the brief generates your own set, so run it in a fresh copy/directory to avoid overwriting the shipped example'. This creates a tension: the spec forbids shipping a kit-generated build, but the user scenario encourages users to generate one. The spec does not clarify whether the kit-generated build is expected to be identical in structure to the hand-crafted one, or whether the hand-crafted one is a separate artifact that must not be regenerated. This ambiguity could lead to confusion about the relationship between the shipped example and user-generated output.",
+          "why_it_matters": "If a user runs the kit and gets a different structure than the shipped example, they may think the example is wrong. The spec should clarify that the shipped example is a representative, not a canonical output, and that structural differences are acceptable.",
+          "suggested_fix": "Add a note: 'The shipped example is a hand-crafted representative; a user-generated kit output may differ in structure or content. The example is intended to illustrate the workflow, not to be byte-identical to kit output. Any structural differences are acceptable as long as the required headings and traceability rules are met.'"
+        },
+        {
+          "section": "Acceptance Criteria / AC-4",
+          "category": "needs_clarify",
+          "problem": "AC-4 states 'The example contains no secrets (API keys, tokens, passwords, private URLs) and no external dependencies beyond the kit.' The term 'private URLs' is not defined. Does it mean URLs that are not publicly accessible (e.g., internal corporate links), or URLs that contain credentials (e.g., `https://user:pass@example.com`)? The spec does not provide a testable definition, making AC-4 verification subjective.",
+          "why_it_matters": "Without a clear definition, a reviewer cannot objectively determine whether a URL in the example violates AC-4. This could lead to false positives (flagging a public URL as private) or false negatives (missing a credential-bearing URL).",
+          "suggested_fix": "Define 'private URL' as 'any URL that requires authentication to access, contains embedded credentials, or points to a non-public network (e.g., localhost, 10.x.x.x, 192.168.x.x, or a domain not resolvable publicly).' Provide examples of allowed and disallowed URLs."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}

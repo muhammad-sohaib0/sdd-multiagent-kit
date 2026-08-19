@@ -1,0 +1,317 @@
+{
+  "document": "spec_milestone_2",
+  "pass": 2,
+  "round": 6,
+  "critics": [
+    {
+      "model": "mistralai/mistral-nemotron",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 7,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "The goal statement does not explicitly mention how the critique engine handles the transition from Pass 1 to Pass 2, particularly the adjudication of 'needs_clarify' issues.",
+          "why_it_matters": "This is a critical workflow detail that impacts the overall process flow and user understanding.",
+          "suggested_fix": "Add a sentence clarifying that Pass 2 includes adjudication of 'needs_clarify' issues from Pass 1."
+        },
+        {
+          "section": "User Scenarios",
+          "category": "objective",
+          "problem": "US-2 mentions 'full rigor' but does not define what constitutes 'perfect' beyond the overall_score of 10. The relationship between perfect scores and zero issues is not clearly explained.",
+          "why_it_matters": "Users need to understand the exact conditions under which the critique loop stops and escalates to a human.",
+          "suggested_fix": "Explicitly define 'perfect' as a score of 10 with zero issues, and clarify that a sub-10 score with zero issues is considered invalid."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "FR-1 does not specify how the script handles cases where the document or config paths are relative vs. absolute.",
+          "why_it_matters": "This could lead to runtime errors if the script is invoked from different working directories.",
+          "suggested_fix": "Specify that paths are treated as relative to the script's location unless they are absolute paths."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The edge case for 'All critics fail in a round' does not specify what happens if the first round fails. The escalation logic is only described for the second consecutive failure.",
+          "why_it_matters": "Users need to know the behavior for the first failure to understand the full escalation process.",
+          "suggested_fix": "Clarify that the first failure is logged and the session continues, with escalation only on the second consecutive failure."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "AC-3 mentions 'Pass 2 advances' but does not define what 'advances' means in this context.",
+          "why_it_matters": "The term 'advances' is ambiguous and could be interpreted differently by different users.",
+          "suggested_fix": "Replace 'advances' with a clear description, such as 'the agent proceeds to the next round, and eventually to the next document'."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements (FR-1, FR-2)",
+          "category": "objective",
+          "problem": "The top-level schema of the output file `pass{1|2}-round{N}-{document}.json` is ambiguous and contradictory between FR-1 and FR-2. FR-1 mentions recording `n_valid: 0` in the JSON, implying a top-level wrapper object, whereas FR-2 states `validate_critique.py` validates the file shape against the per-critic schema from PLAN.md \u00a74.3.",
+          "why_it_matters": "Implementers cannot write consistent serialization or validation logic without knowing whether the log file is a JSON array of critic objects or a JSON object envelope containing top-level metadata (such as `n_valid`) and a `critics` array.",
+          "suggested_fix": "Define the exact top-level JSON structure for critique log files (e.g. `{\"document\": \"...\", \"pass\": 1, \"round\": 1, \"n_valid\": 0, \"critics\": [...]}`) and specify how `validate_critique.py` validates both the envelope and individual critic entries."
+        },
+        {
+          "section": "Functional Requirements (FR-1)",
+          "category": "objective",
+          "problem": "Precedence between the CLI `--timeout S` flag, the per-model `timeout` field in `providers.yaml`, and the global 600s default is not defined.",
+          "why_it_matters": "When `--timeout` is supplied on the command line, it is unclear whether it overrides custom per-model timeouts in `providers.yaml` or merely sets the default fallback.",
+          "suggested_fix": "Specify explicit precedence order (e.g., per-model `timeout` in `providers.yaml` overrides CLI `--timeout`, which overrides the 600s default)."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The specification does not clarify whether failed or invalid critics are included in the output JSON log or entirely omitted.",
+          "why_it_matters": "Without specifying how failed attempts/critics are represented in the JSON output, log parsers and test suites cannot reliably assert on run outputs when critic failures occur.",
+          "suggested_fix": "Specify whether failed critics are appended to a `failed_critics` array with error details in the JSON envelope or omitted from the valid critics list."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 6,
+        "completeness": 5,
+        "edge_case_coverage": 6,
+        "internal_consistency": 5,
+        "testability": 5
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements / FR-1",
+          "category": "needs_clarify",
+          "problem": "Pass 2 Clarify re-check mechanism is architecturally ambiguous. The spec states the script 'has no cross-document state' and 'the re-check is performed by the agent during adjudication', but the script produces the critique scores that the agent would re-check. How does the agent's re-check feed back into the critique loop? Does the agent modify scores? Re-run the script? The data flow is undefined.",
+          "why_it_matters": "Without a defined mechanism, Pass 2 cannot actually 're-check Clarify consistency' as claimed. The sub-skill (FR-3) cannot implement adjudication without knowing how to incorporate Clarify answers into the critique process.",
+          "suggested_fix": "Define the exact data flow: either (a) the script accepts Clarify answers as input and embeds them in the Pass 2 prompt, or (b) the agent runs a separate validation step after the script completes and decides whether to invoke another round. Specify the interface."
+        },
+        {
+          "section": "User Scenarios / US-2",
+          "category": "objective",
+          "problem": "Contradictory definition of 'perfect': 'perfect = overall_score 10 \u2014 a 10-with-zero-issues is valid and also perfect; only a sub-10 score with zero issues is invalid'. This implies overall_score 10 with issues is valid but not perfect, yet 'perfect = overall_score 10' suggests any 10 is perfect.",
+          "why_it_matters": "The stopping condition for Pass 2 ('every currently-valid critic scores perfect') is ambiguous. Implementers cannot determine whether a critic scoring 10 with issues satisfies the stopping condition.",
+          "suggested_fix": "Define 'perfect' unambiguously: either (a) overall_score == 10 AND issues.length == 0, or (b) overall_score == 10 regardless of issues. Update US-2, FR-1, and AC-3 consistently."
+        },
+        {
+          "section": "Functional Requirements / FR-1",
+          "category": "needs_clarify",
+          "problem": "The 'single configurable sentence in the script's prompt-template constant' for Pass 1 vs Pass 2 rule difference is an implementation detail leaked into the spec. The spec should define what the difference IS, not HOW to implement it.",
+          "why_it_matters": "Specs should be implementation-agnostic. This leaks a design decision (prompt templating) that may not apply if the script uses a different prompting strategy.",
+          "suggested_fix": "Replace with: 'Pass 1 prompt instructs critics to score only objective dimensions (clarity, completeness, edge_case_coverage, internal_consistency, testability) and tag subjective issues as needs_clarify. Pass 2 prompt instructs critics to score all five dimensions with full rigor and apply Clarify consistency checks.' Remove the 'configurable sentence' detail."
+        },
+        {
+          "section": "Edge Cases & Rules / providers.yaml",
+          "category": "objective",
+          "problem": "No schema or validation rules for providers.yaml are specified. The spec references 'structure per spec_milestone_1 \u00a74.3' but that document is not provided. Critical fields (api_key_env, timeout, critic_slots ordering, model-specific max_tokens) are mentioned scattershot but not defined.",
+          "why_it_matters": "Both scripts 'HALT with clear error' on malformed providers.yaml (FR-1), but 'malformed' is undefined. Implementers cannot validate the config without a schema.",
+          "suggested_fix": "Include a minimal providers.yaml schema in this spec (or inline the required structure): required top-level keys, provider object fields, critic_slots array format, per-model overrides (timeout, max_tokens). Define validation rules for api_key_env references."
+        },
+        {
+          "section": "Edge Cases & Rules / Truncated response",
+          "category": "objective",
+          "problem": "Truncation repair algorithm is underspecified: 'it best-effort closes an unterminated string and appends the minimal closing brackets, trying every `{` as a candidate JSON start'. This is not deterministic and could produce different repairs for the same truncated output.",
+          "why_it_matters": "Non-deterministic repair means the same critic response could be validated differently across runs, violating reproducibility. The 'repaired object still passes the full validity check' is a necessary but insufficient guard.",
+          "suggested_fix": "Specify a deterministic repair algorithm (e.g., 'find the last complete JSON object by scanning backward from the end for balanced braces/brackets, then validate'). Or require that truncated responses are simply treated as invalid without repair, given the generous output caps."
+        },
+        {
+          "section": "Functional Requirements / FR-1 & FR-3",
+          "category": "needs_clarify",
+          "problem": "The interaction protocol between the critique-loop sub-skill (agent) and orchestrate_critique_loop.py (script) is unspecified. The script does one round per invocation; the sub-skill drives multi-round sessions. How does the sub-skill pass Clarify answers to Pass 2? How does it track round state? What data does it read from the script's output JSON to decide the next round?",
+          "why_it_matters": "FR-3 requires the sub-skill to 'instruct the agent how to invoke the orchestration script... and how to apply the stopping conditions' but the interface contract is missing. The sub-skill cannot be implemented without this.",
+          "suggested_fix": "Define the sub-skill \u2194 script contract: (1) script CLI invocation pattern for multi-round sessions, (2) script output JSON fields the sub-skill consumes (n_valid, scores, issues), (3) how Clarify answers are provided to Pass 2 (new CLI arg? stdin? file?), (4) how the sub-skill signals 'continue to next round' vs 'escalate'."
+        },
+        {
+          "section": "Edge Cases & Rules / All critics fail in a round",
+          "category": "objective",
+          "problem": "Escalation note format and destination are unspecified: 'prints an escalation note to the human rather than looping silently'. No format, no output stream (stdout/stderr/log), no structure for programmatic parsing.",
+          "why_it_matters": "The sub-skill (FR-3) must detect escalation to stop the session. If the note is just human-readable text on stdout, the sub-skill cannot reliably parse it. The script's exit code is 0 for n_valid==0, so exit code cannot signal escalation.",
+          "suggested_fix": "Specify: escalation is written to stderr as a single JSON line: {'escalation': true, 'reason': 'consecutive_zero_valid', 'round': N, 'document': '...'} and the script exits 0. The sub-skill watches stderr for this structure."
+        },
+        {
+          "section": "Edge Cases & Rules / Concurrency",
+          "category": "objective",
+          "problem": "No protection against concurrent invocations writing to the same output directory. Filename pattern 'pass{1|2}-round{N}-{document}.json' can collide if two agents run the same document+pass+round simultaneously.",
+          "why_it_matters": "In a multi-agent or CI environment, concurrent runs will corrupt each other's critique logs. The spec claims 'one document per invocation' but doesn't address isolation.",
+          "suggested_fix": "Add a unique run ID (timestamp + PID + random) to the filename, or require the caller to provide a unique --run-id that is incorporated into the output path. Specify that the output directory is per-run, not shared."
+        },
+        {
+          "section": "Acceptance Criteria / AC-3",
+          "category": "objective",
+          "problem": "AC-3 states 'Pass 2 advances only when every currently-valid critic scores perfect (or the round cap escalates)' but FR-1 states the script 'performs exactly one pass over exactly one document per invocation' and 'the round cap bounds the session, not a single run (the script accepts --round-cap for contract parity... but the cap itself is enforced by the critique-loop sub-skill's stopping logic)'. The script cannot enforce the stopping condition; only the sub-skill can. AC-3 conflates script and sub-skill responsibilities.",
+          "why_it_matters": "Testers cannot verify AC-3 by testing the script alone. The acceptance criterion must be split: script produces valid round output; sub-skill implements stopping logic.",
+          "suggested_fix": "Split AC-3 into AC-3a (script: produces valid round JSON with correct scores/issues per pass rules) and AC-3b (sub-skill: stops session when all valid critics score perfect or round cap hit, escalates on consecutive zero-valid rounds)."
+        },
+        {
+          "section": "Functional Requirements / FR-2",
+          "category": "needs_clarify",
+          "problem": "validate_critique.py validates 'shape only' but the required fields list includes 'scores (all five of clarity, completeness, edge_case_coverage, internal_consistency, testability)'. Pass 1 only scores objective dimensions \u2014 does the schema require all five fields to be present (with null/0 for subjective) or only the scored ones? The spec says 'the rubric dimensions themselves come from the schema' implying all five are always required.",
+          "why_it_matters": "If Pass 1 critiques omit subjective dimension scores, validate_critique.py will reject them as malformed. The schema must match the Pass 1 output.",
+          "suggested_fix": "Clarify: the critique schema requires all five score fields always. Pass 1 critics must populate all five (subjective dimensions can be 0 or null with a note). Or: the schema is pass-aware and validate_critique.py accepts --pass flag to validate accordingly. Specify which."
+        },
+        {
+          "section": "Edge Cases & Rules / Free-tier transport",
+          "category": "objective",
+          "problem": "Retry policy summary says 'transport/timeout/429 \u2192 \u22645 tries' but the detailed edge case list adds '5xx \u2192 backoff (8 \u00d7 attempt)'. 5xx is not mentioned in the summary. Also 'timeout counts as a transport failure' but the summary doesn't list timeout explicitly.",
+          "why_it_matters": "Inconsistent documentation leads to implementation gaps. A developer reading only the summary would miss 5xx and timeout handling.",
+          "suggested_fix": "Unify the retry policy statement: 'Transport failures (network errors, timeouts, HTTP 429, HTTP 5xx) \u2192 \u22645 tries with adaptive backoff: 429 uses 30s \u00d7 attempt; others use 8s \u00d7 attempt.' Remove the separate 'free-tier transport' bullet or make it consistent."
+        },
+        {
+          "section": "Edge Cases & Rules / Input/errors",
+          "category": "objective",
+          "problem": "Document validation only checks 'missing/unreadable/empty'. Does not specify behavior for: directory path, symlink to missing target, file too large to read into memory, non-UTF8 encoding, binary file.",
+          "why_it_matters": "The script 'HALTs with a clear error' but the error conditions are incomplete. Real-world usage will hit these cases.",
+          "suggested_fix": "Expand: 'If the document path is not a regular file, is not readable, is empty, exceeds a configurable max size (default 10MB), or is not valid UTF-8, the script HALTs with exit code 2 and a descriptive message.'"
+        },
+        {
+          "section": "Cross-Reference",
+          "category": "needs_clarify",
+          "problem": "The spec references PLAN.md \u00a74.3 for the critique schema, providers.yaml structure, and rubric dimensions, but PLAN.md is not provided. The spec is not self-contained.",
+          "why_it_matters": "Reviewers and implementers cannot verify AC-4 ('Output JSON matches the PLAN.md \u00a74.3 schema') or FR-4 ('structure per spec_milestone_1 \u00a74.3') without the referenced documents. This spec cannot be independently validated.",
+          "suggested_fix": "Inline the critique JSON schema (from PLAN.md \u00a74.3) and the providers.yaml structure (from spec_milestone_1 \u00a74.3) as appendices or embedded tables in this spec. Make the spec standalone."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 4,
+      "scores": {
+        "clarity": 5,
+        "completeness": 4,
+        "edge_case_coverage": 6,
+        "internal_consistency": 3,
+        "testability": 4
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "The Goal states Pass 2 over the five-doc set is run as five invocations, but does not specify how the agent maintains cross-document state or tracks the overall milestone completion across these independent invocations.",
+          "why_it_matters": "If each invocation is strictly independent, the agent has no programmatic way to know if all five documents have passed Pass 2, risking premature advancement to M3 or infinite loops if the agent loses track of the document set state.",
+          "suggested_fix": "Specify the state tracking mechanism (e.g., a manifest file, checking for the existence of passing JSON logs) the critique-loop sub-skill uses to determine when all five documents have successfully passed Pass 2."
+        },
+        {
+          "section": "User Scenarios / Functional Requirements",
+          "category": "internal_consistency",
+          "problem": "US-2 and FR-1 define 'perfect' as `overall_score` 10 with zero issues being valid, but the schema validity rule in FR-1 and Edge Cases states `overall_score < 10` with zero issues is invalid. This creates a contradiction: a score of 10 with zero issues is valid, but the rule does not specify if a score of 10 WITH issues is valid or invalid.",
+          "why_it_matters": "A critic could return `overall_score: 10` alongside a list of `needs_clarify` issues. The current rule (`< 10` with zero issues = invalid) does not cover this case, leaving the orchestrator's behavior undefined for `10` with issues.",
+          "suggested_fix": "Explicitly define the validity rule for all combinations of `overall_score` and `issues` length. For example: 'A response is invalid if unparseable, OR if `overall_score < 10` with zero issues, OR if `overall_score == 10` with >0 issues.'"
+        },
+        {
+          "section": "Functional Requirements (FR-1)",
+          "category": "needs_clarify",
+          "problem": "FR-1 specifies the script writes one JSON per round under `--out` as `pass{1|2}-round{N}-{document}.json`. It does not specify whether this file is overwritten if a round is re-run with the same parameters, or if it is appended/versioned.",
+          "why_it_matters": "If a round fails and is re-run, or if the agent accidentally invokes the same round twice, overwriting the previous log destroys the audit trail of the failed attempt, breaking the SDD principle of transparent logging.",
+          "suggested_fix": "Specify the file collision behavior. Either mandate append-only behavior (e.g., adding a timestamp suffix) or explicitly state that re-running a round overwrites the previous file and explain why this is acceptable."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "internal_consistency",
+          "problem": "The 'All critics fail in a round' rule states the session-level logic tracks consecutive non-progressing rounds and on the second consecutive one prints an escalation note. However, FR-1 explicitly states the script performs exactly one pass over one document per invocation and has no cross-document state.",
+          "why_it_matters": "If the script only runs one round per invocation, it cannot track 'consecutive' non-progressing rounds across multiple invocations without a state file. The spec does not define how this consecutive count is persisted between invocations.",
+          "suggested_fix": "Clarify how the 'consecutive non-progressing rounds' state is maintained across invocations. If it relies on the agent reading previous JSON logs, state this explicitly. If the script writes a state file, define its schema and location."
+        },
+        {
+          "section": "Acceptance Criteria (AC-1)",
+          "category": "testability",
+          "problem": "AC-1 requires the scripts to be 'non-stub' and defines a stub as empty, placeholder, or skeleton with no real implementation. This definition is subjective and untestable in a binary pass/fail sense.",
+          "why_it_matters": "A reviewer might consider a minimal but functional implementation a 'skeleton', while another might consider it complete. This ambiguity leads to inconsistent acceptance verdicts.",
+          "suggested_fix": "Replace the subjective 'non-stub' criteria with measurable requirements, such as 'The script must successfully execute against a mock providers.yaml and document, producing a valid JSON log matching the schema in AC-4.'"
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The 'Truncated response' edge case specifies output caps (NVIDIA NIM 8000, Google 8000, Ollama 12000) but does not specify if these caps are hard-coded in the script or configurable.",
+          "why_it_matters": "If hard-coded, changing models or providers in the future requires code changes, violating the config-driven principle established in FR-4. If configurable, the spec does not mention where this configuration lives.",
+          "suggested_fix": "Specify if the output caps are read from `providers.yaml` (e.g., a `max_tokens` key per model) or if they are hard-coded defaults that can be overridden by config."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_2.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 7,
+        "completeness": 6,
+        "edge_case_coverage": 8,
+        "internal_consistency": 7,
+        "testability": 5
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements \u2013 FR-1",
+          "category": "needs_clarify",
+          "problem": "The spec says the pass\u2011rule line is a \"single configurable sentence in the script's prompt\u2011template constant\" but does not specify where that constant lives or how it is configured.",
+          "why_it_matters": "Implementers may place the constant in the wrong module or make it immutable, causing Pass\u20111/Pass\u20112 behavior to diverge from the specification.",
+          "suggested_fix": "Add a subsection that names the file/module (e.g., `kit/scripts/prompt_templates.py`), the constant name (e.g., `PASS_RULE_SENTENCE`), and how to override it via a config key or comment."
+        },
+        {
+          "section": "Schema Definition \u2013 Required vs Optional fields",
+          "category": "objective",
+          "problem": "The schema lists `why_it_matters` and `suggested_fix` as optional per\u2011issue fields, but the description does not explicitly mark them optional, which could cause validators to reject valid critiques that omit them.",
+          "why_it_matters": "Validators may treat these fields as required, leading to false\u2011negative validation failures and unnecessary re\u2011critiques.",
+          "suggested_fix": "Amend the schema documentation to clearly label `why_it_matters` and `suggested_fix` as optional, and ensure the validation script treats them as such."
+        },
+        {
+          "section": "Output JSON Shape",
+          "category": "objective",
+          "problem": "The top\u2011level structure of the critique\u2011log JSON (e.g., presence of `n_valid`, `critics` array, timestamps) is not defined.",
+          "why_it_matters": "Without a concrete top\u2011level schema, test suites cannot reliably assert output shape, and different implementations may produce incompatible files.",
+          "suggested_fix": "Provide a precise top\u2011level schema definition that lists required fields (`document`, `round`, `pass`, `n_valid`, `critics`) and optional metadata, with type annotations."
+        },
+        {
+          "section": "Retry Policy \u2013 Backoff Timing",
+          "category": "needs_clarify",
+          "problem": "The backoff description \"30 \u00d7 attempt seconds\" for 429 and \"8 \u00d7 attempt seconds\" for other failures does not state whether the backoff is applied before the first retry or after each failed attempt.",
+          "why_it_matters": "Ambiguity can lead to off\u2011by\u2011one delay implementations, either over\u2011waiting (wasting time) or under\u2011waiting (risking further rate\u2011limit violations).",
+          "suggested_fix": "Specify that after a failed attempt, the script waits `30 * attempt` seconds (for 429) or `8 * attempt` seconds (for other failures) before issuing the next retry, where `attempt` starts at 1 for the first retry."
+        },
+        {
+          "section": "Logging of Final Failure Snippet",
+          "category": "needs_clarify",
+          "problem": "The spec mentions logging a short snippet of the critic's last raw response on final failure but does not define length or format.",
+          "why_it_matters": "Inconsistent logging makes automated debugging difficult and may expose sensitive content if not bounded.",
+          "suggested_fix": "Define a standard format, e.g., log the first 500 characters prefixed with `Critic <model> final failure snippet:` and ensure no API keys are included."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

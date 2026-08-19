@@ -1,0 +1,188 @@
+{
+  "document": "spec_milestone_5",
+  "pass": 1,
+  "round": 1,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements / Acceptance Criteria",
+          "category": "objective",
+          "problem": "FR-2 and AC-2 specify a five-document milestone set under 'examples/sample-project/outputs/milestones/milestone_1/', but do not specify the exact filenames required.",
+          "why_it_matters": "Automated tests or validators cannot objectively verify file existence without explicit filenames (e.g., whether they should be 'spec_milestone_1.md' vs 'spec.md').",
+          "suggested_fix": "Explicitly define the expected filenames in FR-2 and AC-2 (e.g., 'spec_milestone_1.md', 'plan_milestone_1.md', 'tasks_milestone_1.md', 'workflow_milestone_1.md', 'tests_milestone_1.md')."
+        },
+        {
+          "section": "Out of Scope",
+          "category": "needs_clarify",
+          "problem": "The item mentioning 'The reserved Guide for Pakistani users content (PLAN.md \u00a712)' relies on unstated external project context.",
+          "why_it_matters": "It introduces unexplained jargon into the specification, making scope boundaries confusing to external contributors.",
+          "suggested_fix": "Clarify the context of this restriction or rephrase it to refer generally to localized guide content outside the milestone scope."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "needs_clarify",
+          "problem": "FR-1 specifies a 'realistic, self-contained brief for a small project' but does not define the application domain or subject matter of the sample project.",
+          "why_it_matters": "Implementers lack guidance on what domain (e.g., CLI task manager, key-value store, log parser) should be created for the sample project.",
+          "suggested_fix": "Specify a concrete target domain for the example project brief in FR-1."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 8,
+        "internal_consistency": 6,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "The Goal states the example must include 'a build that follows from it', but the Out of Scope section explicitly excludes shipping the actual kit process output (the build).",
+          "why_it_matters": "This creates a contradiction regarding whether a runnable build artifact is part of the acceptance criteria for this milestone, making it unclear if the milestone is complete without it.",
+          "suggested_fix": "Clarify the definition of 'a build that follows from it' to specify whether this means a completed build artifact must be included, or if the 'Tasks' document outlining the build is sufficient to meet this goal."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "needs_clarify",
+          "problem": "FR-2 requires the example milestone set to be 'non-stub' and 'faithful', but provides no objective metric for what constitutes substantive content.",
+          "why_it_matters": "Without a measurable threshold, 'non-stub' is subjective and difficult to verify objectively during testing.",
+          "suggested_fix": "Define a minimum quantitative threshold for the example documents (e.g., minimum word count per document, or requirement to include at least 3 specific sections per file) to make 'non-stub' objectively testable."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "AC-2 requires the example milestone set to be placed under 'examples/sample-project/outputs/milestones/milestone_1/', but the Goal and FR-2 do not specify that the example must be for 'milestone_1' specifically.",
+          "why_it_matters": "The acceptance criteria restricts the location to milestone_1, but the requirements do not explicitly mandate this, leading to potential ambiguity during implementation.",
+          "suggested_fix": "Update FR-2 to explicitly state that the example milestone set must be for 'milestone_1' to align with AC-2."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 6,
+        "internal_consistency": 6,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements",
+          "category": "needs_clarify",
+          "problem": "FR-1 mentions that the brief can be run `/sdd` (or the critique engine) against it, but does not specify the exact command syntax, required arguments, or environment setup.",
+          "why_it_matters": "Implementers cannot reliably execute the example without precise invocation details, leading to confusion and potential failure to meet the acceptance criteria.",
+          "suggested_fix": "Add a concrete example command line (e.g., `./sdd run examples/sample-project/PLAN.md`) and note any required configuration or environment variables."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The clause \"Non-stub per the M4 Edge-Cases definition\" references an external definition that is not included or linked in this document.",
+          "why_it_matters": "Readers cannot verify whether the example meets the non\u2011stub requirement, making the rule unenforceable.",
+          "suggested_fix": "Provide a brief summary of the M4 Edge\u2011Cases definition or add a direct hyperlink to the relevant section in the M4 documentation."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "AC-2 specifies the example milestone set should exist under `examples/sample-project/outputs/milestones/milestone_1/`, which contradicts the current milestone (5) focus of this spec.",
+          "why_it_matters": "The path mismatch will cause reviewers or CI checks to look in the wrong location, leading to false failures.",
+          "suggested_fix": "Correct the path to `examples/sample-project/outputs/milestones/milestone_5/` or clarify why milestone\u202f1 is referenced here."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "needs_clarify",
+          "problem": "The term \"secrets\" in AC-4 is vague; it is unclear what constitutes a secret in the context of the example project.",
+          "why_it_matters": "Ambiguity may result in accidental inclusion of sensitive information or unnecessary removal of benign data.",
+          "suggested_fix": "Define \"secrets\" (e.g., API keys, passwords, private URLs) or reference a policy document that enumerates prohibited content."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 8,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "The goal states the example should demonstrate 'a build that follows from it', but the Out of Scope section says 'The actual kit process output for the example' is out of scope. This is contradictory: if the kit process output is not shipped, how can a build follow from the example?",
+          "why_it_matters": "Users may be confused about whether the example includes a build artifact or just the milestone documents. The spec must be unambiguous about what 'build' means in this context.",
+          "suggested_fix": "Clarify whether 'build' refers to the example milestone set itself (as a buildable outcome) or an actual compiled artifact. If the latter, remove the contradiction by explicitly stating that the build is not shipped but the example demonstrates how a build would follow."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "needs_clarify",
+          "problem": "FR-2 requires a 'completed five-document milestone set' but does not specify which milestone number (e.g., milestone_1) or whether it must be the first milestone. AC-2 specifies milestone_1, but FR-2 is ambiguous.",
+          "why_it_matters": "Ambiguity in the requirement could lead to implementers choosing a different milestone, causing inconsistency with acceptance criteria and the cross-reference table.",
+          "suggested_fix": "In FR-2, explicitly state that the example milestone set is for milestone_1, matching AC-2."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The rule 'Non-stub per the M4 Edge-Cases definition' references an external definition without quoting or summarizing it. This makes the requirement non-self-contained.",
+          "why_it_matters": "Readers of this spec may not have access to M4's definition, leading to misinterpretation of what constitutes a 'non-stub' example.",
+          "suggested_fix": "Either quote the M4 definition inline or provide a brief summary of what 'non-stub' means (e.g., no TODO, no lorem ipsum, substantive content)."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The rule 'The example is a small, dependency-free project (fits the simplicity rule)' references a 'simplicity rule' that is not defined in this document.",
+          "why_it_matters": "Without a definition, implementers may not know what qualifies as 'small' or 'dependency-free', leading to inconsistent example projects.",
+          "suggested_fix": "Define the simplicity rule in this spec or reference the exact location in M4 where it is defined."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "needs_clarify",
+          "problem": "AC-1 says the PLAN.md must be 'directly invokable by the kit', but the kit's invocation method (e.g., CLI command, API) is not specified. This makes the criterion hard to test.",
+          "why_it_matters": "Without a clear invocation method, testers cannot verify AC-1, and users may not know how to run the example.",
+          "suggested_fix": "Specify the exact command or method to invoke the kit against the PLAN.md, or reference the kit's documentation for invocation."
+        },
+        {
+          "section": "Cross-Reference",
+          "category": "objective",
+          "problem": "The cross-reference table lists paths for the spec, plan, tasks, workflow, and tests, but does not include the examples/README.md or the example PLAN.md, which are key deliverables of this milestone.",
+          "why_it_matters": "The cross-reference is incomplete, making it harder to locate all deliverables and verify completeness.",
+          "suggested_fix": "Add rows for `examples/README.md` and `examples/sample-project/PLAN.md` in the cross-reference table."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 4
+}

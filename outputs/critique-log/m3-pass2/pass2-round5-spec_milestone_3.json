@@ -1,0 +1,248 @@
+{
+  "document": "spec_milestone_3",
+  "pass": 2,
+  "round": 5,
+  "critics": [
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 6,
+        "completeness": 7,
+        "edge_case_coverage": 8,
+        "internal_consistency": 7,
+        "testability": 4
+      },
+      "issues": [
+        {
+          "section": "FR-1 (Key collection)",
+          "category": "needs_clarify",
+          "problem": "The behavior when a user skips entering a key is ambiguous \u2013 it says the wizard may keep an existing env value, but it never writes to the environment, nor does it explain how downstream tools will obtain the missing key.",
+          "why_it_matters": "If a required key is omitted, tools that depend on it will fail at runtime, and users receive no clear guidance on how to persist the variable.",
+          "suggested_fix": "Specify that the wizard only sets process.env for the current session, prints a clear reminder to export the variable permanently, and define that skipping a key results in the tool being marked as \"missing required secret\" during install/confirm steps."
+        },
+        {
+          "section": "FR-3 (OpenCode adapter)",
+          "category": "needs_clarify",
+          "problem": "The spec does not define what `detect()` should return for OpenCode regarding the `location` field, nor does it clarify the return value of `install()` when the shared Claude Code skill folder already exists.",
+          "why_it_matters": "Adapters may return inconsistent paths, causing duplicate copies or failures when the wizard expects a concrete destination path.",
+          "suggested_fix": "State that `detect()` for OpenCode returns `{ installed: true, location: <absolute path to ~/.claude/skills/sdd-multiagent-kit/> }` and that `install()` should return that same path without performing a copy if the folder already contains the kit files."
+        },
+        {
+          "section": "Pakistani\u2011guide slot (Edge Cases)",
+          "category": "objective",
+          "problem": "The guide link points to `docs/GUIDE.md#guide-for-pakistani-users`, but the docs directory is listed as out\u2011of\u2011scope for this milestone.",
+          "why_it_matters": "Running the wizard could display a dead or confusing link, breaking the user experience and violating the \u201cno secret values\u201d rule if the placeholder is mistaken for real content.",
+          "suggested_fix": "Clarify that the wizard should display a placeholder message like \"Guide forthcoming \u2013 see repository issue #XYZ\" when the file is absent, or make the link optional until the docs are added."
+        },
+        {
+          "section": "Testability",
+          "category": "needs_clarify",
+          "problem": "The specification references an external `tests_milestone_3.md` file but does not include any concrete test cases or acceptance test descriptions within the document itself.",
+          "why_it_matters": "Reviewers and CI pipelines cannot verify compliance without explicit test outlines, reducing confidence that the implementation meets the spec.",
+          "suggested_fix": "Add a concise test matrix in the spec (e.g., unit tests for each adapter\u2019s `detect`, `install`, `confirmEnabled`; integration test for the wizard flow with mocked filesystem and stdin)."
+        },
+        {
+          "section": "Internal consistency (Key reminder vs env usage)",
+          "category": "needs_clarify",
+          "problem": "FR-1 says the wizard prints the three env\u2011var names as a reminder, yet it also states that the kit reads them from the user\u2019s environment and the wizard never writes them.",
+          "why_it_matters": "The reminder may give a false impression that the wizard persists the values, leading to user confusion about where to set them.",
+          "suggested_fix": "Rephrase the reminder to explicitly say \"Remember to export these variables in your shell (e.g., `export NVIDIA_NIM_API_KEY=...`).\""
+        },
+        {
+          "section": "Re\u2011run behavior (Idempotency)",
+          "category": "needs_clarify",
+          "problem": "The spec claims adapters overwrite kit\u2011owned files but do not touch user files, yet it does not define how an adapter distinguishes kit\u2011owned from user\u2011added files.",
+          "why_it_matters": "Without a clear rule, adapters might unintentionally overwrite user customizations, violating the principle of non\u2011destructive updates.",
+          "suggested_fix": "Specify that adapters maintain a manifest of shipped kit files and only replace those; any other files in the target directory must be left untouched."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 5,
+      "scores": {
+        "clarity": 7,
+        "completeness": 6,
+        "edge_case_coverage": 5,
+        "internal_consistency": 4,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1 (Pakistani-guide slot) / Out of Scope",
+          "category": "objective",
+          "problem": "The wizard prints a link to `docs/GUIDE.md#guide-for-pakistani-users`, but `docs/` is explicitly deferred to M4 in the Out of Scope section. The shipped wizard would link to a file that does not exist in this milestone.",
+          "why_it_matters": "AC-2 says the slot ships; if the link target is created in M4 only, M3 either ships a broken link or is blocked on M4. Either way the spec is internally contradictory and unbuildable as written.",
+          "suggested_fix": "Either (a) move a minimal `docs/GUIDE.md` stub into M3, (b) change the link target to a placeholder URL the maintainer will replace, or (c) gate AC-2 on M4 delivery with an explicit dependency note."
+        },
+        {
+          "section": "FR-2 (Adapter interface)",
+          "category": "needs_clarify",
+          "problem": "`paths` is described as 'a single absolute filesystem path to the `kit/` directory' but the parameter name is plural, and the body says the adapter 'copies the kit skill content (`paths`)'. Naming and shape are not consistent.",
+          "why_it_matters": "Adapter authors will guess; one may pass an array, another an object `{src, files}`. Inconsistent signatures across four adapters defeat the extension pattern (\u00a711.4).",
+          "suggested_fix": "Rename to `kitRoot` (singular absolute path) and pin the type in the contract: 'kitRoot: string \u2014 absolute path to the kit directory; adapters must not assume any subpath structure beyond `kitRoot/skills/...` or whatever M1 actually ships.'"
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 Re-runs",
+          "category": "needs_clarify",
+          "problem": "'user files in that folder are not touched' is asserted but there is no definition of which files are kit-owned versus user-owned, and no mention of a manifest or allowlist used by the adapter to distinguish them.",
+          "why_it_matters": "Idempotency is unverifiable without a definition. Re-runs could either silently delete user notes or preserve them at the cost of leaving stale kit files. The Acceptance Criteria give AC for non-stub but not for safe overwrite semantics.",
+          "suggested_fix": "Specify: (a) the kit ships a manifest (e.g., `kit/MANIFEST.json`) listing owned files; (b) the adapter overwrites only listed files, leaves others alone, and reports any unexpected files at the destination as a warning."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 Masked input",
+          "category": "objective",
+          "problem": "The spec says 'Key entry is masked (no echo, stdlib raw-mode input)' and FR-5 says 'wizard uses only Node stdlib `readline`/`fs`'. Stock `readline.createInterface` + `rl.question` does not support masking; you must drop to `process.stdin.setRawMode(true)` and handle keypress events yourself. These are different APIs and the spec conflates them.",
+          "why_it_matters": "Implementations will either leak keys into scrollback (if they trust readline) or diverge from the no-dependencies rule (if they pull in `prompts`/`inquirer`). AC-1's 'non-stub' check cannot tell which path was taken.",
+          "suggested_fix": "State explicitly that masking is implemented via `process.stdin.setRawMode(true)` + `keypress` listener, with `readline` only used for the non-secret prompts. Add a testable invariant: 'after a key prompt, the captured key never appears in the terminal transcript.'"
+        },
+        {
+          "section": "FR-3 (Per-tool install locations)",
+          "category": "needs_clarify",
+          "problem": "Install paths use POSIX `~` shorthand and 'config directory' without enumerating Windows equivalents (`%USERPROFILE%`, `os.homedir()`, `appdata` differences). OpenCode's 'config directory, e.g. `~/.opencode/` or `~/.config/opencode/`' is presented as exemplary, not normative.",
+          "why_it_matters": "`engines.node >= 18` and the global install promise both target Windows users. A non-deterministic location means the extension pattern breaks the moment a fifth adapter is written following the spec literally.",
+          "suggested_fix": "Mandate `os.homedir()` as the resolver, fix the canonical XDG-style path per tool, and require the adapter to surface the resolved absolute path in `detect().location` so the wizard can echo it."
+        },
+        {
+          "section": "FR-3 \u2014 OpenCode adapter",
+          "category": "needs_clarify",
+          "problem": "OpenCode 'reads `.claude/skills/` directly' so the install is a no-op when the Claude Code copy exists. The spec does not specify what happens if Claude Code is not installed but OpenCode is \u2014 does the OpenCode adapter then perform a real copy into the shared `.claude/skills/` location? It says 'performing the copy only if it is absent', which implies yes, but that crosses an adapter's scope boundary.",
+          "why_it_matters": "An adapter that writes into another tool's canonical directory is a hidden coupling. The extension pattern's promise that 'kit content is untouched' is not violated, but the adapters are not actually independent \u2014 adding a fifth tool now requires reasoning about this cross-adapter side effect.",
+          "suggested_fix": "Rename the shared location to a kit-owned path (e.g., a symlink or a third 'shared' install step) or explicitly state that the OpenCode adapter is permitted to populate `~/.claude/skills/sdd-multiagent-kit/` and add a corresponding test."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 Skipped keys",
+          "category": "needs_clarify",
+          "problem": "The spec does not define what 'env value exists' means precisely: is an empty string considered an existing value (skip preserves it), and what is the warning text when the user skips a key with no env fallback? It also does not specify whether the wizard tracks which keys are unset and surfaces that as a per-tool warning before `confirmEnabled()`.",
+          "why_it_matters": "An empty-string env var will pass the 'existing value' check but cause runtime failures that look identical to a missing key. The wizard's 'no blocking' policy means users get no signal until a tool fails at use time, contradicting the goal of a clean one-pass setup.",
+          "suggested_fix": "Define: 'existing value' = env var present and non-empty; if present-but-empty, warn and re-prompt. Emit a per-tool pre-flight summary listing which required keys are unset before any install."
+        },
+        {
+          "section": "FR-2 \u2014 `detect()` / `confirmEnabled()`",
+          "category": "needs_clarify",
+          "problem": "'executable on PATH' is mentioned for OpenCode as an example, but `detect()` is not required to check the executable, only the config directory and/or the binary. `confirmEnabled()` for Antigravity is described as 'the copied SKILL.md description contains the invocation phrase `Invocation: /sdd`' \u2014 but who writes that phrase? Is it part of the shipped kit file, or is the adapter expected to inject it on copy?",
+          "why_it_matters": "If the adapter mutates SKILL.md, then the kit source is touched at install time, which conflicts with the 'kit content is untouched' rule in \u00a711.4. If it does not, then the shipped file must already contain the phrase, but that is not stated and AC-1 does not require it.",
+          "suggested_fix": "State that the kit ships the invocation phrase in `skills/sdd-multiagent-kit/SKILL.md` and adapters must not mutate kit files. Add AC: 'SKILL.md as shipped contains the literal line `Invocation: /sdd`.'"
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 Concurrent runs / non-TTY",
+          "category": "needs_clarify",
+          "problem": "No mention of (a) two `sdd-setup` invocations running concurrently, (b) running under `npm install` in a non-TTY (CI) environment, (c) disk-full or read-only target filesystem during `install()`. The masked-input rule also breaks under non-TTY stdin.",
+          "why_it_matters": "Out of Scope excludes a CI/non-interactive mode, but the spec also does not say what the wizard does if it is launched with stdin piped \u2014 it will hang on the first prompt or fail unmasked. Either case is a non-builder experience.",
+          "suggested_fix": "Add: 'If stdin is not a TTY, the wizard prints a clear error and exits 2 before any prompt.' Add a file lock or refuse-second-run safeguard for concurrent invocations, or document that concurrent runs are unsupported."
+        },
+        {
+          "section": "FR-5 (package.json) / FR-2 (relative require)",
+          "category": "needs_clarify",
+          "problem": "FR-5 declares no dependencies and FR-2 says adapters are loaded via 'relative `require` from `bin/` to `installers/`'. After `npm install -g`, the package is relocated under the global prefix and Node's require resolution is by-package, not by-relative-to-bin-entry. A naive `require('../installers/claude-code')` in `bin/setup-wizard.js` works, but only if the package layout is preserved \u2014 the spec should pin this contract.",
+          "why_it_matters": "This is the single most common `npm install -g` bug. AC-6 says '`sdd-setup` is runnable', which is necessary but not sufficient to prove the require resolves after a global install (where the cwd is the user's, not the package's).",
+          "suggested_fix": "Specify the exact require line: `require(path.join(__dirname, '..', 'installers', name))`, and add an AC: 'After a global install from a tarball, `sdd-setup --help` succeeds without `Cannot find module` errors.'"
+        },
+        {
+          "section": "FR-2 (install errors)",
+          "category": "needs_clarify",
+          "problem": "'A target path existing as a file rather than a directory' is listed as a thrown error from `install()`, alongside 'permission errors'. But the wizard does a kit-source pre-check before any prompt; symmetry would suggest a target pre-check before `install()` is invoked, rather than failing mid-copy.",
+          "why_it_matters": "Failing mid-copy leaves the destination in a partially populated state. The 're-runs are idempotent' rule then has to clean up partial state, which is not specified.",
+          "suggested_fix": "Move target-validation into `detect()` (or a separate precheck step) so the wizard can report all target problems before any copy begins, and the install itself either fully succeeds or does not start."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-2 \u2014 Adapter interface",
+          "category": "needs_clarify",
+          "problem": "The `install(paths)` return value is defined as 'the absolute destination path of the installed skill folder', but for OpenCode the install may be a no-op when the kit is already present. It is unclear whether the return value in that case is the existing path or null/undefined.",
+          "why_it_matters": "The wizard's success reporting and the acceptance criteria depend on knowing whether an install actually occurred. Ambiguity here can lead to incorrect user feedback and test assertions.",
+          "suggested_fix": "Specify that `install()` always returns the absolute destination path, even on a no-op (the existing path), and clarify that a no-op is still considered a successful install."
+        },
+        {
+          "section": "FR-3 \u2014 Per-tool install locations",
+          "category": "needs_clarify",
+          "problem": "For OpenCode, the spec says `detect()` checks for OpenCode itself (config dir and/or executable), but it does not specify whether `detect()` should also check if the shared `.claude/skills/sdd-multiagent-kit/` folder is already populated. The `install()` logic depends on this, but `detect()`'s contract is only about the tool's presence.",
+          "why_it_matters": "Without a clear contract, the wizard cannot decide whether to show OpenCode as 'installed' (tool present) vs 'already has kit' (folder populated). This affects the user selection UI and the install no-op logic.",
+          "suggested_fix": "Clarify that `detect()` only reports tool presence, and that the check for existing kit content is performed inside `install()` (as currently implied). Add an explicit note that `detect()` does not inspect the kit folder."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 Re-runs",
+          "category": "needs_clarify",
+          "problem": "The re-run rule says 're-running setup overwrites the kit files in place (the adapter copies the shipped set, replacing kit-owned files; user files in that folder are not touched)'. It is not defined what constitutes a 'kit-owned file' vs a 'user file' in the destination folder.",
+          "why_it_matters": "Without a clear definition, the implementation may either overwrite user modifications or fail to update stale kit files, leading to inconsistent behavior across re-runs.",
+          "suggested_fix": "Define the set of kit-owned files (e.g., all files under the skill folder except a whitelist of user-editable files like `SKILL.md`? Or all files shipped in `kit/`). Specify the exact overwrite policy."
+        },
+        {
+          "section": "FR-1 \u2014 bin/setup-wizard.js",
+          "category": "needs_clarify",
+          "problem": "The wizard prints a link to `docs/GUIDE.md`'s `#guide-for-pakistani-users` section, but `docs/` is listed as out of scope (deferred to M4). The link will be broken in this milestone.",
+          "why_it_matters": "A broken link in the wizard undermines the user experience and the acceptance criteria AC-2, which expects the slot to be offered. The spec should clarify whether the link is allowed to be a placeholder or if a minimal docs file must be created.",
+          "suggested_fix": "Either create a minimal `docs/GUIDE.md` with the heading and a placeholder, or explicitly state that the link may be a relative path that will resolve after M4, and that the wizard only prints the path without checking existence."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 Keys provided again",
+          "category": "needs_clarify",
+          "problem": "The spec says the user may skip a key to keep the existing env value, but if no env value exists, skipping warns and continues without that key. It does not specify whether the wizard should re-prompt or allow the user to go back and enter a key after skipping.",
+          "why_it_matters": "Users may accidentally skip a key and then realize they need it. Without a clear re-prompt or back-navigation mechanism, the wizard may force a full restart, which is poor UX.",
+          "suggested_fix": "Specify that after a skip with no env value, the wizard asks for confirmation (e.g., 'Are you sure?') or provides a way to re-enter the key before proceeding."
+        },
+        {
+          "section": "Acceptance Criteria \u2014 AC-1",
+          "category": "needs_clarify",
+          "problem": "AC-1 requires each adapter to export `detect()`, `install()`, and `confirmEnabled()` as functions, but it does not specify the exact function signatures or return types. The FR-2 section defines them, but AC-1 is vague.",
+          "why_it_matters": "Tests need precise contracts to verify the adapters. Without explicit signatures in AC-1, testers may write incorrect assertions or miss edge cases.",
+          "suggested_fix": "Rewrite AC-1 to reference FR-2 explicitly, e.g., 'Each adapter exports `detect()`, `install()`, and `confirmEnabled()` with the signatures and return types defined in FR-2.'"
+        },
+        {
+          "section": "Functional Requirements \u2014 FR-5",
+          "category": "needs_clarify",
+          "problem": "FR-5 states `files` includes `kit/` and `installers/`, but it does not specify whether `bin/` is included. Since `bin/setup-wizard.js` is the entry point, it must be included in the published package.",
+          "why_it_matters": "If `bin/` is not in `files`, the published package will be broken and `sdd-setup` will not work after `npm install -g`. This is a critical packaging detail.",
+          "suggested_fix": "Explicitly state that `files` includes `bin/`, `kit/`, and `installers/` (or use a glob like `bin/**`)."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 Exit codes",
+          "category": "needs_clarify",
+          "problem": "The exit code `1` is defined as 'completed but one or more tools failed/not confirmed'. It is not clear whether a skipped key (with no env value) that leads to a tool failing at runtime should cause exit code 1 at install time, or if the wizard should exit 0 because the install itself succeeded.",
+          "why_it_matters": "The exit code is used by CI and users to determine success. Ambiguity here can lead to false positives or negatives in automated checks.",
+          "suggested_fix": "Clarify that exit code 1 is only for install/confirm failures, not for potential runtime failures due to missing keys. The wizard should exit 0 if all chosen tools installed and confirmed, regardless of key presence."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 Ctrl-C / interrupt",
+          "category": "needs_clarify",
+          "problem": "The spec says Ctrl-C aborts cleanly without writing partial config and exits 130. It does not specify what happens if Ctrl-C is pressed during a tool's `install()` (e.g., mid-copy).",
+          "why_it_matters": "If the interrupt occurs during a file copy, the destination may be left in a partial state, violating the 'no partial config' promise. The spec should define how to handle interrupts during install.",
+          "suggested_fix": "Specify that the wizard should either block interrupts during `install()` (e.g., ignore SIGINT until the copy completes) or perform the copy to a temp directory and atomically rename, so an interrupt never leaves a partial install."
+        },
+        {
+          "section": "Functional Requirements \u2014 FR-1",
+          "category": "needs_clarify",
+          "problem": "The wizard collects keys in the order NVIDIA, Google, Ollama, but it does not specify whether the Pakistani-guide slot appears only once or if it can be re-shown if the user goes back. Also, the slot is 'directly beneath the NVIDIA key prompt' \u2014 it is unclear if it appears before or after the user enters the key.",
+          "why_it_matters": "The exact placement and behavior of the slot affect the user flow and testability. Ambiguity may lead to inconsistent implementations.",
+          "suggested_fix": "Specify that the slot appears immediately after the NVIDIA key prompt is displayed (before reading input) and is only shown once per run. If the user goes back (if back navigation is supported), it should not reappear."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 3
+}

@@ -1,0 +1,345 @@
+{
+  "document": "spec_milestone_2",
+  "pass": 2,
+  "round": 24,
+  "critics": [
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 6,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 5,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The orchestrate_critique_loop.py script is specified as a monolithic component handling prompt construction, HTTP concurrency, retry logic, schema validation, and atomic file I/O. This violates single responsibility and makes unit testing impractical without heavy mocking of provider HTTP calls.",
+          "why_it_matters": "A 600+ line script with embedded prompt templates, retry state machines, and JSON extraction logic will be fragile, hard to debug, and difficult to evolve. The spec should factor out the prompt builder, HTTP client with retry policy, response extractor, and validator into separate modules.",
+          "suggested_fix": "Decompose FR-1 into: (a) a prompt builder module that takes document, pass, schema and returns the prompt string; (b) an HTTP client module with the retry/backoff policy as a reusable class; (c) a response extractor module with the truncation/markdown repair logic; (d) a thin orchestration script that wires them together. Each module gets its own unit tests."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The Pass-1 vs Pass-2 rule line is described as 'a single configurable sentence in the script's prompt-template constant' but the actual instructions (score only 4 dimensions, emit testability:0, tag needs_clarify) cannot fit in one sentence. The spec also says 'the which dimensions enumeration lives with the schema, not duplicated here' yet the schema contains all five dimensions.",
+          "why_it_matters": "Critics will receive ambiguous or incomplete instructions. The prompt template must explicitly enumerate which dimensions are active for each pass, or the schema must version the dimension set per pass. As written, the maintainer must hand-edit a 'single sentence' to encode complex logic \u2014 a maintenance hazard.",
+          "suggested_fix": "Define two explicit prompt-template constants (PASS1_RULE_LINE, PASS2_RULE_LINE) in the script with the full instruction text. Remove the claim that the dimension list lives only in the schema; instead, the prompt template for each pass lists the active dimensions. Keep the schema as the canonical field definition, but the prompt controls pass-time behavior."
+        },
+        {
+          "section": "FR-1, FR-2",
+          "category": "objective",
+          "problem": "Both scripts embed a copy of the PLAN.md \u00a74.3 schema shape rules ('an embedded copy of the shape rules, kept in sync with that script'). The validate_critique.py checks shape only with 'no enum constraints', yet the critique schema requires category to be 'objective|needs_clarify'. The validator will accept invalid categories.",
+          "why_it_matters": "Drift between the two embedded copies is guaranteed. Invalid categories (e.g., 'subjective', 'bug') will pass validation and pollute the critique log. The enum constraint is a shape rule, not a semantic one, and belongs in the validator.",
+          "suggested_fix": "Extract the schema definition into a shared module (e.g., kit/schemas/critique_schema.py) that both scripts import. The validator must enforce the category enum. The orchestrator uses the same schema for its validity check (overall_score < 10 with zero issues). Single source of truth."
+        },
+        {
+          "section": "FR-1, FR-3",
+          "category": "objective",
+          "problem": "The script is stateless (one invocation = one round) but the stopping conditions (round cap, consecutive non-progressing rounds) require session-level state. The spec says the sub-skill enforces the cap and tracks progressing rounds, but does not specify how the sub-skill persists state across invocations or how it determines 'document changed' or 'issue triaged as genuinely new and actionable'.",
+          "why_it_matters": "The critique-loop sub-skill cannot implement the stopping logic without a defined state store (file, database, memory) and a protocol for the agent to record triage decisions. The spec hand-waves the boundary between the mechanical script and the agent's adjudication.",
+          "suggested_fix": "Add a session state file (e.g., outputs/critique-log/.session-{document}-{pass}.json) that the sub-skill reads/writes, tracking: round number, consecutive non-progressing count, last document hash, triage outcomes. The sub-skill updates it after each round; the script remains stateless. Define the file format in the spec."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The extractor's truncation repair 'tries every { as a candidate JSON start in text order \u2014 the first candidate that passes the full validity check wins'. The 'full validity check' is undefined. Is it the schema shape validation? The overall_score < 10 with zero issues rule? Both? The extractor cannot run the validator's shape check without the shared schema module (see issue 3).",
+          "why_it_matters": "Ambiguous repair logic leads to non-deterministic extraction. A bad repair that happens to parse and have required fields could be accepted, masking a truncated response. The repair must be deterministic and its acceptance criteria explicit.",
+          "suggested_fix": "Define the repair acceptance as: (1) JSON parses without error, (2) contains all required top-level fields (model, document, round, pass, overall_score, scores, issues, verdict), (3) scores object has all five keys with numeric values, (4) issues is an array. Do not apply the overall_score/zero-issues rule in the extractor \u2014 that is the orchestrator's validity check after extraction."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The per-model timeout override in providers.yaml is referenced but the structure is not specified. Does each model entry in providers.yaml get a 'timeout' field? Or is it under the provider? The spec says 'per-model timeout key in providers.yaml' but providers.yaml has providers[].models \u2014 is timeout a sibling of model name?",
+          "why_it_matters": "Implementers will guess the YAML structure, leading to config errors that the script validates at runtime (exit 2). The schema for providers.yaml should be fully specified in this document or normatively referenced.",
+          "suggested_fix": "Include the complete providers.yaml schema in this spec (or reference a schema file). Example: providers: [{name, key_env, models: [{name, timeout?}]}], critic_slots: [{provider, model}]. Make timeout optional per model, defaulting to global --timeout."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "Concurrent invocations for the same document+pass+round race with last-writer-wins on the output file. The spec explicitly calls this 'out of scope' but provides no mitigation (lockfile, atomic compare-and-swap, warning). The sub-skill or agent could accidentally double-invoke.",
+          "why_it_matters": "A race corrupts the critique log for that round. The round JSON is the source of truth for adjudication; corruption forces manual recovery. A simple lockfile (e.g., .pass{1|2}-round{N}-{document}.lock) with stale-lock detection would prevent this.",
+          "suggested_fix": "Add a lockfile mechanism: before writing, create <output-dir>/<filename>.lock with os.open(O_CREAT|O_EXCL). On success, write .tmp, os.replace, remove lock. On EEXIST, read lock PID, if process dead and lock older than 5 min, steal it; else exit 2 with 'concurrent invocation detected'. Document in FR-1."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The stagger delay '(slot_index-1)\u00d74s' applies only to the first call per slot. On retry (transport failure), all failed models retry concurrently after their individual backoff sleeps, potentially causing a thundering herd on the provider (especially for 429 retries where multiple models hit 429 simultaneously).",
+          "why_it_matters": "Free-tier providers rate-limit aggressively. Synchronized retries after a 429 burst will trigger another 429 wave, wasting the retry budget. The stagger should apply to each attempt, or retries should be jittered.",
+          "suggested_fix": "Apply a per-attempt jitter: on each retry, sleep backoff + random(0, 2s) before the call. Or, maintain the stagger slot order for retries by queuing retry attempts with the same (slot_index-1)\u00d74s offset. Simpler: add jitter to the backoff formula (e.g., 30\u00d7attempt + random(0,5) for 429)."
+        },
+        {
+          "section": "AC-3",
+          "category": "objective",
+          "problem": "AC-3 states 'Pass 2 advances only when every currently-valid critic scores perfect (or the round cap escalates) \u2014 a round with n_valid == 0 never advances'. But the script exits with code 3 for n_valid == 0. The sub-skill must distinguish exit 3 (no signal) from exit 0 (has signal) to implement 'never advances'. The spec does not define how the sub-skill maps exit codes to session logic.",
+          "why_it_matters": "The sub-skill cannot correctly implement the stopping condition without a clear contract: exit 0 \u2192 evaluate perfect scores; exit 3 \u2192 count as non-progressing, do not evaluate scores; exit 2 \u2192 abort session. This mapping is missing.",
+          "suggested_fix": "Add a 'Script Exit Code Contract' section to FR-1: 0 = round completed with \u22651 valid critic (sub-skill checks perfect scores); 3 = round completed with 0 valid critics (sub-skill treats as non-progressing, increments consecutive counter); 2 = fatal error (sub-skill aborts, surfaces error to human). The sub-skill's logic then follows deterministically."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The document says 'a document that is not valid UTF-8 is a config error \u2014 exit 2' but also lists 'missing/unreadable document' under exit 2 'internal error'. A non-UTF-8 document is an input data error, not a configuration error. The exit code is the same but the error message should distinguish them.",
+          "why_it_matters": "Operators need to know whether to fix the config (providers.yaml, env keys) or the input document. Conflating them in 'config error' misleads debugging. The spec should use 'input error' for document issues and reserve 'config error' for providers.yaml, env keys, CLI args.",
+          "suggested_fix": "Change the phrasing: 'a document that is not valid UTF-8 is an input error \u2014 exit 2 with message 'document {path} is not valid UTF-8''. Keep exit 2 for all pre-flight failures but categorize messages as 'config error' (providers.yaml, keys, --name) vs 'input error' (document)."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_2.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "Duplicate entries in `critic_slots` are allowed and not validated, which can lead to duplicate critic results and ambiguous ordering in the output JSON.",
+          "why_it_matters": "Consumers of the critique log (e.g., downstream adjudication scripts) assume a one\u2011to\u2011one mapping between slot position and critic; duplicates break that assumption and may cause nondeterministic behavior.",
+          "suggested_fix": "Either forbid duplicate slot entries during config validation or explicitly document how duplicates are handled and how they affect the `critics` array ordering."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The specification does not define how the subjective *testability* dimension should be scored in Pass\u202f2.",
+          "why_it_matters": "Without guidance, different critics may interpret the metric inconsistently, leading to non\u2011comparable overall scores and potential disputes during adjudication.",
+          "suggested_fix": "Add a brief rubric for the *testability* dimension (e.g., criteria, scoring range, examples) in the schema description or in the prompt template."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "Exit code\u202f3 (no valid critics) is described, but the downstream agent\u2019s reaction to this code is only loosely mentioned.",
+          "why_it_matters": "Agents need a deterministic contract: does exit\u202f3 trigger an immediate escalation, a retry of the whole round, or a different handling path?",
+          "suggested_fix": "Specify in the acceptance criteria or the sub\u2011skill description the exact agent behavior when the orchestrator exits with code\u202f3."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The relationship between the \u201cvacous\u2011truth\u201d case (no valid critics) and the round\u2011cap escalation is ambiguous.",
+          "why_it_matters": "If both mechanisms can trigger escalation, agents must know which message to surface to the human and whether the round\u2011cap still applies after a code\u202f3 exit.",
+          "suggested_fix": "Clarify whether the round\u2011cap count includes rounds that exited with code\u202f3 and how escalation messages are prioritized."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 9,
+        "internal_consistency": 6,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "internal_consistency",
+          "problem": "The script's atomic write behavior is specified as creating a temp file `<filename>.tmp` in the same directory followed by `os.replace`. However, the Edge Cases section explicitly states that concurrent invocations writing the same output file (same doc+pass+round) race with last-writer-wins and 'no locking is performed (out of scope)'.",
+          "why_it_matters": "Atomic writes do not prevent race conditions or data loss when multiple processes write to the same file concurrently; last-writer-wins still overwrites the file non-atomically from the application's perspective. Documenting both atomic writes and concurrent races without a resolution creates an ambiguous, self-contradictory specification that is impossible to satisfy cleanly.",
+          "suggested_fix": "Clarify that the atomic write is strictly for crash-safety against a single process interruption, and explicitly state that concurrent invocations targeting the exact same output file are unsupported and yield undefined file state (or enforce file locking if true atomicity across processes is desired)."
+        },
+        {
+          "section": "FR-1",
+          "category": "internal_consistency",
+          "problem": "The spec states that the script validates the whole panel before any model is called, and that a `--name` containing path separators or an empty `--name` is a config error (exit 2). However, the CLI definition lists `--name <id>` without explicitly stating it is a required argument.",
+          "why_it_matters": "If `--name` is omitted entirely, it is unclear whether this triggers the 'empty `--name`' validation rule (exit 2) or a standard CLI argument parsing error (which the spec also maps to exit 2, but via a different code path). This ambiguity makes the exact failure mode and error message difficult to test deterministically.",
+          "suggested_fix": "Explicitly mark `--name` as a required CLI argument in the usage string (e.g., `--name <id> (required)`) and specify that omission falls under the empty `--name` validation rule."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The spec dictates that the script's prompt embeds the rubric schema as a constant, synchronized with PLAN.md by the maintainer, and that the pass rule line is a 'single configurable sentence in the script's prompt-template constant'.",
+          "why_it_matters": "Describing a string literal inside a Python script as 'configurable' is a semantic stretch. It implies runtime configurability (e.g., via a CLI flag or external file) when it actually means 'editable in the source code'. This terminology might confuse implementers into looking for a non-existent configuration mechanism.",
+          "suggested_fix": "Rephrase to 'a single editable sentence in the script's prompt-template constant' or 'a constant string in the script' to avoid implying runtime configuration."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The spec states that the script validates the whole panel before any model is called, and that an empty `critic_slots` is a config error (exit 2). However, it does not explicitly define whether a missing `critic_slots` key in `providers.yaml` is treated as an empty list (and thus an exit 2 error) or as a malformed config error.",
+          "why_it_matters": "A missing key versus an empty list are two different structural states in YAML. Without explicit handling, an implementer might default a missing key to an empty list (triggering the empty list error) or raise a KeyError (triggering a generic malformed config error), leading to non-deterministic error messages.",
+          "suggested_fix": "Specify explicitly: 'a missing `critic_slots` key is treated as an empty list and triggers the empty `critic_slots` config error (exit 2)'."
+        },
+        {
+          "section": "FR-2",
+          "category": "objective",
+          "problem": "The spec states that `validate_critique.py` re-validates the shape against the PLAN.md \u00a74.3 schema, but it also says the script enforces 'an embedded copy of the shape rules, kept in sync with that script'. It does not specify whether the top-level `document` string in the JSON must exactly match the `--name` id passed to the orchestrator, or if it just validates that it is a string.",
+          "why_it_matters": "If `validate_critique.py` is meant to be used independently for verification tests, it needs to be clear whether it performs semantic checks (like matching the expected document id) or purely structural checks. Relying on 'shape only' implies it ignores the semantic link between the filename and the `document` field.",
+          "suggested_fix": "Explicitly state in FR-2 that `validate_critique.py` checks only the structural types and presence of fields, and does not validate semantic constraints like whether the `document` field matches the filename or the `--name` parameter used by the orchestrator."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "mistralai/mistral-nemotron",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 9,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "The description of the retry policy for unparseable responses is inconsistent. FR-1 states '\u22641 retry (\u22642 invalid attempts)', but the edge cases section says 'retried \u22641 time (\u22642 invalid attempts total)'\u2014these should be harmonized.",
+          "why_it_matters": "Ambiguity in retry logic could lead to implementation errors or unexpected behavior during critique loops.",
+          "suggested_fix": "Standardize the phrasing across both sections to avoid confusion. Example: 'Unparseable responses are retried once (\u22642 invalid attempts total).'"
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The description of the 'last raw text' snippet is unclear. It states 'up to 300 code points' but does not specify whether this includes or excludes whitespace normalization. Additionally, the example snippet format is not provided.",
+          "why_it_matters": "Developers need precise guidance on how the snippet is generated to ensure consistent logging and debugging.",
+          "suggested_fix": "Clarify the exact steps for generating the snippet, including whether whitespace normalization is applied before or after truncation. Provide an example snippet format."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "FR-1 mentions that the script 'enforces the response schema validity rule' but does not explicitly state whether this includes semantic validation (e.g., `overall_score < 10` with zero issues). The edge cases section later clarifies this, but the FR should be self-contained.",
+          "why_it_matters": "Readers should not need to cross-reference sections to understand validation rules. This could lead to misinterpretation.",
+          "suggested_fix": "Explicitly state in FR-1 that semantic validation (e.g., `overall_score < 10` with zero issues) is enforced, and reference the edge cases section for details."
+        },
+        {
+          "section": "User Scenarios",
+          "category": "needs_clarify",
+          "problem": "US-2 states that Pass 2 're-checks Clarify consistency during adjudication,' but it is unclear whether this re-check is automated or manual. The later description in FR-1 suggests it is manual, but this should be clarified.",
+          "why_it_matters": "Ambiguity in the adjudication process could lead to inconsistent application of Clarify checks.",
+          "suggested_fix": "Explicitly state in US-2 that the re-check is performed manually by the agent during adjudication, as described in FR-1."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The description of the 'round cap' is inconsistent. The edge cases section states 'default 25 per pass,' but FR-1 says 'default 25' without specifying the scope. Additionally, the behavior when `--round-cap 0` is set is not clearly defined.",
+          "why_it_matters": "Inconsistent descriptions could lead to confusion about the round cap's scope and behavior.",
+          "suggested_fix": "Clarify in both sections that the round cap is per pass and that `--round-cap 0` disables the cap entirely. Example: 'The round cap is per pass, with a default of 25. Setting `--round-cap 0` disables the cap.'"
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_2.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 6,
+        "completeness": 6,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "FR-1 is a single 800+ word bullet covering CLI surface, prompt construction, concurrent execution, stagger, retry policy, schema enforcement, output writing, atomicity, pre-validation, and exit codes. The same bullet is both the spec and the contract; reviewers cannot locate the rule for any one of those concerns without re-reading the whole thing.",
+          "why_it_matters": "Implementation, review, and test design all become error-prone. Sub-bullets (CLI / prompt / execution / retry / output / errors) would let each sub-concern be reviewed and verified in isolation.",
+          "suggested_fix": "Split FR-1 into FR-1.a (CLI surface), FR-1.b (panel loading + pre-validation), FR-1.c (prompt + rule line), FR-1.d (concurrency + stagger), FR-1.e (retry policy), FR-1.f (output JSON + atomic write), FR-1.g (exit codes)."
+        },
+        {
+          "section": "US-2 / FR-1 / Edge Cases",
+          "category": "objective",
+          "problem": "Pass-2 stopping condition is 'every currently-valid critic scores perfect' where 'perfect = overall_score 10 \u2014 a 10-with-zero-issues is valid and also perfect; only a sub-10 score with zero issues is invalid.' But Pass-2 critics may still emit `needs_clarify` issues (the category is pass-independent). It is not stated whether a 10-with-needs_clarify-issues counts as 'perfect' for the stopping condition, or whether those issues must be resolved first.",
+          "why_it_matters": "If 10-with-needs_clarify counts as perfect, the agent can advance to the next document while unresolved needs_clarify issues are still on the board. If it does not, the stopping condition is unreachable whenever a critic tags a subjective issue, because nothing in Pass 2 resolves them \u2014 only the agent (via a future pass or external action) can.",
+          "suggested_fix": "State explicitly: either (a) 'perfect for stopping = overall_score 10 regardless of issues' and clarify how unresolved needs_clarify are handled, or (b) 'perfect = overall_score 10 AND zero issues' (which would mean needs_clarify must be triaged to empty before the session can advance)."
+        },
+        {
+          "section": "Edge Cases \u2014 All critics fail in a round",
+          "category": "objective",
+          "problem": "An all-fail round (n_valid == 0) is stated to 'never count as advancement.' A non-progressing round is one 'where the document did not change in response to it or it surfaced no genuinely new actionable issue.' An all-fail round satisfies the second clause vacuously, so it is non-progressing. Two all-fail rounds back-to-back therefore satisfy the 'second consecutive non-progressing round' trigger and would cause the sub-skill to escalate to the human \u2014 at the same time the orchestrator already printed 'escalation: round produced no valid critics' to stderr. The doc uses the word 'escalation' for two different paths without specifying precedence.",
+          "why_it_matters": "Without a precedence rule, the sub-skill may either (a) double-escalate with redundant messages, or (b) miss the more severe case. The behavior under repeated transient provider outages (a plausible real failure mode) is undefined.",
+          "suggested_fix": "Add: 'An all-fail round (n_valid == 0) does not count toward consecutive-non-progressing escalation; the per-round stderr note is the only escalation signal for that round. Two *successful* but non-progressing rounds back-to-back trigger the session-level escalation.'"
+        },
+        {
+          "section": "FR-1 \u2014 Pass 1 rule line",
+          "category": "objective",
+          "problem": "The spec instructs Pass-1 critics to emit `testability: 0` because testability is out of Pass-1 scope. 0 is a valid score value in the 0-10 range, so downstream consumers (the agent's triage, the validate_critique.py script, future aggregation) will treat it as a real '0/10 \u2014 failing' score unless they know the Pass-1 convention. The '0 = not assessed' sentinel is a convention enforced only by the prompt and by a comment, not by the schema or validator.",
+          "why_it_matters": "If a future model or a future version of validate_critique.py is unaware of the convention, it will read 0 as 'testability is 0/10', which is incorrect and will skew any aggregated scoring or reports. The doc says validate_critique.py does 'shape only, no enum constraints,' so it cannot distinguish 0-as-sentinel from 0-as-score.",
+          "suggested_fix": "Either (a) move the sentinel to a separate field, e.g. `testability_assessed: false` plus an omitted `testability`, or (b) define an explicit `not_assessed` value distinct from 0 and constrain it in the schema, and update validate_critique.py to enforce it."
+        },
+        {
+          "section": "FR-1 \u2014 Duplicate slot entries",
+          "category": "objective",
+          "problem": "Duplicates in `critic_slots` are explicitly not validated; 'a duplicated slot simply runs twice (config-author responsibility).' The output JSON schema does not document what happens: do duplicate slot entries produce two entries in the `critics` array (ordered by 1-based slot position), or does the script deduplicate? Does each duplicate count separately toward `n_valid`?",
+          "why_it_matters": "If duplicates run twice, two separate API calls are made (billed twice, may 429 twice, two separate results in the JSON). If they count as one critic for the stopping condition but two for n_valid, the stopping condition arithmetic breaks. The 'config-author responsibility' hand-wave leaves the actual behavior undefined.",
+          "suggested_fix": "Choose a behavior and specify it: (a) reject duplicates as a config error (exit 2), or (b) allow them and document that each duplicate occupies a separate slot position, runs independently, and counts independently toward n_valid and the stopping condition (which would mean a duplicated model can satisfy the 'all valid critics perfect' condition more than once \u2014 a footgun)."
+        },
+        {
+          "section": "FR-1 \u2014 Schema source of truth",
+          "category": "objective",
+          "problem": "The critique prompt embeds 'the PLAN.md \u00a74.3 rubric schema \u2014 held in the script as a constant, synchronized with PLAN.md by the maintainer; the script does not read PLAN.md at runtime.' The validation script `validate_critique.py` also has its own copy of the shape rules. There are now three copies of the schema (PLAN.md, the orchestrator's prompt constant, validate_critique.py) maintained by hand, with no automated drift detection.",
+          "why_it_matters": "Any change to PLAN.md \u00a74.3 must be made in three places. Drift between the three is silent and the orchestrator's prompt and the validator can disagree on what a valid response looks like \u2014 a critic that emits a shape the prompt allows and the validator rejects, or vice versa.",
+          "suggested_fix": "Generate the prompt constant and the validator's shape rules from a single machine-readable source (e.g., a JSON Schema in PLAN.md \u00a74.3 that the script and validator both load), or at minimum add a CI check that the three copies are textually identical."
+        },
+        {
+          "section": "FR-3 / AC-5",
+          "category": "objective",
+          "problem": "FR-3 says the sub-skill 'instructs the agent how to invoke the orchestration script... how to read the resulting JSON, how to triage issues (objective \u2192 resolve; needs_clarify \u2192 compile the list; false positive \u2192 reject with reason), and how to apply the stopping conditions.' AC-5 repeats the same words almost verbatim. There is no specification of the sub-skill's actual content, no acceptance test that verifies the agent follows it correctly, and no definition of what makes an issue a 'false positive' (which the agent is supposed to reject 'with reason').",
+          "why_it_matters": "AC-5 is not a test; it is a restatement of FR-3. The sub-skill is the most behavior-defining artifact in this milestone (it owns the stopping logic and the consecutive-non-progressing escalation), and its specification is two sentences.",
+          "suggested_fix": "Add a content outline for the sub-skill: e.g., sections for (1) invocation template, (2) JSON parsing and field meanings, (3) triage decision tree with explicit definitions of 'objective' / 'needs_clarify' / 'false positive' (false positive = issue does not reflect the document's text, with a concrete example), (4) stopping-condition algorithm including consecutive-non-progressing tracking, (5) escalation message format."
+        },
+        {
+          "section": "FR-2 \u2014 Schema constraints",
+          "category": "objective",
+          "problem": "FR-2 says validate_critique.py does 'shape only, with no enum constraints' \u2014 so it does not check that `pass` is 1 or 2, that `round` is a positive integer, that `verdict` is 'pass' or 'needs_revision', that `category` is 'objective' or 'needs_clarify', or that `overall_score` is in 0-10. These are all values that, if malformed, would corrupt the session's logic (e.g., a `pass: 3` would be accepted by the validator but break the filename pattern).",
+          "why_it_matters": "The 'shape only' rule was probably chosen to keep validate_critique.py independent of the rubric's content rules, but the *envelope* constraints (`pass` \u2208 {1,2}, `round` positive int, `verdict` \u2208 {pass, needs_revision}, `category` \u2208 {objective, needs_clarify}) are protocol-level and should be enforced somewhere.",
+          "suggested_fix": "Add an explicit list of envelope-level enum/range constraints that validate_critique.py does enforce (e.g., `pass \u2208 {1, 2}`, `round \u2265 1`, `verdict \u2208 {pass, needs_revision}`, `category \u2208 {objective, needs_clarify}`, `overall_score \u2208 [0, 10]`), while keeping rubric-dimension scoring rules out of scope."
+        },
+        {
+          "section": "FR-1 \u2014 Pre-validation",
+          "category": "objective",
+          "problem": "Pre-validation rejects a `--name` that 'contains path separators or is empty,' but says nothing about other filename-hostile characters (NUL, control chars, names that are reserved on Windows like CON/PRN/AUX, names exceeding the filesystem limit, names that would be hidden files starting with '.', names with shell metacharacters that could break tooling downstream).",
+          "why_it_matters": "A `--name` like '..' or a name containing NUL would pass the spec's pre-validation and either break the atomic write (NUL in filename) or produce a JSON in an unintended location ('..' in the name plus the `outputs/critique-log/` directory could still land somewhere surprising).",
+          "suggested_fix": "Either constrain `--name` to a regex like `^[A-Za-z0-9_-]+$` and reject otherwise, or list the full set of forbidden characters and conditions."
+        },
+        {
+          "section": "Edge Cases \u2014 Atomic write",
+          "category": "objective",
+          "problem": "Atomic write is 'temp file <filename>.tmp in the same directory, then os.replace.' The spec does not say what happens if the temp file already exists (from a prior crash). On most platforms os.replace will overwrite, but a stale temp from a previous interrupted run could mask a real failure if its size is similar to a valid JSON and the user inspects the directory after a crash.",
+          "why_it_matters": "Minor, but the spec is otherwise extremely precise about atomicity. Leaving the temp-file-stale behavior unspecified is a small inconsistency in rigor.",
+          "suggested_fix": "Add: 'If <filename>.tmp exists from a prior crash, the script overwrites it (os.replace semantics) and the prior partial content is discarded.'"
+        },
+        {
+          "section": "Edge Cases \u2014 Concurrency / stagger wording",
+          "category": "needs_clarify",
+          "problem": "'Stagger is a start-delay, not serialization, so the round still runs in parallel' is stated next to 'the first call per slot is staggered by (slot_index-1)\u00d74s.' With 7 slots at 4s each, the last slot starts at t=24s. By then, the first slot may have already returned and been retried. Whether that counts as 'still in parallel' is a matter of framing, not fact \u2014 the panel is not concurrent for that 24s window.",
+          "why_it_matters": "A reader of the spec will form a mental model of the round's wall-clock. The doc elsewhere says 'the round's wall-clock is bounded by the slowest model's budget, not the sum \u2014 worst case per model \u2248 5 \u00d7 per-call budget + backoff + stagger.' That formula assumes stagger is added to the slowest model. For a 7-slot panel and a 600s default timeout, the worst-case round wall-clock is ~3000s + 300s (backoff) + 24s (stagger) \u2248 3324s, which is much larger than a casual reader of 'still in parallel' would assume.",
+          "suggested_fix": "Either rephrase 'still in parallel' to 'calls to different slots overlap' (which is true) and call out the stagger budget separately in the wall-clock formula, or reduce the stagger so the parallel-overlap window is unambiguous."
+        },
+        {
+          "section": "Edge Cases \u2014 'no secrets' rule and snippet logging",
+          "category": "objective",
+          "problem": "The 'no secrets' section says keys are 'never logged, embedded in prompts, or written to any file.' The snippet logging rule says 'the snippet is the critic's response text, which cannot contain keys (keys travel only in request headers/URLs, never in the prompt).' The claim that keys 'cannot' be in the response text is too strong: an upstream proxy or gateway could echo the request URL (including a `?key=...` query parameter) into the response body on a misconfiguration, and the snippet would then log the key.",
+          "why_it_matters": "The 'cannot contain keys' claim is an invariant the spec is asserting about external systems. A spec should not assert invariants it cannot enforce, especially around secrets.",
+          "suggested_fix": "Soften to 'the snippet is the response text. To reduce key-leakage risk from misconfigured proxies, the script should additionally redact common key-bearing patterns (e.g., `key=...&`, `api_key=...`) from the snippet before printing.' Or drop the parenthetical claim entirely."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

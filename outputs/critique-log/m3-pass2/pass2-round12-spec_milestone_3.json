@@ -1,0 +1,223 @@
+{
+  "document": "spec_milestone_3",
+  "pass": 2,
+  "round": 12,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 7,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-3 vs Edge Cases & Rules (Re-runs)",
+          "category": "objective",
+          "problem": "Direct contradiction regarding Claude Desktop's install behavior on re-runs. FR-3 states that Claude Desktop's `install()` 'copies only if the shared folder is not populated with the kit'. However, the Edge Cases & Rules ('Re-runs') section explicitly states that 'OpenCode is the one deliberate exception to the in-place re-run rule... all other adapters overwrite in place on every run.'",
+          "why_it_matters": "Adapter developers and test authors cannot determine whether Claude Desktop should no-op when populated or overwrite in place during re-runs.",
+          "suggested_fix": "Align FR-3 and Edge Cases. If Claude Desktop should overwrite in place (matching Claude Code since they share a destination folder), update FR-3 to remove the 'copies only if the shared folder is not populated' condition."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "Timing of the key status reminder output in non-TTY mode is ambiguous. FR-1 states that on non-TTY stdin 'the key prompts and the Pakistani-guide prompt are skipped... and the reminder is printed instead', but also specifies that 'After the session the wizard prints a final reminder listing all three names...'.",
+          "why_it_matters": "It is unclear whether non-TTY execution prints the status reminder upfront when skipping key entry or defers it until session exit alongside the normal summary.",
+          "suggested_fix": "Explicitly state whether non-TTY runs print the key status reminder immediately prior to tool detection or strictly at session completion."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_3.md",
+      "round": 3,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 6,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 5,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "objective",
+          "problem": "Final reminder prints 'not set' for keys the user just entered during this run. Keys are held in memory and discarded on exit; they are never written to process.env. The reminder checks process.env, so it will misleadingly report keys entered this session as 'not set \u2014 add it to your shell profile'.",
+          "why_it_matters": "Users will see contradictory feedback: they provided a key, but the wizard claims it's missing. This undermines trust and may cause users to re-enter keys unnecessarily or think the install failed.",
+          "suggested_fix": "Track which keys were entered (not skipped) during the current session and reflect that in the reminder, e.g., 'NVIDIA_NIM_API_KEY (entered this session \u2014 not persisted; add to your shell profile or .env)'."
+        },
+        {
+          "section": "FR-3 (OpenCode)",
+          "category": "needs_clarify",
+          "problem": "Two different definitions of 'populated': detect() treats any non-empty folder as populated (location non-null), but install() no-op triggers only when SKILL.md carries name: sdd-multiagent-kit. A folder with stray files returns location=path from detect(), yet install() performs a real copy (not a no-op). The spec does not clarify whether this mismatch is intentional or what the wizard should display.",
+          "why_it_matters": "Inconsistent 'populated' semantics cause confusing detect() vs install() behavior. The wizard may show a location for OpenCode, then overwrite it on install, surprising the user.",
+          "suggested_fix": "Unify the definition: either make detect() check for the kit marker (so location is null unless the kit is already correctly installed), or make install() no-op whenever the folder is non-empty (current detect() behavior). Document the chosen rule explicitly."
+        },
+        {
+          "section": "FR-2 (kitPath discovery)",
+          "category": "needs_clarify",
+          "problem": "kitPath is found by walking parent directories from bin/setup-wizard.js until a package.json with name: sdd-multiagent-kit and a sibling kit/ containing SKILL.md is found. In a global npm install, bin/setup-wizard.js is typically a symlink into lib/node_modules/sdd-multiagent-kit/bin/. The walk must resolve symlinks (fs.realpath) or it will fail to find the package root. The spec does not mention symlink handling.",
+          "why_it_matters": "Global installs will fail with exit 2 (kit source missing) because the walk stops at the global bin directory, which lacks package.json and kit/. This breaks the primary distribution method.",
+          "suggested_fix": "Require the wizard to resolve its own real path (fs.realpathSync(__filename)) before walking ancestors, or compute kitPath relative to the resolved package root (e.g., path.join(__dirname, '..', 'kit'))."
+        },
+        {
+          "section": "FR-2 (Adapter errors)",
+          "category": "needs_clarify",
+          "problem": "Adapters are 'expected to prefix their error message with the tool id' but the wizard does not verify or enforce this. Error messages shown to users will be inconsistent (some prefixed, some not), making debugging harder.",
+          "why_it_matters": "Inconsistent error formatting reduces usability and makes automated log parsing unreliable.",
+          "suggested_fix": "Either make the prefix mandatory and have the wizard prepend it (wizard knows the adapter's name), or define a structured error object (e.g., { tool, message }) that adapters throw, and let the wizard format uniformly."
+        },
+        {
+          "section": "FR-1 (Non-TTY behavior)",
+          "category": "objective",
+          "problem": "On non-TTY stdin, key prompts and Pakistani-guide prompt are skipped, but the selection prompt 'reads lines via readline' (Edge Cases). However, FR-1 states 'the wizard discovers adapters by requiring each .js file directly under installers/' and errors at startup if none \u2014 this happens before any prompt. If installers/ is missing, the wizard exits 2 before reaching the selection prompt. The non-TTY selection path is only reachable if the wizard starts successfully, but the spec doesn't clarify whether the wizard should skip tool detection/install entirely on non-TTY or just the key prompts.",
+          "why_it_matters": "Ambiguous non-TTY flow: does the wizard run detection and install tools non-interactively (e.g., 'echo all | sdd-setup')? The spec says 'piped input works for selection' but doesn't state whether detection runs and installs proceed. This affects CI/CD usability.",
+          "suggested_fix": "Explicitly define non-TTY mode: (1) skip key prompts and guide prompt, print reminder; (2) run detection; (3) read tool selection from stdin (one line, 'all' or comma-separated names); (4) install selected tools; (5) confirm and exit with appropriate code."
+        },
+        {
+          "section": "FR-3 (Antigravity confirmEnabled)",
+          "category": "objective",
+          "problem": "confirmEnabled() checks that the copied SKILL.md description contains 'Invocation: /sdd'. The adapter injects this phrase during install() (replacing any stale line). However, if the kit's SKILL.md already contains a different invocation phrase, the adapter must overwrite it. The spec says 'this injection is adapter-owned content layered on the kit-owned copy, not part of the shipped kit/ tree', but does not specify whether the adapter modifies the file in-place after copying or writes a merged version. If it modifies in-place, confirmEnabled() will see the updated phrase. If it writes a merged version, the same. But the spec doesn't guarantee the adapter runs the injection before confirmEnabled() is called \u2014 though FR-2 says confirmEnabled() is called 'only after a successful install()', so ordering is correct.",
+          "why_it_matters": "Minor ambiguity in implementation strategy, but could lead to race conditions if install() copies asynchronously and confirmEnabled() reads before injection completes. The spec assumes synchronous operations.",
+          "suggested_fix": "State that all adapter operations (detect, install, confirmEnabled) are synchronous (Node stdlib fs sync APIs) or that install() returns a promise that resolves after injection, and the wizard awaits it before calling confirmEnabled()."
+        },
+        {
+          "section": "AC-1",
+          "category": "needs_clarify",
+          "problem": "Acceptance criterion 'non-stub (a stub = empty, placeholder, or TODO-only with no real implementation)' is subjective. A file with a single console.log('TODO') is a stub; a file with detect() returning {installed:false, location:null} is a minimal implementation but may not satisfy the requirement. The criterion lacks an objective test.",
+          "why_it_matters": "Reviewers may disagree on whether an adapter passes AC-1, leading to inconsistent milestone sign-off.",
+          "suggested_fix": "Define 'non-stub' objectively: each adapter file must export four functions (name, detect, install, confirmEnabled) that are not throw-only and contain at least one filesystem operation (e.g., fs.existsSync, fs.copyFileSync) or platform-specific path logic."
+        },
+        {
+          "section": "FR-5 (package.json files list)",
+          "category": "needs_clarify",
+          "problem": "The files list includes 'kit/', 'bin/', 'installers/', 'LICENSE', 'README.md'. It does not include 'package.json' itself (npm includes it automatically) but also omits any potential 'docs/' or 'outputs/' directories that might be needed for the Pakistani guide slot (docs/GUIDE.md). The guide slot is reserved but the target file doesn't ship until M4. The spec should clarify whether docs/ is intentionally excluded from this milestone's package.",
+          "why_it_matters": "If docs/ is not shipped, the printed link (docs/GUIDE.md#guide-for-pakistani-users) will 404 even after M4 unless the guide is published elsewhere. The spec says 'the link names the reserved location' but doesn't say where that location is hosted.",
+          "suggested_fix": "Either add 'docs/' to the files list (with a placeholder GUIDE.md) or change the printed link to a stable URL (e.g., GitHub repo blob) that will host the guide."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "mistralai/mistral-nemotron",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-1 \u2014 `bin/setup-wizard.js`",
+          "category": "objective",
+          "problem": "The key handling logic is overly complex and could lead to confusion. The distinction between 'skip' and 'empty' is subtle and may not be clear to users.",
+          "why_it_matters": "User experience could suffer due to unclear key handling, leading to potential frustration or misuse.",
+          "suggested_fix": "Simplify the key handling logic by clearly defining and communicating the difference between 'skip' and 'empty' to users."
+        },
+        {
+          "section": "FR-2 \u2014 Adapter interface",
+          "category": "objective",
+          "problem": "The error handling for adapters is not consistent. Some errors are caught and logged, while others throw exceptions.",
+          "why_it_matters": "Inconsistent error handling can lead to unpredictable behavior and make debugging more difficult.",
+          "suggested_fix": "Standardize error handling across all adapters to ensure consistent behavior and easier debugging."
+        },
+        {
+          "section": "FR-3 \u2014 Per-tool install locations",
+          "category": "objective",
+          "problem": "The OpenCode adapter's `install()` method has a special case for no-op when the shared folder is populated, which is inconsistent with other adapters.",
+          "why_it_matters": "Inconsistent behavior across adapters can lead to confusion and potential issues with tool integration.",
+          "suggested_fix": "Document the special case clearly and ensure it is well-understood by users and contributors."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The handling of Ctrl-C and EOF is not clearly documented in terms of the state of the installation process.",
+          "why_it_matters": "Users need to understand the implications of interrupting the installation process to avoid potential issues.",
+          "suggested_fix": "Provide clear documentation on the state of the installation process after a Ctrl-C or EOF interruption."
+        },
+        {
+          "section": "Out of Scope (deferred)",
+          "category": "objective",
+          "problem": "The deferred items are not prioritized, which may lead to confusion about the importance of each item.",
+          "why_it_matters": "Prioritization helps in planning and ensures that critical items are addressed first.",
+          "suggested_fix": "Prioritize the deferred items to provide clarity on their importance and planned implementation."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "AC-1 does not specify the expected behavior of the functions, only their existence.",
+          "why_it_matters": "Without clear expectations, it is difficult to verify that the functions meet the requirements.",
+          "suggested_fix": "Specify the expected behavior of the functions in AC-1 to ensure they meet the requirements."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 9,
+        "internal_consistency": 8,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1 \u2013 Pakistani guide slot",
+          "category": "objective",
+          "problem": "The spec says the wizard should \"print the link as a plain\u2011text line to the reserved guide's docs location\" but never defines what that link actually is (URL, relative path, markdown anchor, etc.).",
+          "why_it_matters": "Implementers may output different strings, causing downstream automation or documentation generation to break, and automated tests cannot assert a deterministic output.",
+          "suggested_fix": "Add a concrete example or a required format, e.g. `https://github.com/yourorg/sdd-multiagent-kit/blob/main/docs/GUIDE.md#guide-for-pakistani-users` or specify that the literal string `docs/GUIDE.md#guide-for-pakistani-users` must be printed."
+        },
+        {
+          "section": "FR-1 \u2013 Key validation rules",
+          "category": "needs_clarify",
+          "problem": "The rule \"contains internal whitespace or control characters\" is vague; it does not specify which Unicode categories count as control characters or how to detect them without external libraries.",
+          "why_it_matters": "Different implementations may treat characters like zero\u2011width spaces or Unicode line separators inconsistently, leading to false re\u2011prompts or acceptance of malformed keys.",
+          "suggested_fix": "Define the validation precisely, e.g. \"reject any key that matches /[\\p{C}\\s]/u after trimming, where \\p{C} is the Unicode 'Other' category and \\s includes any whitespace character other than the leading/trailing spaces removed by trim\"."
+        },
+        {
+          "section": "FR-3 \u2013 OpenCode install no\u2011op detection",
+          "category": "needs_clarify",
+          "problem": "The spec says the install is a no\u2011op when the shared folder is \"populated with the kit (its SKILL.md carries name: sdd-multiagent-kit)\" but does not define how to treat a folder that contains a SKILL.md with a different name or a partially corrupted kit.",
+          "why_it_matters": "Without a clear definition of \"stale/non\u2011kit content\", implementations may either skip needed updates or overwrite user\u2011modified files unintentionally.",
+          "suggested_fix": "Specify that the no\u2011op condition requires the SKILL.md file to exist, be parseable as YAML frontmatter, and have `name: sdd-multiagent-kit`. Any deviation (missing file, parse error, different name) must trigger a full copy."
+        },
+        {
+          "section": "FR-2 \u2013 Adapter discovery & stub detection",
+          "category": "objective",
+          "problem": "The acceptance criteria (AC\u20111) require adapters to be \"non\u2011stub\", yet the spec provides no mechanism for the wizard to detect a stub (e.g., a file that exports the required functions but contains only placeholder logic).",
+          "why_it_matters": "A contributor could ship placeholder adapters that pass the structural checks but do nothing, causing silent failures that are hard to detect in CI.",
+          "suggested_fix": "Add a runtime sanity check, such as invoking each adapter's `detect()` on a temporary empty home directory and verifying that it returns a boolean without throwing, or require a `version` field in the export that must be >= 1.0.0."
+        },
+        {
+          "section": "FR-1 \u2013 Final reminder format",
+          "category": "needs_clarify",
+          "problem": "The spec mentions the wizard prints a reminder listing each key status and \"marks the ones the user skipped this run\" but does not define the exact wording or marker syntax.",
+          "why_it_matters": "Automated tests that validate the reminder output cannot assert a stable format, and users may be confused by inconsistent phrasing.",
+          "suggested_fix": "Provide a concrete template, e.g.: `NVIDIA_NIM_API_KEY: set in env` or `NVIDIA_NIM_API_KEY: skipped this run`."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 4
+}

@@ -1,0 +1,252 @@
+{
+  "document": "workflow_milestone_1",
+  "pass": 2,
+  "round": 1,
+  "critics": [
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "workflow_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 6,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "1. Pipeline Run States",
+          "category": "objective",
+          "problem": "The workflow omits the structural-completeness gate and the simplicity gate as explicit states. The brief mandates a 'structural-completeness gate' and a 'simplicity gate', but the pipeline only defines G1 (spec gate) and G2 (all five gate). There is no node verifying that every node is backed by a task/test, nor a node verifying no orphan features exist.",
+          "why_it_matters": "The gates are core constitutional controls. Without explicit states, the kit cannot deterministically enforce them, and the traceability claims in Section 5 become unenforceable assertions rather than verified states.",
+          "suggested_fix": "Insert explicit gate states in the pipeline (e.g., between M7 and M8, or as part of an expanded G2) for Structural Completeness and Simplicity, defining their pass/fail transitions."
+        },
+        {
+          "section": "1. Pipeline Run States",
+          "category": "objective",
+          "problem": "The PHR/ADR history logging requirement is only mentioned in the failure state F1a. The brief states 'PHR/ADR history logging' as a general process feature, implying it should occur on successful state transitions or significant decisions (e.g., constitution adoption, gate passes, clarifications), not just on failure retries.",
+          "why_it_matters": "If logging is failure-only, the kit loses its audit trail of successful progression and decision-making, violating the historical record intent of the PHR/ADR requirement.",
+          "suggested_fix": "Add a parallel logging track or annotate successful transition nodes (S2, G1 pass, M3b fold, G2 pass, M9 pass, M10 pass) with a 'log to PHR/ADR' action."
+        },
+        {
+          "section": "3. Critique Loop States",
+          "category": "needs_clarify",
+          "problem": "The round cap default is 25, but the brief mentions a 'two-pass six-model critique loop'. It is unclear if the 25-round cap applies per-pass (Pass 1 and Pass 2 separately) or cumulatively across both passes combined.",
+          "why_it_matters": "This determines the bounded escalation behavior and the total maximum computational budget for the critique phase. A misinterpretation could lead to premature human escalation or unbounded loops."
+        },
+        {
+          "section": "4. M1 Build/Verification States",
+          "category": "needs_clarify",
+          "problem": "The Stranger Test (T20) is listed as the final verification step. However, the brief mentions the Stranger Test as a general process step. It is unclear if the M1 build of the *kit itself* must pass a Stranger Test on its own content, or if T20 is merely verifying that the kit *generates* the Stranger Test state (M10) correctly.",
+          "why_it_matters": "This distinguishes between testing the framework's meta-behavior (the kit running a stranger test on its own outputs) versus testing the framework's implementation (the kit's code passing a stranger test). The scope of T20 is ambiguous."
+        },
+        {
+          "section": "1. Pipeline Run States",
+          "category": "objective",
+          "problem": "The 'Computational-thinking requirement scan' (S1) is defined as producing a checklist, but the workflow does not show where or how that checklist is consumed in subsequent states. The brief implies the scan drives the requirement analysis, but the transition from S1a to S2 skips the utilization of the checklist.",
+          "why_it_matters": "If the checklist is not an input to the milestone-builder (S3) or specify (M1), the CT scan becomes a no-op, violating the 'Computational-thinking requirement scan' mandate.",
+          "suggested_fix": "Update the transition from S1a to S2 (or S3) to explicitly pass the checklist as an input: 'S1a brief non-empty \u2192 checklist produced \u2192 [checklist feeds S3/M1] \u2192 proceed'."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "workflow_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 9,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "3 (Critique Loop States)",
+          "category": "objective",
+          "problem": "Brief specifies a six-model critique loop, but workflow says 'per model' without fixing the number of critics at six.",
+          "why_it_matters": "The critique loop's quorum, perfect-score condition, and non-cooperative exclusion logic all depend on a known critic count. Variable count breaks conformance to the brief and makes test assertions ambiguous.",
+          "suggested_fix": "Explicitly state 'six models' in C1 and C2. Adjust stopping conditions to reference six (e.g., 'all six valid critics score perfect' for Pass 2)."
+        },
+        {
+          "section": "3 (C2 round stopping)",
+          "category": "objective",
+          "problem": "Round cap default of 25 is an unexplained magic number not present in the brief or constitution.",
+          "why_it_matters": "Hard-coded limits reduce configurability and may be inappropriate for different project sizes. The constitution favors simplicity and observable interfaces; a configurable parameter with documented rationale is required.",
+          "suggested_fix": "Make round cap a configurable parameter (e.g., in providers.yaml or a kit config) with a documented default of 25 and a justification note."
+        },
+        {
+          "section": "4 (M1 Build/Verification States, B2)",
+          "category": "objective",
+          "problem": "Annotation '[P]' on 'ten sub-skills authored (T5\u2013T14) [P]' is undefined.",
+          "why_it_matters": "Ambiguity in build-step notation hinders implementation, verification, and onboarding. Every symbol in a workflow must be legible without external context.",
+          "suggested_fix": "Define '[P]' inline (e.g., '[P] = parallelizable') or add a legend table at the top of the document."
+        },
+        {
+          "section": "1, 2, 3",
+          "category": "needs_clarify",
+          "problem": "PHR/ADR history logging is mentioned only in F1a ('log PHR') but the brief lists 'PHR/ADR history logging' as a core process element. Scope across gates, critique rounds, and clarify interviews is unclear.",
+          "why_it_matters": "The constitution's Amendment Process and auditability require consistent history logging. Incomplete logging breaks traceability and compliance.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "1 (S3 milestone-builder decides split)",
+          "category": "objective",
+          "problem": "Brief requires 'dependency-ordered milestones' but S3a/b only shows split decision, not dependency resolution or topological ordering.",
+          "why_it_matters": "Without explicit ordering, multi-milestone projects may execute out of sequence, violating the brief's dependency-order requirement.",
+          "suggested_fix": "Add a state after S3a: 'S3c resolve dependencies \u2192 topologically ordered milestone list' before entering the per-milestone loop."
+        },
+        {
+          "section": "General",
+          "category": "objective",
+          "problem": "Constitution principle 'Framework Trust' (trust framework defaults) is not mapped to any workflow state.",
+          "why_it_matters": "All seven constitution principles must be observable in the process. Missing Framework Trust means the workflow doesn't fully embody the constitution.",
+          "suggested_fix": "Add a note or state where framework defaults are applied/verified (e.g., during B1 scaffold + providers.yaml, verify defaults are used unless explicitly overridden)."
+        },
+        {
+          "section": "General",
+          "category": "objective",
+          "problem": "Constitution principle 'Amendment Process' has no workflow representation.",
+          "why_it_matters": "The constitution includes its own amendment process; Milestone 1 must at least acknowledge how amendments are triggered, reviewed, and recorded.",
+          "suggested_fix": "Add a placeholder state or cross-reference (e.g., 'Amendment Process: see ADR log, invoked on constitution change request') in the workflow."
+        },
+        {
+          "section": "1 (M10), 4 (B4/T20)",
+          "category": "needs_clarify",
+          "problem": "'Stranger Test' is used as a pass/fail gate but its definition (who/what is the stranger, automated vs human, criteria) is absent.",
+          "why_it_matters": "Milestone completion hinges on this test. Ambiguity makes implementation and verification impossible without a product decision.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "3 (C1)",
+          "category": "objective",
+          "problem": "'low-score-with-empty-issues' is deemed invalid but 'low-score' threshold is undefined.",
+          "why_it_matters": "Determines when a critique is rejected and retried. Without a threshold, the behavior is non-deterministic and untestable.",
+          "suggested_fix": "Define a minimum score threshold (e.g., 'score < 5/10') or reference the scoring rubric document."
+        },
+        {
+          "section": "1 (M3b clarify-interview)",
+          "category": "objective",
+          "problem": "Refused/invalid clarify answers are dropped to Out of Scope without criticality assessment.",
+          "why_it_matters": "If a critical question is refused, the spec may be incomplete but the pipeline proceeds, violating completeness and the structural-completeness gate.",
+          "suggested_fix": "Add criticality check: if the clarify item is marked critical (by spec author or critic), escalate to human instead of dropping; otherwise drop to Out of Scope."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "workflow_milestone_1.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 7,
+        "completeness": 6,
+        "edge_case_coverage": 5,
+        "internal_consistency": 5,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "4. M1 Build/Verification States",
+          "category": "objective",
+          "problem": "Test T1 is referenced in the introductory line (\"B0 start M1 build (T1 tests defined first)\") but never defined or described later; the subsequent list starts at T2.",
+          "why_it_matters": "Missing definition leaves a gap in the verification pipeline, causing the build step to lack its initial test and potentially allowing unchecked errors to propagate.",
+          "suggested_fix": "Add a description for T1 (e.g., a sanity check that the workflow file exists and is syntactically valid) and ensure it is included in `tests_milestone_1.md` and the corresponding tasks file."
+        },
+        {
+          "section": "5. Feature-to-Node Traceability",
+          "category": "objective",
+          "problem": "The traceability table maps \"installed-skill awareness\" to node S1a, but S1a is defined as \"brief non\u2011empty \u2192 checklist produced \u2192 proceed\", which does not represent installed\u2011skill awareness.",
+          "why_it_matters": "Incorrect mapping can mislead developers, causing the installed\u2011skill awareness feature to be omitted or implemented incorrectly, violating the Simplicity gate's no\u2011orphan rule.",
+          "suggested_fix": "Correct the mapping: either introduce a new node (e.g., S1c) for installed\u2011skill awareness and update the workflow, or adjust the description of S1a to include that behavior."
+        },
+        {
+          "section": "2. Sub-skill Runtime Failure",
+          "category": "objective",
+          "problem": "The retry policy for sub\u2011skill failures (retry once, no backoff) conflicts with the critique loop retry policy (up to three retries with exponential backoff).",
+          "why_it_matters": "Inconsistent retry strategies create ambiguity in error\u2011handling expectations and can lead to either excessive retries or premature escalation, breaking the framework's reliability guarantees.",
+          "suggested_fix": "Standardize the retry policy across sub\u2011skills and critique loops, or explicitly document that they are separate contexts with distinct policies."
+        },
+        {
+          "section": "3. M3 clarify-interview",
+          "category": "needs_clarify",
+          "problem": "The document states that refused or invalid answers are \"recorded in Out of Scope\" but does not specify where or how this \"Out of Scope\" log is maintained."
+        },
+        {
+          "section": "3. M2 Pass 1 critique",
+          "category": "needs_clarify",
+          "problem": "It says \"objective issues \u2192 resolve, re\u2011run Pass 1\" without defining who is responsible for resolution and what mechanisms are used to resolve them."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "workflow_milestone_1.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "1. Pipeline Run States (S4 M2 Pass 1 critique)",
+          "category": "objective",
+          "problem": "The Pass 1 critique loop (M2) lists 'objective issues \u2192 resolve, re-run Pass 1' and 'needs_clarify list compiled' as parallel branches, but it is ambiguous whether the needs_clarify list is compiled only after all objective issues are resolved or concurrently. The Clarify step (M3) is gated on the list being non-empty, but the workflow does not specify whether Clarify runs after objective resolution or can run in parallel.",
+          "why_it_matters": "Ambiguity in the ordering of objective resolution and Clarify compilation could lead to inconsistent implementation of the critique loop, causing the pipeline to either skip Clarify or re-enter Pass 1 unnecessarily, violating the constitution's Observable Interfaces and Simplicity by Default.",
+          "suggested_fix": "Clarify that Pass 1 completes when all objective issues are resolved AND the needs_clarify list is compiled (both conditions must be met), then proceed to Clarify. If objective issues remain, re-run Pass 1; if only needs_clarify items remain, proceed to Clarify without re-running Pass 1."
+        },
+        {
+          "section": "3. Critique Loop States (C1 invalid critique handling)",
+          "category": "objective",
+          "problem": "The rule 'invalid 3 rounds running \u2192 non-cooperative flag; excluded from count; loop continues with remaining valid critics' is ambiguous about whether the '3 rounds running' refers to consecutive rounds or cumulative invalid attempts. Also, it does not specify whether the non-cooperative flag is permanent for the entire pipeline or only for the current round.",
+          "why_it_matters": "Ambiguity in the retry/flag logic could lead to inconsistent exclusion of critics, affecting the validity of the critique count and the round-stopping criteria (C2), potentially causing premature advancement or infinite loops.",
+          "suggested_fix": "Specify that '3 rounds running' means three consecutive rounds where the critic's output is invalid. Once flagged non-cooperative, the critic is excluded for the remainder of the current milestone's critique loop (both Pass 1 and Pass 2), but may be re-included in future milestones. Log the flag in PHR."
+        },
+        {
+          "section": "4. M1 Build/Verification States (B4 verification)",
+          "category": "objective",
+          "problem": "The verification steps T16\u2013T20 are listed as pass/fail, but the workflow does not specify what happens on failure of T16\u2013T19 (inventory, providers, secret scan, constitution). Only T20 (Stranger Test) has a defined failure path (re-enter critique loop).",
+          "why_it_matters": "Without defined failure handling for T16\u2013T19, the build could silently continue or halt inconsistently, violating the constitution's Observable Interfaces and Real-World Testing, and making the verification process untestable.",
+          "suggested_fix": "Add explicit failure branches for T16\u2013T19: on any failure, halt the build, log the failure in PHR, and return to the responsible sub-skill (e.g., scaffold, providers, sub-skills, master skill) for correction, then re-run the verification step. Do not proceed to T20 until all prior checks pass."
+        },
+        {
+          "section": "5. Feature-to-Node Traceability",
+          "category": "needs_clarify",
+          "problem": "The traceability section claims 'every node is backed by a task in tasks_milestone_1.md and a test in tests_milestone_1.md', but the workflow does not list the specific task/test IDs for each node. It is unclear whether the Structural Completeness gate requires a one-to-one mapping or allows many-to-one.",
+          "why_it_matters": "Without explicit mapping, the Structural Completeness gate cannot be objectively verified, and the Simplicity gate's 'no orphan features' claim is unverifiable, potentially leading to gaps in test coverage.",
+          "suggested_fix": "No fix required; this is a product decision for the human to clarify: should the workflow include a detailed mapping table (node \u2192 task ID \u2192 test ID) or is a summary-level traceability sufficient for the gate?"
+        },
+        {
+          "section": "2. Sub-skill Runtime Failure (F1a retry)",
+          "category": "objective",
+          "problem": "The retry policy states 'retry once (same input, no backoff)', but it does not specify what happens if the retry succeeds but produces a different output than the first attempt (e.g., non-deterministic sub-skills). The workflow assumes deterministic behavior, which may not hold for LLM-based sub-skills.",
+          "why_it_matters": "Non-deterministic retries could lead to inconsistent pipeline states, making the workflow non-reproducible and violating the constitution's Observable Interfaces and Real-World Testing.",
+          "suggested_fix": "Specify that on retry success, the pipeline must validate that the output meets the required schema/contract; if the output differs but is valid, accept it and log the difference in PHR. If the retry output is invalid, treat as F1b escalation."
+        },
+        {
+          "section": "3. Critique Loop States (C2 round cap)",
+          "category": "objective",
+          "problem": "The round cap is set to 'default 25', but the workflow does not specify whether this cap applies separately to Pass 1 and Pass 2 or jointly across the entire critique loop. It also does not define how the cap interacts with the non-cooperative flag exclusion.",
+          "why_it_matters": "Ambiguity in the round cap could lead to unbounded loops or premature escalation, violating the 'never silent, never unbounded' principle and making the workflow's termination properties untestable.",
+          "suggested_fix": "Specify that the round cap applies per critique pass (Pass 1 and Pass 2 each have a cap of 25 rounds). The cap counts only rounds where at least one valid critique was received; rounds with all critics excluded due to non-cooperative flags do not count toward the cap but trigger escalation if no valid critics remain."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 4
+}

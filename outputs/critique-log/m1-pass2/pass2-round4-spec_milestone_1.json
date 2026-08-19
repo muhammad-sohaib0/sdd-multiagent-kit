@@ -1,0 +1,222 @@
+{
+  "document": "spec_milestone_1",
+  "pass": 2,
+  "round": 4,
+  "critics": [
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 4,
+      "scores": {
+        "clarity": 4,
+        "completeness": 3,
+        "edge_case_coverage": 4,
+        "internal_consistency": 4,
+        "testability": 3
+      },
+      "issues": [
+        {
+          "section": "Cumulative History / Cross-reference convention",
+          "category": "needs_clarify",
+          "problem": "The document extensively references PLAN.md sections (e.g., PLAN.md \u00a75.2, \u00a76, \u00a77.5, \u00a78.2, \u00a712, \u00a74.3\u2013\u00a74.4) as authoritative sources for critical definitions (constitution articles, ADR significance test, retry policy, milestone ordering, critique schema), but PLAN.md is not part of the 13 shipped files nor the five-document milestone set. The cross-reference convention claims 'Bare references (\u00a73, \u00a74.3, FR-x, AC-x) point at sections of *this* document' yet the document itself violates this by depending on an external PLAN.md for normative content.",
+          "why_it_matters": "A stranger implementing from the five-document set (per AC-7) cannot resolve PLAN.md references. The spec claims the stranger 'needs no external PLAN.md' but the spec itself is unreadable without it. This creates a circular dependency: the spec governs the kit, but the spec requires PLAN.md to be understood.",
+          "suggested_fix": "Either (a) inline all normative content from PLAN.md that this spec depends on (constitution article full text, ADR significance test, retry policy, critique schema, milestone ordering rules), or (b) make PLAN.md an explicit shipped artifact of M1 and add it to the 13-file inventory. Option (a) is preferred for standalone-first compliance."
+        },
+        {
+          "section": "FR-3 / AC-6",
+          "category": "objective",
+          "problem": "AC-6 requires the constitution template to render seven articles 'verbatim from PLAN.md \u00a76', but PLAN.md \u00a76 content is not included in this document or the five-document set. The Cumulative History lists seven article titles and one-liners, but FR-3 states 'the template renders each article's full PLAN.md \u00a76 wording' \u2014 the full wording is absent.",
+          "why_it_matters": "Verbatim compliance cannot be verified without the source text. The Stranger Test (AC-7 check 3) requires the template to render the seven articles verbatim, but the stranger has no access to PLAN.md \u00a76. This makes AC-6 and AC-7 check 3 unverifiable from the delivered artifacts.",
+          "suggested_fix": "Include the full text of all seven constitution articles (from PLAN.md \u00a76) directly in this spec, either in FR-3 or as an appendix, so the template's verbatim rendering can be verified against content within the five-document set."
+        },
+        {
+          "section": "\u00a76 Authentication / Security / AC-3",
+          "category": "objective",
+          "problem": "The secret detection rule includes a '\u226532-char base64/hex blob' heuristic that is explicitly documented as 'not fully regex-expressible, because \"obvious/allowlisted constant\" is qualitative'. However, AC-3 states 'the regex scan passes' and 'the scan reports zero matches of the four detection patterns against all 13 files'. A heuristic that is not regex-expressible cannot be validated by a regex scan.",
+          "why_it_matters": "AC-3's pass criterion is untestable as written. The \u226532-char blob rule requires human judgment ('obvious/allowlisted constant'), contradicting the claim of an automated regex scan. This creates a false sense of automated security validation.",
+          "suggested_fix": "Either (a) remove the \u226532-char blob rule and rely only on the three regex-expressible patterns, or (b) define a precise, regex-expressible allowlist mechanism for known long constants (e.g., UUID regex) and make the blob rule fully automatable. Update AC-3 to match the actual detection mechanism."
+        },
+        {
+          "section": "FR-2 clarify-interview / Edge-case rule",
+          "category": "needs_clarify",
+          "problem": "The edge-case rule for clarify-interview states: 'If the human declines or gives an invalid answer \u2192 record the refusal in the PHR, drop that question, and note it in the milestone's Out of Scope rather than silently defaulting.' The term 'invalid answer' is never defined.",
+          "why_it_matters": "Without a definition of 'invalid answer', the sub-skill cannot be implemented deterministically. Different agents will interpret this differently, breaking reproducibility. The Stranger Test requires contract parity, which includes consistent handling of edge cases.",
+          "suggested_fix": "Define 'invalid answer' precisely: e.g., 'an answer that is empty, contradicts the constitution, introduces a new requirement not traceable to the brief, or fails a yes/no/choice format when a structured answer was requested'."
+        },
+        {
+          "section": "AC-1 Enforcement",
+          "category": "objective",
+          "problem": "AC-1 states enforcement is 'verified against `tasks_milestone_1.md`', but `tasks_milestone_1.md` is one of the artifacts produced by the 'build the milestone' step (FR-1 step 4i). The build step executes the milestone's ordered tasks to materialize artifacts \u2014 including `tasks_milestone_1.md` itself. This is circular: the tasks file is both the verification target and a product of the process under verification.",
+          "why_it_matters": "The acceptance criterion cannot be independently verified. The Stranger Test (AC-7) requires the stranger to reproduce the 13-file inventory, but the verification mechanism for AC-1 depends on an artifact that only exists after the build succeeds.",
+          "suggested_fix": "Define a static, pre-existing verification manifest (e.g., a checksum file or the spec's own \u00a74.1 table) as the verification target, not the generated tasks file. The tasks file should be validated against the spec's inventory, not the reverse."
+        },
+        {
+          "section": "AC-7 Stranger Test check (2)",
+          "category": "objective",
+          "problem": "AC-7 check (2) requires the stranger to verify that 'providers.yaml carries the seven panel model IDs (ADR-001/003) in ordered critic_slots each bound to a provider'. However, ADR-001 and ADR-003 are not part of the five-document set. The spec claims 'the three enumerated checks below are necessary and sufficient, and are fully specified within this five-document set, so the stranger needs no external PLAN.md', but this check explicitly references external ADRs.",
+          "why_it_matters": "The stranger cannot verify ADR-001/003 compliance without access to those ADRs. This contradicts the standalone-first principle and makes the Stranger Test unimplementable as specified.",
+          "suggested_fix": "Either (a) include the model ID list (the seven IDs) directly in the five-document set (e.g., in the spec or providers.yaml description) so the stranger can verify against that list without ADRs, or (b) ship ADR-001 and ADR-003 as part of the M1 content inventory."
+        },
+        {
+          "section": "\u00a74.5 Simplicity default override",
+          "category": "needs_clarify",
+          "problem": "The override mechanism states: 'append a plain-text line `simplicity_default: N` (a convention line inside the Markdown document, not a YAML file)'. No location within the Markdown document is specified (top? bottom? after a specific heading?). No parsing rule is given for how the master skill reads this value.",
+          "why_it_matters": "The master skill's gate instructions must read this value to enforce the Simplicity Gate. Without a defined location and format, the override is unimplementable. Different implementations will parse differently, breaking consistency.",
+          "suggested_fix": "Specify exact location (e.g., 'as the last line of the constitution.md file, after all articles') and exact format (e.g., 'simplicity_default: 5' with no leading/trailing whitespace). Define the parsing rule: 'The master skill reads the last line of constitution.md; if it matches ^simplicity_default: \\d+$, that value overrides the default.'"
+        },
+        {
+          "section": "\u00a74.5 Phase transitions / Milestone-zero folder",
+          "category": "objective",
+          "problem": "The phase transitions list includes 'after the Clarify of PLAN.md \u00a712 open decisions, PHR milestone_0/003'. PLAN.md \u00a712 is not defined in this document. Additionally, the milestone-zero folder is named `milestone_0` (underscore) while single-milestone projects use `single-milestone` (hyphen) \u2014 inconsistent naming convention.",
+          "why_it_matters": "The master skill must log PHRs at exactly these transitions. An undefined transition (PLAN.md \u00a712) cannot be implemented. Inconsistent folder naming breaks tooling that expects a predictable pattern.",
+          "suggested_fix": "Define the PLAN.md \u00a712 Clarify content inline or remove the reference. Standardize folder naming: either all underscores (`milestone_0`, `single_milestone`) or all hyphens (`milestone-0`, `single-milestone`)."
+        },
+        {
+          "section": "\u00a74.3 providers.yaml schema / Validation rule",
+          "category": "objective",
+          "problem": "The validation rule states: 'every model ID listed in a critic_slots slot must exist under providers[<slot.provider>].models (i.e., the string values match exactly)'. This cross-reference constraint is not expressed in the YAML schema itself \u2014 it is only described in prose. The schema allows arbitrary strings in critic_slots.model and critic_slots.provider with no structural validation.",
+          "why_it_matters": "Configuration errors (typos, mismatched provider/model) will only be caught at runtime by the M2 loader, not at config-authoring time. The spec claims 'adding a model is a data-only edit' but provides no schema-level guardrails.",
+          "suggested_fix": "Either (a) define a JSON Schema / YAML Schema for providers.yaml that enforces the cross-reference, or (b) explicitly state that validation is a runtime check in the M2 loader and remove the implication that the schema itself enforces it."
+        },
+        {
+          "section": "FR-1 / FR-2 / \u00a74.1 Inventory count",
+          "category": "needs_clarify",
+          "problem": "The document states 'critique-loop is the 11th sub-skill, owned by M2' and 'The ten M1 sub-skills below are the M1 deliverable inventory.' The inventory table lists 13 files: 1 master skill + 1 constitution + 1 providers.yaml + 10 sub-skills = 13. This implies 10 sub-skills in M1. But '11th sub-skill' implies 10 M1 + 1 M2 = 11 total sub-skills. The math is consistent but the phrasing '11th sub-skill' is confusing when only 10 are listed.",
+          "why_it_matters": "Minor but contributes to cognitive load. A contributor counting sub-skills may miscount. The Stranger Test check (1) verifies 'all ten sub-skills present and no critique-loop sub-skill among them' \u2014 this is clear, but the '11th' language in FR-1 is inconsistent with the inventory presentation.",
+          "suggested_fix": "Change 'critique-loop is the 11th sub-skill' to 'critique-loop is an additional sub-skill (the 11th overall) owned by M2' or simply 'critique-loop is owned by M2 and is not part of the M1 inventory.'"
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 6,
+        "completeness": 7,
+        "edge_case_coverage": 5,
+        "internal_consistency": 5,
+        "testability": 5
+      },
+      "issues": [
+        {
+          "section": "FR-1 \u2014 Master skill orchestration",
+          "category": "needs_clarify",
+          "problem": "The description of \"installed\u2011skill awareness\" and how conditional categories are selected is vague; no concrete algorithm or example is provided.",
+          "why_it_matters": "Implementers may interpret the rule differently, leading to inconsistent CT\u2011scan outputs and downstream spec generation errors.",
+          "suggested_fix": "Add a precise step\u2011by\u2011step procedure (or a concrete example) that shows how the skill directory is enumerated, how a matching conditional category is identified, and what fallback behavior looks like."
+        },
+        {
+          "section": "FR-2 \u2014 Sub\u2011skill contract (clarify-interview)",
+          "category": "objective",
+          "problem": "The edge\u2011case rule mentions recording a refusal in the \"Out of Scope\" artifact, but the document never defines the location, naming, or format of this \"Out of Scope\" record.",
+          "why_it_matters": "Reviewers cannot verify compliance, and the runtime may fail to locate or write the expected artifact.",
+          "suggested_fix": "Define an explicit path (e.g., `outputs/milestones/milestone_N/out_of_scope.md`) and a minimal Markdown schema for the Out of Scope record."
+        },
+        {
+          "section": "FR-4 \u2014 Provider configuration",
+          "category": "needs_clarify",
+          "problem": "Model IDs such as `openai/gpt-oss-120b` are listed under the `nvidia-nim` provider, mixing origin\u2011lab prefixes with hosting provider, which can be confusing.",
+          "why_it_matters": "Users may assume the model must be accessed via the OpenAI provider, causing misconfiguration or runtime lookup failures.",
+          "suggested_fix": "Add a clarifying note that the prefix reflects the model\u2019s origin, not the hosting provider, or rename the IDs to a neutral namespace."
+        },
+        {
+          "section": "Acceptance Criteria AC-7 \u2014 Stranger Test",
+          "category": "objective",
+          "problem": "The check states \"inventory matches the 13 \u00a74.1 paths with all ten sub\u2011skills present and **no `critique-loop`**\", mixing file count with sub\u2011skill count, creating ambiguity about what is being verified.",
+          "why_it_matters": "The test could be mis\u2011interpreted, leading to false passes or failures.",
+          "suggested_fix": "Rephrase to explicitly require that the five\u2011document set references the 13 shipped files, contains exactly ten M1 sub\u2011skills (excluding `critique-loop`), and that the file list matches the inventory."
+        },
+        {
+          "section": "Data Model 4.2 \u2014 Patterns and naming",
+          "category": "needs_clarify",
+          "problem": "Inconsistent naming for milestone test files: the table lists `tests_milestone_N.md` while other sections use `tests_milestone_N.md` (missing underscore) and sometimes `tests.md` for single\u2011milestone projects.",
+          "why_it_matters": "Inconsistent filenames can cause file\u2011not\u2011found errors in the pipeline.",
+          "suggested_fix": "Standardize the naming convention (e.g., `tests_milestone_N.md`) and update all references throughout the spec."
+        },
+        {
+          "section": "Overall goal",
+          "category": "objective",
+          "problem": "The goal claims the kit is \"installable with a single `npm install -g`\", yet the installer is deferred to Milestone\u202f3 and not part of the current deliverable.",
+          "why_it_matters": "Stakeholders may expect a ready\u2011to\u2011install package at Milestone\u202f1, which is inaccurate and could cause planning mismatches.",
+          "suggested_fix": "Qualify the statement to indicate that installability is planned for Milestone\u202f3, not delivered in Milestone\u202f1."
+        },
+        {
+          "section": "Testability (general)",
+          "category": "objective",
+          "problem": "The specification lacks explicit test cases for critical failure paths such as gate failures, retry\u2011policy edge cases, and the ADR significance test.",
+          "why_it_matters": "Without concrete tests, verification of robustness and compliance is incomplete, reducing confidence in the implementation.",
+          "suggested_fix": "Add detailed test scenarios in `tests_milestone_1.md` covering each gate failure, retry limit, and ADR significance decision flow."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "3A. The Two Gates",
+          "category": "needs_clarify",
+          "problem": "The Simplicity Gate states the default limit is 3 standalone components per milestone, and that the override changes the default for all subsequent milestones. However, \u00a74.5 states the override is applied by editing the adopted constitution.md and appending 'simplicity_default: N'.",
+          "why_it_matters": "If the override is applied mid-project (e.g., at milestone 3), it is ambiguous whether the new limit applies retrospectively to milestone 1 and 2 (which have already passed their G2 gates) or only to milestone 3 onwards. This ambiguity could lead to inconsistent gate enforcement and historical document validation failures.",
+          "suggested_fix": "Clarify in \u00a73A or \u00a74.5 that the override applies prospectively to the current and all subsequent milestones, and does not retroactively invalidate previously accepted milestone documents."
+        },
+        {
+          "section": "6. Authentication / Security",
+          "category": "needs_clarify",
+          "problem": "The concrete detection rule for the \u226532-char blob heuristic states it is 'not fully regex-expressible, because \"obvious/allowlisted constant\" is qualitative' and is enforced by a small check helper in tests_milestone_1.md. However, AC-3 states the pass criterion is that the scan reports zero matches of the four detection patterns.",
+          "why_it_matters": "If the \u226532-char blob rule is not fully regex-expressible, it cannot be one of the 'four detection patterns' that the regex scan checks for zero matches. This creates a contradiction between the qualitative heuristic enforcement and the automated regex scan pass criterion, making it unclear how AC-3 is actually satisfied for the blob rule.",
+          "suggested_fix": "Reword AC-3 to explicitly separate the regex-expressible patterns (sk-, AIza, Bearer) from the qualitative blob heuristic, stating that the regex scan passes with zero matches AND the qualitative blob check passes with zero unallowlisted matches."
+        },
+        {
+          "section": "4.5 Supporting artifacts and formats",
+          "category": "needs_clarify",
+          "problem": "The 'Secret allowlist' subsection states: 'A token may be added to the allowlist only with a written reason (a PHR) stating why it is not a credential; additions are never silent.' However, \u00a76 states: 'additions follow the \u00a74.5 criteria (written reason + PHR, never silent)'.",
+          "why_it_matters": "While both sections agree on the PHR requirement, \u00a74.5 does not explicitly mention that the allowlist addition itself must be documented or how it is physically added to the inline allowlist in \u00a76. This could lead to a state where a PHR exists justifying a token, but the token is not actually added to the `allowlist: []` array in the spec, or vice versa.",
+          "suggested_fix": "Specify the exact mechanism for adding an allowlisted token: e.g., 'A token may be added to the allowlist in \u00a76 only with a written reason (a PHR) stating why it is not a credential, and the token string must be explicitly added to the `allowlist` array in \u00a76; additions are never silent.'"
+        },
+        {
+          "section": "8. Acceptance Criteria (AC-7)",
+          "category": "needs_clarify",
+          "problem": "AC-7 states the Stranger Test input is the 'completed five-document set (spec + plan + tasks + workflow + tests \u2014 these five together form the input brief, per PLAN.md \u00a77.6; never any single file alone)'. However, the spec itself (this document) contains the 13-file inventory (\u00a74.1) and the providers.yaml schema (\u00a74.3).",
+          "why_it_matters": "If the stranger receives the five-document set, and the spec contains the 13-file inventory, the stranger has the list of files to produce. But the stranger does not have the actual content of the 13 files (e.g., the exact wording of the constitution template). The stranger is asked to 'implement this', which implies producing the 13 files. It is unclear if the stranger is expected to author the content of the 13 files from scratch based on the spec's descriptions, or if the stranger is merely verifying the contract parity of existing files.",
+          "suggested_fix": "Clarify in AC-7 whether the Stranger Test expects the fresh session to author the content of the 13 files based on the five-document set's specifications, or if it is a verification step checking existing files against the spec's criteria. If authoring, specify that the five-document set must contain sufficient information to generate the content of all 13 files."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 10,
+      "scores": {
+        "clarity": 10,
+        "completeness": 10,
+        "edge_case_coverage": 10,
+        "internal_consistency": 10,
+        "testability": 10
+      },
+      "issues": [],
+      "verdict": "pass"
+    }
+  ],
+  "n_valid": 4
+}

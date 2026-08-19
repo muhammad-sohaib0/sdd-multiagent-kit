@@ -1,0 +1,366 @@
+{
+  "document": "m2excerpt",
+  "pass": 1,
+  "round": 1,
+  "critics": [
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "critique-engine-goal",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 2,
+      "scores": {
+        "clarity": 2,
+        "completeness": 1,
+        "edge_case_coverage": 1,
+        "internal_consistency": 3,
+        "testability": 0
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "References undefined terms: 'M1', 'master skill', 'critique-loop sub-skill', 'providers.yaml', 'critique response schema', 'retry policy' without definitions or cross-references.",
+          "why_it_matters": "Implementers cannot build to this spec without external context. Each undefined term is a dependency that must be specified or linked.",
+          "suggested_fix": "Add a 'References' or 'Dependencies' section linking to the authoritative definitions of M1, the master skill structure, providers.yaml schema, critique response schema, and retry policy. Or inline minimal required definitions."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "No interface specification for the two Python scripts (CLI arguments, environment variables, exit codes, stdout/stderr contracts).",
+          "why_it_matters": "Scripts cannot be invoked reliably in automation without a stable CLI contract. Orchestration depends on this.",
+          "suggested_fix": "Define CLI signatures: orchestrate_critique_loop.py --document <path> --pass <1|2> --config <providers.yaml> --output-dir <path> [--model-subset <list>]; validate_critique.py --critique-json <path> --schema <path>."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "No specification of the critique response schema that the engine must enforce.",
+          "why_it_matters": "The entire purpose is 'enforcing the critique response schema' but the schema itself is absent. Validation cannot be implemented.",
+          "suggested_fix": "Include or reference the exact JSON schema (the one in the prompt) as the enforcement target."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "Retry policy described as 'absorbing transport/invalid-critic failures per the retry policy' but policy details are absent (max retries, backoff, which errors are retryable, circuit breaker?).",
+          "why_it_matters": "Without explicit policy, implementations will behave inconsistently, causing flaky runs or infinite loops.",
+          "suggested_fix": "Specify: max_attempts, base_backoff_seconds, max_backoff_seconds, retryable_error_codes (e.g., 429, 5xx, timeout), non-retryable codes (4xx except 429), jitter strategy."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "Logging destination 'outputs/critique-log/' mentioned but log format, rotation, retention, and structure unspecified.",
+          "why_it_matters": "Downstream consumers (dashboards, auditors, Pass 2) need a stable log schema. Directory alone is insufficient.",
+          "suggested_fix": "Define log file naming (e.g., {doc-id}_{pass}_{model}_{timestamp}.jsonl), line format (JSON with fields: timestamp, model, pass, document, latency_ms, status, error?), rotation policy."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "Ambiguous pass/document model: 'two-pass, seven-model critique loop against a milestone document \u2014 one document per invocation (Pass 2 over the five-doc set is run as five invocations)'.",
+          "why_it_matters": "Contradiction: is the loop 7 models \u00d7 2 passes per document, or 5 documents \u00d7 2 passes? 'Seven-model' and 'five-doc set' appear unrelated but are presented as the same loop.",
+          "suggested_fix": "Clarify: Pass 1 = 7 models \u00d7 1 document. Pass 2 = same 7 models \u00d7 same document (re-critique). The 'five-doc set' is a separate batch concern \u2014 state that the orchestrator is invoked 5 times (once per doc) for each pass."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "No mention of concurrency control, rate limiting, or resource limits when calling 7 external model APIs.",
+          "why_it_matters": "Uncontrolled parallelism will trigger provider rate limits, get IP banned, or OOM the runner.",
+          "suggested_fix": "Specify max_concurrent_requests, per-model rate limits (RPM/TPM), timeout_seconds, and whether models run sequentially or in pools."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "No success/failure criteria for the overall invocation. What constitutes a 'pass' for the orchestration itself?",
+          "why_it_matters": "CI/CD gates need a clear exit code and summary. Partial failures (e.g., 3/7 models respond) need a policy.",
+          "suggested_fix": "Define: invocation succeeds if \u2265N models return valid critiques (N=7? N=5?). Exit codes: 0=success, 1=validation failure, 2=transport failure, 3=quorum not met."
+        },
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "Whether the 'critique-loop sub-skill' is a Python module, a class, a function, or a CLI entry point \u2014 and how it relates to the two scripts.",
+          "why_it_matters": "Architectural boundary affects testability, reuse, and packaging. The term 'sub-skill' implies a framework (M1?) that is not described.",
+          "suggested_fix": "Clarify the M1 skill framework contract or replace 'sub-skill' with concrete Python API (e.g., class CritiqueLoop with run(document, pass_num) -> List[CritiqueResult])."
+        },
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "Whether providers.yaml contains model endpoints, API keys, model parameters (temperature, max_tokens), or all of the above.",
+          "why_it_matters": "Security (secrets management) and configurability depend on this. Hardcoding vs. env-substitution is a deployment decision.",
+          "suggested_fix": "Specify providers.yaml schema or reference it. Note whether secrets are in-file, env-vars, or a secret manager."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "Goal",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 4,
+      "scores": {
+        "clarity": 4,
+        "completeness": 3,
+        "edge_case_coverage": 2,
+        "internal_consistency": 5,
+        "testability": 0
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "The phrase \"M1's master skill points to\" is nonsensical and leaves the deliverable ambiguous.",
+          "why_it_matters": "Stakeholders cannot determine what concrete artifact is expected, leading to mis\u2011implementation.",
+          "suggested_fix": "Replace the phrase with a clear statement of the required output, e.g., \"Deliver a critique engine comprising the `critique-loop` sub\u2011skill and two Python scripts...\""
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "Key operational details are omitted: the exact retry policy, the precise critique response schema, and the expected logging format.",
+          "why_it_matters": "Without these specifications, implementers may produce incompatible components, breaking downstream pipelines.",
+          "suggested_fix": "Add a concise enumeration of the retry policy (max attempts, back\u2011off strategy), list required fields of the critique JSON schema, and define the file naming/structure under `outputs/critique\u2011log/`."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "Edge\u2011case handling is only partially addressed (transport/invalid\u2011critic failures); other failure modes such as missing `providers.yaml`, malformed config files, or network timeouts are not mentioned.",
+          "why_it_matters": "Uncovered edge cases will cause the engine to crash or produce silent errors in production.",
+          "suggested_fix": "Enumerate additional failure scenarios and describe how the engine should recover or report them."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "The description mixes two different execution models: \"two\u2011pass, seven\u2011model critique loop\" versus \"Pass\u202f2 over the five\u2011doc set is run as five invocations\" without clarifying their relationship.",
+          "why_it_matters": "This creates internal inconsistency, making it unclear whether the loop processes seven models per document or five documents per pass.",
+          "suggested_fix": "Separate the concepts clearly, e.g., explain that each document undergoes a two\u2011pass, seven\u2011model loop, and that the five\u2011document set is processed by invoking the engine five times (once per document)."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "M2_critique-loop.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 2,
+      "scores": {
+        "clarity": 3,
+        "completeness": 1,
+        "edge_case_coverage": 1,
+        "internal_consistency": 4,
+        "testability": 0
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "The document is missing the actual SDD content. Only the 'Goal' section is provided; the interface, implementation details, and other standard SDD sections are entirely absent.",
+          "why_it_matters": "An SDD cannot be reviewed or implemented if it only contains a single paragraph describing the goal. The document is fundamentally incomplete.",
+          "suggested_fix": "Provide the full document text including sections for Interface, Implementation, Dependencies, and Edge Cases."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "Mentions 'two Python scripts' but provides no module dependencies, CLI argument definitions, or function signatures for either `orchestrate_critique_loop.py` or `validate_critique.py`.",
+          "why_it_matters": "Without interfaces or signatures, developers cannot integrate these scripts with M1's master skill or the broader system.",
+          "suggested_fix": "Add an 'Interface' section defining the CLI arguments, expected inputs, and outputs for both scripts."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "References 'the retry policy' and 'the critique response schema' without defining or linking to their exact specifications.",
+          "why_it_matters": "Ambiguous references to undefined policies make it impossible to objectively verify if the implementation will meet the requirements.",
+          "suggested_fix": "Explicitly define the retry policy (retries, backoff, timeout) and the critique response schema within this document, or link directly to the specific sections in M1 where they are defined."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "Fails to specify the exact JSON structure or file naming convention for logs written to `outputs/critique-log/`.",
+          "why_it_matters": "Without a defined log structure, downstream consumers of the critique logs will be unable to parse the results reliably.",
+          "suggested_fix": "Define the JSON schema for the log entries and provide an example file path and content structure."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "No edge cases are documented despite mentioning 'transport/invalid-critic failures'.",
+          "why_it_matters": "Handling transport failures and invalid critics is highly error-prone; without specific edge case definitions (e.g., rate limits, malformed JSON, non-responsive models), the implementation will likely be brittle.",
+          "suggested_fix": "Add an 'Edge Cases' section enumerating the specific failure modes for transport errors and invalid critic responses, and how the system should handle each."
+        },
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "States 'one document per invocation (Pass 2 over the five-doc set is run as five invocations)'.",
+          "why_it_matters": "It is unclear if the script should strictly process only one document per run or if it needs to handle batch processing in other contexts. This is a business/operational decision.",
+          "suggested_fix": "Clarify if the script should ever support batch processing or if it is permanently restricted to a single document per invocation."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "document": "critique-loop-sdd",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 4,
+      "scores": {
+        "clarity": 7,
+        "completeness": 3,
+        "edge_case_coverage": 2,
+        "internal_consistency": 8,
+        "testability": 0
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "The document contains only a high-level Goal statement and lacks complete architecture, script interfaces, CLI argument specifications, and data flow details.",
+          "why_it_matters": "Without specific script inputs, outputs, and interface contracts, implementation cannot proceed deterministically.",
+          "suggested_fix": "Expand the specification to include sections for CLI interfaces, input/output schemas, and execution flow diagrams."
+        },
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "The text references absorbing failures 'per the retry policy', but no specific retry counts, backoff logic, or fallback mechanisms are defined.",
+          "why_it_matters": "Undefined retry policy parameters can lead to infinite loops or inconsistent failure modes during execution.",
+          "suggested_fix": "Define explicit operational parameters for retries, such as maximum retries per critic, backoff intervals, and threshold for complete execution failure."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "goal-section/critique-engine",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 3,
+      "scores": {
+        "clarity": 4,
+        "completeness": 3,
+        "edge_case_coverage": 2,
+        "internal_consistency": 5,
+        "testability": 0
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "\"two-pass\" is asserted but neither pass is defined: there is no statement of what Pass 1 does, what Pass 2 does, what each pass's critics are prompted with, or how Pass 2 consumes Pass 1's outputs.",
+          "why_it_matters": "Implementation cannot proceed without knowing the contract of each pass; reviewers cannot verify correctness.",
+          "suggested_fix": "Add a per-pass subsection: inputs, instructions to critics, expected output shape, and hand-off between passes."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "\"seven-model critique loop\" names the panel size but lists no model identifiers and gives no rule for how the seven are selected from `providers.yaml`.",
+          "why_it_matters": "The panel composition is the central behavioral parameter of the loop; without it the goal is under-specified.",
+          "suggested_fix": "List the seven model ids (or the selection rule \u2014 e.g., \"all entries where role=critic\") and reference the exact `providers.yaml` path/key."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "\"critique response schema\" is referenced but the schema itself is absent \u2014 no fields, types, required keys, or version tag.",
+          "why_it_matters": "`validate_critique.py` exists to enforce the schema; without it, the validator has nothing to validate against and the orchestrator has no contract for what it is parsing.",
+          "suggested_fix": "Inline the JSON Schema (or reference its file path under `kit/schemas/`) with field-by-field definitions."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "\"retry policy\" is named but its rules are not stated: no max attempts per critic, no backoff parameters, no classification of retriable vs. terminal failure modes, and no escalation behavior on persistent failure.",
+          "why_it_matters": "Failure absorption is core to the deliverable; \"per the retry policy\" is a placeholder, not a specification.",
+          "suggested_fix": "Specify retry budget (e.g., 2 retries per critic with 2^n backoff), the failure taxonomy (transport, timeout, malformed JSON, schema-invalid, content-empty, refusal), and the final disposition for each."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "The division of responsibility between `orchestrate_critique_loop.py` and `validate_critique.py` is undefined \u2014 it is not stated whether the orchestrator imports the validator, shells out to it, or both run independently; no function/class signatures, CLI surface, or exit codes are given.",
+          "why_it_matters": "Two scripts are mandated as a unit but their inter-script contract is missing; reviewers and implementers will guess differently.",
+          "suggested_fix": "Add a \"Module breakdown\" subsection naming each script's entry point, responsibilities, and the call edge between them."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "Failure classes beyond \"transport/invalid-critic\" are not enumerated (timeout, JSON-parse failure, schema-valid-but-empty, model refusal, partial response, provider rate-limit, disk-write failure on `outputs/critique-log/`), and no disposition is defined for any of them.",
+          "why_it_matters": "An \"absorb\" directive without a failure taxonomy is unfalsifiable.",
+          "suggested_fix": "Enumerate failure modes and state the handling (retry / skip-and-log / abort run) for each."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "\"five-doc set\" appears with no provenance: it is not stated what the five documents are, where they live, how the orchestrator discovers them, or whether Pass 1 also operates on a doc set (and if so, of what size).",
+          "why_it_matters": "The invocation count (1 vs. 5) is part of the loop's observable behavior; leaving it unmotivated is an unmarshaled side condition.",
+          "suggested_fix": "State the source of the five documents (e.g., the five milestone outputs from M1) and explicitly answer whether Pass 1 is also five invocations or a single invocation."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "Log shape is described only as \"critique JSON to `outputs/critique-log/`\" \u2014 no filename pattern, partitioning (by pass / model / doc / timestamp), retention policy, or whether logs are overwrite-vs-append.",
+          "why_it_matters": "Logging is the sole audit artifact; its structure is part of the deliverable's interface with downstream consumers.",
+          "suggested_fix": "Specify the filename pattern and the top-level JSON fields of each record."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "No CLI interface (arguments, flags, env vars), no exit codes, and no description of how the `critique-loop` sub-skill interacts with the two scripts are given.",
+          "why_it_matters": "A skill that \"points to\" a script needs an invocation boundary; without it the skill's role is undefined.",
+          "suggested_fix": "Specify the sub-skill's instruction body and the exact command it issues (including any flags) to invoke the orchestrator."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "The qualification \"real two-pass, seven-model critique loop\" implies a contrast with a previously described (mocked or aspirational) loop, but that prior artifact is not identified, so the requirement's intent is ambiguous.",
+          "why_it_matters": "Quality qualifiers tied to unnamed reference points make acceptance criteria non-auditable.",
+          "suggested_fix": "Remove \"real\" or replace it with a concrete acceptance criterion (e.g., \"each of the seven critics produces a schema-valid critique\")."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "Internal asymmetry: Pass 2 runs as \"five invocations\" (one per doc) but Pass 1's invocation count is unstated, despite both passes being part of the same \"two-pass\" loop.",
+          "why_it_matters": "An implementer cannot tell whether Pass 1 also iterates over the five-doc set, runs once, or runs differently \u2014 three plausible interpretations.",
+          "suggested_fix": "State Pass 1's invocation pattern explicitly."
+        },
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "Which seven model identifiers constitute the critique panel, and where in `providers.yaml` are they declared?",
+          "why_it_matters": "Panel membership is a product decision (which perspectives critique the doc), not derivable from this document.",
+          "suggested_fix": "List the seven model ids and the `providers.yaml` key they live under."
+        },
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "What are the precise fields, types, and required-vs-optional keys of the critique response schema that `validate_critique.py` enforces?",
+          "why_it_matters": "Schema design is a subjective call (verbosity, free-text vs. rubric scores, per-section vs. document-level comments).",
+          "suggested_fix": "Provide the schema and rationale."
+        },
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "What is the full retry policy: max attempts per critic, backoff schedule, classification of retriable vs. fatal failures, and escalation behavior on persistent failure?",
+          "why_it_matters": "Retry semantics determine run-time and reliability characteristics \u2014 a product decision.",
+          "suggested_fix": "State the policy (numbers, schedule, escalation)."
+        },
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "What distinguishes Pass 1 from Pass 2 in terms of the prompt/instructions given to critics and in how Pass 2 consumes Pass 1 outputs?",
+          "why_it_matters": "The two-pass structure is a methodological choice (e.g., independent vs. adversarial vs. refinement) and is not derivable here.",
+          "suggested_fix": "Describe each pass's role and hand-off explicitly."
+        },
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "What is the logging structure: one file per (pass, model, doc) tuple, an append-only stream per run, or per-doc aggregation? What retention applies?",
+          "why_it_matters": "Log layout is a downstream-consumer decision.",
+          "suggested_fix": "Specify the partition and retention."
+        },
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "How does the `critique-loop` sub-skill relate to the two scripts \u2014 is the script the engine invoked by the skill, or do skill and scripts have distinct responsibilities?",
+          "why_it_matters": "Wrapper-vs-engine is a layering choice.",
+          "suggested_fix": "Specify the call chain: skill \u2192 orchestrator \u2192 validator, with the boundaries."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

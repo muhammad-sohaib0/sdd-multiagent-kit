@@ -1,0 +1,241 @@
+{
+  "document": "spec_milestone_2",
+  "pass": 2,
+  "round": 23,
+  "critics": [
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 6,
+        "completeness": 6,
+        "edge_case_coverage": 7,
+        "internal_consistency": 5,
+        "testability": 5
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "Pass 1 requires critics to emit `testability: 0` with the justification '0 = not assessed in this pass', but the schema requires all five dimension scores as integers 0-10. This conflates 'not assessed' with a genuine zero score, making it impossible to distinguish a document that is untestable from one where testability was simply not evaluated.",
+          "why_it_matters": "Downstream consumers (validation, aggregation, human review) cannot tell whether testability was explicitly scored zero or omitted. The schema should either make testability optional in Pass 1 or introduce a distinct sentinel (e.g., null) with a corresponding schema change.",
+          "suggested_fix": "Either (a) make `testability` optional in the Pass 1 critique schema and adjust `validate_critique.py` accordingly, or (b) define a reserved value (e.g., -1) meaning 'not assessed' and update the schema's type/constraints. Document the chosen approach in the prompt-template constant."
+        },
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "objective",
+          "problem": "Retry policy treats 'unparseable JSON' (\u22641 retry, \u22642 attempts) and '200 OK with invalid provider response shape' (\u22645 transport retries) as separate failure classes, but both represent an invalid critic response. The distinction is arbitrary: a 200 OK with malformed JSON is also unparseable, yet it gets 5\u00d7 the retry budget.",
+          "why_it_matters": "A critic that consistently returns 200 OK with garbage JSON will consume 5 transport retries per round, while one that returns a parse error gets only 1 retry. This incentivizes providers to return 200 OK with broken payloads and wastes round time.",
+          "suggested_fix": "Unify the invalid-response budget: any response that fails schema validation (parse error or shape mismatch) counts against a single 'invalid response' budget of \u22642 attempts. Reserve the \u22645 transport budget strictly for network-level failures (timeout, 5xx, 429, connection reset)."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The extractor's truncation-repair algorithm is described in prose ('trying every `{` as a candidate JSON start in text order \u2014 the first candidate that passes the full validity check wins') but is not specified as a deterministic, testable procedure. Edge cases (nested braces, braces in prose, multiple valid JSON objects) are not addressed.",
+          "why_it_matters": "The extractor is a critical reliability component. Without a precise specification, implementations will diverge, and the 'first candidate that passes' rule is ambiguous when multiple candidates pass (e.g., a valid inner object and the full repaired object).",
+          "suggested_fix": "Provide a formal specification or reference implementation for the extractor: input (raw text), output (parsed JSON or failure), and exact search/repair steps. Include test vectors covering markdown fences, trailing commas, unterminated strings, prose with braces, and multiple JSON-like structures."
+        },
+        {
+          "section": "FR-1 / FR-4",
+          "category": "objective",
+          "problem": "The `providers.yaml` structure is referenced as 'per `spec_milestone_1` \u00a74.3' but that document is not included or linked. The scripts must validate the config before any model calls, yet the required fields (`providers[].models`, `critic_slots`, `key_env`, per-model `timeout`) are only scattered across FR-1 and Edge Cases.",
+          "why_it_matters": "Implementers cannot write the config loader/validator without the complete schema. The spec must be self-contained or include the exact YAML schema inline.",
+          "suggested_fix": "Include the full `providers.yaml` JSON Schema (or equivalent) in this document, or normatively reference a versioned schema file in the repository. List every required/optional field, types, and constraints (e.g., `critic_slots` non-empty array of objects with `provider`, `model`, optional `timeout`)."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The stagger delay formula `(slot_index-1)\u00d74s` with '1-based slot indexing' is defined, but `slot_index` is not explicitly tied to the `critic_slots` array index. If `critic_slots` is 0-based in YAML/JSON, the first slot gets -4s delay.",
+          "why_it_matters": "Off-by-one in stagger defeats the rate-limit avoidance purpose or causes negative sleeps.",
+          "suggested_fix": "State explicitly: 'slot_index is the 1-based position in the `critic_slots` array (first element \u2192 slot_index=1 \u2192 0s delay). Implement as `enumerate(critic_slots, start=1)`.'"
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The prompt-template constant embeds 'the PLAN.md \u00a74.3 rubric schema' and a 'single configurable sentence' for the pass rule line, but the template itself is not specified. The relationship between the schema dimensions and the pass rule line is underspecified.",
+          "why_it_matters": "The prompt is the primary interface to the critics. Ambiguity here directly causes inconsistent critiques. The maintainer must synchronize the template with PLAN.md manually \u2014 no mechanism ensures this.",
+          "suggested_fix": "Include the exact prompt template (with placeholders) in the spec, or reference a versioned template file. Define the substitution variables: `{document_text}`, `{rubric_schema_json}`, `{pass_rule_line}`."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "Atomic write uses `<filename>.tmp` then `os.replace`, claiming 'same filesystem, so the rename is atomic'. The spec does not guarantee the output directory is on the same filesystem as the temp file (it is, by construction), but does not address the case where `--out` is a symlink to a different filesystem, or where the directory is a mount point.",
+          "why_it_matters": "If the temp file and target are on different filesystems, `os.replace` fails (EXDEV) and the write is not atomic. The spec should either require same-filesystem (documented) or implement a fallback (write-then-rename within the target directory).",
+          "suggested_fix": "Create the temp file in the target directory (e.g., `os.path.join(out_dir, f'.{filename}.tmp')`) so rename is guaranteed atomic on POSIX. Update the spec accordingly."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "UTF-8 BOM is 'passed through as content \u2014 not stripped'. This means the BOM becomes part of the document text sent to models, potentially confusing them or consuming context window.",
+          "why_it_matters": "Models may treat the BOM as a visible character. The spec should either mandate BOM stripping (with a note) or justify why passing it through is correct.",
+          "suggested_fix": "Strip UTF-8 BOM on read (standard practice for text processing) and document that the document text sent to models is BOM-free. If BOM preservation is intentional, explain why."
+        },
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "objective",
+          "problem": "Duplicate `critic_slots` entries are explicitly not validated: 'a duplicated slot simply runs twice (config-author responsibility)'. This allows accidental duplication to double a model's weight in the round without warning.",
+          "why_it_matters": "A typo in `providers.yaml` (copy-paste error) silently changes the panel composition. The script should at least warn on stderr when duplicate (provider, model) pairs are detected.",
+          "suggested_fix": "Add a pre-flight check: if any (provider, model) pair appears more than once in `critic_slots`, emit a warning to stderr (not a config error) so the author notices."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The `--round-cap` parameter is validated by the script ('positive integer or 0') but not enforced: 'the cap itself is enforced by the critique-loop sub-skill's stopping logic'. The script accepts `--round` labels beyond `--round-cap` without validation.",
+          "why_it_matters": "The script's CLI contract is confusing: it validates a parameter it doesn't use. A user invoking the script directly (bypassing the sub-skill) can exceed the cap silently.",
+          "suggested_fix": "Either (a) remove `--round-cap` from the script's CLI (it belongs to the sub-skill), or (b) make the script enforce it: if `--round > --round-cap` and `--round-cap > 0`, exit 2 with a clear message."
+        },
+        {
+          "section": "FR-2",
+          "category": "objective",
+          "problem": "`validate_critique.py` validates 'shape only, with no enum constraints' but the required fields list includes `verdict` which in the schema is an enum (`pass|needs_revision`). The script must either validate the enum or document that it doesn't.",
+          "why_it_matters": "If `verdict` can be any string, the orchestrator's stopping logic (which depends on `verdict`) may break. The shape validator should at least check that `verdict` is a string; enum validation is a semantic check that arguably belongs here.",
+          "suggested_fix": "Clarify: `validate_critique.py` checks that `verdict` is a non-empty string. Enum validation (`pass|needs_revision`) is a semantic rule enforced by the orchestrator. Update the 'Required vs optional fields' section to reflect this."
+        },
+        {
+          "section": "FR-3",
+          "category": "needs_clarify",
+          "problem": "The `critique-loop` sub-skill (SKILL.md) is required to 'instruct the agent on invoking, triaging (objective/needs_clarify/false-positive), and stopping' but the spec does not define the triage procedure or the stopping logic for the agent. The 'consecutive non-progressing rounds' escalation is described in Edge Cases but not linked to the sub-skill.",
+          "why_it_matters": "The sub-skill is the agent's playbook. Without a specified triage algorithm (how to classify issues, how to detect 'progressing' rounds), different agents will behave differently, breaking reproducibility.",
+          "suggested_fix": "Define the triage algorithm in the spec: input (critique JSON + Clarify answers), output (resolved issues, updated Clarify list, false-positive rejections). Define 'progressing round' formally: a round where at least one issue was triaged as 'genuinely new and actionable' AND the document was modified in response. Specify the consecutive-non-progressing counter and escalation trigger."
+        },
+        {
+          "section": "Edge Cases",
+          "category": "objective",
+          "problem": "The definition of 'currently-valid critic' appears only in Edge Cases ('a critic whose critique passed the validity rule in that round (a member of that round's `critics` array)') but is used in US-2 and AC-3. The term 'validity rule' refers to 'unparseable, or `overall_score < 10` with zero issues \u2192 invalid' from FR-1, but this cross-reference is implicit.",
+          "why_it_matters": "Readers must hunt across sections to assemble the definition. The spec should define key terms in a dedicated Glossary or at first use.",
+          "suggested_fix": "Add a 'Definitions' section early in the document. Define: round, session, currently-valid critic, progressing round, non-progressing round, consecutive non-progressing rounds, validity rule, perfect score."
+        },
+        {
+          "section": "AC-3 / AC-4",
+          "category": "objective",
+          "problem": "Acceptance criteria reference 'PLAN.md \u00a74.3 schema' and 'PLAN.md \u00a74.4' but PLAN.md is not provided. The critique-log JSON schema and round-cap escalation behavior are normatively defined in an external document not included in the milestone deliverables.",
+          "why_it_matters": "Verification is impossible without the referenced schema. The spec must either inline the schema or include PLAN.md as a required artifact.",
+          "suggested_fix": "Include the full critique-log JSON schema (top-level and per-critic) in this document. Include the round-cap escalation message format. Remove normative references to PLAN.md."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "Per-model `timeout` in `providers.yaml` overrides global `--timeout`, but the retry/backoff policy is unchanged. A model with a 30s timeout gets 5 \u00d7 30s = 150s of call time plus backoff, while a model with 600s timeout gets 5 \u00d7 600s = 3000s. The round's wall-clock is bounded by the slowest model's budget, but the spec doesn't cap the total round duration.",
+          "why_it_matters": "A single slow model with a high timeout can stall the round for hours. The agent invoking the script has no bound on how long `orchestrate_critique_loop.py` runs.",
+          "suggested_fix": "Add a global round deadline (e.g., `--round-timeout` default 3600s) that kills all pending calls and marks them as transport failures. Or require that per-model timeouts are bounded by a global maximum (e.g., 600s) validated at config load."
+        },
+        {
+          "section": "Edge Cases",
+          "category": "objective",
+          "problem": "The spec states 'a document that exceeds a model's context window surfaces as a provider 4xx (e.g. 413) and is covered by the deterministic-client-error rule'. However, 413 Payload Too Large is a 4xx, but some providers return 400 Bad Request with a 'context length exceeded' message. The rule 'any non-429 4xx is deterministic client error' would treat both as non-retryable, which is correct, but the error message parsing is not specified.",
+          "why_it_matters": "If the provider returns 400 with a JSON body containing an error code, the script must parse it to distinguish 'context window' from 'bad request'. The spec says 'not retried, it breaks that model's attempts immediately' but doesn't require logging the error details for diagnostics.",
+          "suggested_fix": "Require that on any 4xx (including 400), the script logs the response body (truncated to 300 code points) to stdout/stderr for diagnostics, then treats it as a fatal error for that model in that round."
+        },
+        {
+          "section": "General",
+          "category": "needs_clarify",
+          "problem": "The spec does not address what happens if `providers.yaml` is modified between rounds of a session (e.g., a model added/removed). The panel is read 'before any model is called' per invocation, so each round sees the current config. This could change the panel composition mid-session.",
+          "why_it_matters": "Changing the panel mid-session invalidates the 'currently-valid critic' set consistency. The stopping condition 'every currently-valid critic scores perfect' depends on a stable panel.",
+          "suggested_fix": "State that `providers.yaml` is read once per invocation (per round). If the session requires a stable panel, the agent must not modify the config between rounds. Alternatively, have the sub-skill read the config once and pass the resolved panel to each invocation."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_2.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 6,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-1 \u2013 Retry/backoff policy",
+          "category": "objective",
+          "problem": "The described backoff calculations are internally inconsistent. For 429 retries the spec says \"30s \u00d7 attempt (attempt 1 \u2192 30s, 2 \u2192 60s, 3 \u2192 90s, 4 \u2192 120s; the \u22645 bound caps total backoff at 300s)\", but the sum of five attempts (30+60+90+120+150) equals 450\u202fs, exceeding the claimed 300\u202fs cap. A similar inconsistency exists for other transport failures: \"8s \u00d7 attempt (\u226480s total)\" but five attempts sum to 120\u202fs.",
+          "why_it_matters": "Implementers cannot correctly enforce the retry budget; they may either over\u2011retry (wasting time) or under\u2011retry (failing to meet the intended resilience). This also breaks the guarantee that a round\u2019s wall\u2011clock time is bounded as described.",
+          "suggested_fix": "Either adjust the per\u2011attempt multiplier or the total cap so that the arithmetic matches. For example, use a linear backoff of 30\u202fs per attempt with a maximum of 5 attempts (total 150\u202fs) or keep the 30\u202fs step but set the cap at 450\u202fs. Apply the same correction to the 8\u202fs multiplier (e.g., cap at 120\u202fs) and update the spec accordingly."
+        },
+        {
+          "section": "FR-1 \u2013 Logging of failed critics",
+          "category": "needs_clarify",
+          "problem": "The spec states that failed/invalid critics are logged to stdout and that a snippet of the raw response is printed, but it does not specify the exact format, whether the log is written to a file, or how the agent should consume it.",
+          "why_it_matters": "Agents need a deterministic way to parse failure logs to decide whether to retry, abort, or surface diagnostics. Ambiguity may lead to divergent implementations.",
+          "suggested_fix": "Add a concrete logging schema (e.g., JSON lines with fields: model, attempt, error_type, snippet) and state whether this is written to stderr, a separate log file, or both."
+        },
+        {
+          "section": "FR-1 \u2013 Duplicate slot entries",
+          "category": "objective",
+          "problem": "The document says duplicate slot entries are *not* validated and will simply run twice, placing the responsibility on the config author. This contradicts the overall design goal of a robust, config\u2011driven system that validates its inputs before execution.",
+          "why_it_matters": "Allowing duplicate slots without validation can cause hidden duplicate work, skewed scoring, and unexpected round\u2011cap consumption, reducing reliability.",
+          "suggested_fix": "Either forbid duplicate slot entries with a clear error (exit\u202f2) or explicitly document the intended semantics and provide guidance on when duplication might be desirable."
+        },
+        {
+          "section": "FR-1 \u2013 Handling of empty `issues` array with low overall_score",
+          "category": "needs_clarify",
+          "problem": "The spec declares that \"empty issue list with score < 10: invalid (noise), retried\" but also that \"overall_score < 10 with zero issues \u2192 invalid\". It is unclear whether a critic may legitimately return a low overall_score *and* an empty issue list (e.g., because the critic found no concrete problems but still rates the doc poorly).",
+          "why_it_matters": "Ambiguity may cause critics to be penalised for legitimate low scores, leading to unnecessary retries and inflated round counts.",
+          "suggested_fix": "Clarify whether a low overall_score must be accompanied by at least one issue, or allow low scores with an empty issue list and treat them as valid but non\u2011perfect."
+        },
+        {
+          "section": "FR-1 \u2013 Staggered start\u2011delay description",
+          "category": "needs_clarify",
+          "problem": "The spec mentions a stagger of \"(slot_index-1)\u00d74s\" with 1\u2011based indexing, applied only to the first call per slot. It does not state how this interacts with retries (do retries also respect the stagger?) or whether the delay is counted against the per\u2011call timeout.",
+          "why_it_matters": "Implementers may either double\u2011count the delay on retries (exceeding the intended timeout) or ignore it (potentially causing burst traffic). Both affect compliance with rate\u2011limit handling.",
+          "suggested_fix": "Specify that the stagger applies only to the initial attempt of each model in a round; retries start immediately after a failure/backoff without additional stagger, and the stagger time is included in the overall round wall\u2011clock budget but not in the per\u2011call timeout."
+        },
+        {
+          "section": "FR-1 \u2013 Exit code semantics for config errors",
+          "category": "objective",
+          "problem": "The spec lists several distinct error conditions (e.g., unknown provider, missing env key, bad `--name`) that all result in exit code\u202f2 with a clear message. However, it also says \"the script never burns a round discovering a typo'd provider or a missing key (a missing key would only produce a doomed 400)\" which contradicts the earlier statement that such config errors cause immediate exit\u202f2 before any model call.",
+          "why_it_matters": "Conflicting statements create uncertainty about when the script should abort versus proceeding to a doomed request, impacting reliability and debugging workflow.",
+          "suggested_fix": "Consolidate the behavior: all config\u2011validation errors (unknown provider, missing env key, malformed `--name`, etc.) must cause immediate exit\u202f2 before any network call. Remove the contradictory sentence about a missing key producing a 400."
+        },
+        {
+          "section": "FR-3 \u2013 Skill documentation completeness",
+          "category": "needs_clarify",
+          "problem": "The spec references the 11th sub\u2011skill `SKILL.md` but does not outline its required content beyond a high\u2011level description. It is unclear what exact instructions, examples, or format are expected for agents to correctly triage issues and apply stopping conditions.",
+          "why_it_matters": "Agents rely on the skill document for deterministic behavior; insufficient detail may lead to divergent implementations and failure to meet acceptance criteria.",
+          "suggested_fix": "Provide an outline or checklist of mandatory sections in `SKILL.md` (e.g., invocation command, JSON parsing steps, issue categorisation workflow, stopping condition algorithm, escalation handling) and indicate any required example snippets."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 10,
+        "internal_consistency": 9,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The spec mandates that the orchestrator script writes the round JSON atomically using a temp file and os.replace, but it does not specify the file permissions for the final critique-log JSON.",
+          "why_it_matters": "Critique logs may contain proprietary document text or sensitive structural data. Without explicit file permission guidance (e.g., 0600 or 0644), the implementation might default to insecure permissions, potentially exposing document contents to unauthorized users on shared systems.",
+          "suggested_fix": "Specify the file permissions for the written JSON file in FR-1 (e.g., 'The output JSON is written with 0600 permissions to prevent unauthorized access')."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The spec states that the orchestrator script validates the whole panel before any model is called, including checking that a provider's key_env key is not unset or empty. However, it does not specify the behavior if the environment variable is set but contains invalid credentials (e.g., a malformed or expired API key).",
+          "why_it_matters": "An invalid API key will not be caught during the pre-flight validation phase. It will instead cause a deterministic 401/403 client error during the concurrent model calls, which breaks that model's attempts immediately. While this is technically covered by the deterministic-client-error rule, it means the script burns resources setting up the concurrent run only to immediately fail, rather than failing fast during validation.",
+          "suggested_fix": "Clarify in FR-1 that credential validity (beyond presence) is not checked pre-flight, and that invalid credentials are expected to surface as deterministic 4xx client errors during the call phase, breaking that model's attempts immediately."
+        }
+      ],
+      "verdict": "pass"
+    }
+  ],
+  "n_valid": 3
+}

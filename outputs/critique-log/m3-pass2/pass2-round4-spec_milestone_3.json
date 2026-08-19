@@ -1,0 +1,133 @@
+{
+  "document": "spec_milestone_3",
+  "pass": 2,
+  "round": 4,
+  "critics": [
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 7,
+        "completeness": 6,
+        "edge_case_coverage": 7,
+        "internal_consistency": 6,
+        "testability": 5
+      },
+      "issues": [
+        {
+          "section": "FR-2 (Adapter interface)",
+          "category": "needs_clarify",
+          "problem": "The `detect()` contract returns a single `location` string, but Claude Code can reside in either a project\u2011level `.claude/skills/...` directory or a user\u2011level `~/.claude/skills/...` directory. The spec does not define which location should be reported or how the adapter should choose when both exist.",
+          "why_it_matters": "Without a deterministic rule, different adapters may return different paths for the same tool, causing the wizard to copy files to the wrong location or duplicate copies, breaking the \u201csingle source of truth\u201d guarantee and potentially overwriting user data.",
+          "suggested_fix": "Specify a precedence rule (e.g., prefer project\u2011level if it exists, otherwise fall back to user\u2011level) and require `detect()` to return both `projectLocation` and `userLocation` or a clearly documented single resolved path."
+        },
+        {
+          "section": "FR-3 (Per\u2011tool install locations)",
+          "category": "needs_clarify",
+          "problem": "The description mixes \u201cproject\u201d and \u201cpersonal\u201d locations for Claude Code/Claude Desktop without explaining how the installer should handle each case, especially when both exist or when the user runs the installer globally via `npm install -g`.",
+          "why_it_matters": "Ambiguity can lead to installers writing to the wrong directory, causing the `/sdd` trigger to be registered in a location the user never checks, or causing permission errors on global installs.",
+          "suggested_fix": "Add explicit guidance: (a) which directory the global installer should target, (b) whether it should create both copies, and (c) how to resolve conflicts if both directories are present."
+        },
+        {
+          "section": "FR-1 (Wizard UI \u2013 Pakistani guide slot)",
+          "category": "needs_clarify",
+          "problem": "The spec says a \"Learn more\" option is offered directly beneath the NVIDIA key prompt, but it does not define the interaction model (e.g., a separate menu choice, a keyword, or a button).",
+          "why_it_matters": "Implementers may interpret this differently, resulting in a UI that either hides the guide option or makes it inaccessible, violating the user scenario US\u20112.",
+          "suggested_fix": "Define the exact UI flow: after the NVIDIA prompt, present a numbered choice like \"1) Enter key, 2) Learn more about Pakistani guide\" and describe how the user selects the latter."
+        },
+        {
+          "section": "FR-1 (Argument handling)",
+          "category": "needs_clarify",
+          "problem": "The spec mandates that any argument causes a usage error (exit\u202f2), yet typical CLI tools provide `--help` or `-h`. The current wording would reject those useful flags.",
+          "why_it_matters": "Rejecting `--help` makes troubleshooting harder and may be considered a poor user experience, potentially causing confusion during adoption.",
+          "suggested_fix": "Allow a `--help`/`-h` flag that prints usage information and exits 0, while still rejecting all other non\u2011empty arguments."
+        },
+        {
+          "section": "Testability",
+          "category": "objective",
+          "problem": "The specification references an external tests document but does not embed any concrete test cases, success criteria, or mockable interfaces within this spec.",
+          "why_it_matters": "Reviewers and CI pipelines cannot verify compliance without explicit test definitions, making the acceptance criteria (AC\u20111\u2026AC\u20116) hard to enforce programmatically.",
+          "suggested_fix": "Add a concise test matrix in this spec (e.g., unit tests for each adapter\u2019s `detect`, `install`, `confirmEnabled`; integration test for the wizard\u2019s flow with mocked stdin/stdout) or at least summarize the required test cases."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements FR-1",
+          "category": "needs_clarify",
+          "problem": "The wizard collects API keys via readline but does not specify whether input is masked (hidden) or echoed. Security-sensitive key entry typically requires no-echo input to prevent shoulder-surfing or terminal scrollback leakage.",
+          "why_it_matters": "Without masking, keys may be exposed in terminal history or logs, contradicting the 'no secret values in logs' edge case and weakening the security posture of the installer.",
+          "suggested_fix": "Specify that key prompts use readline with muted output (e.g., `terminal.write('')` or `readline` with `output` muted) and that keys are never echoed to stdout."
+        },
+        {
+          "section": "Functional Requirements FR-2",
+          "category": "needs_clarify",
+          "problem": "The adapter interface defines `install(paths)` but does not specify the exact return value or success signal. It only says errors are thrown. The wizard needs a way to know if install succeeded beyond absence of throw.",
+          "why_it_matters": "Without a defined return contract, testability and error handling become ambiguous; a silent no-op (e.g., OpenCode when kit already present) might be indistinguishable from a real failure.",
+          "suggested_fix": "Define that `install()` returns `{ installed: boolean, message?: string }` or throws on failure. Update FR-2 and AC-1 to include the return type."
+        },
+        {
+          "section": "Functional Requirements FR-3",
+          "category": "needs_clarify",
+          "problem": "For Claude Code, the spec lists both project (`.claude/skills/...`) and personal (`~/.claude/skills/...`) locations but does not specify which one the adapter targets. The wizard is user-level, but the spec is ambiguous.",
+          "why_it_matters": "Ambiguity leads to inconsistent installs and test failures. The acceptance criteria require matching \u00a710.3 exactly, but the spec does not resolve the project vs personal choice.",
+          "suggested_fix": "Explicitly state that the Claude Code adapter targets the personal (`~/.claude/skills/`) location only, as the wizard is user-level and project-scoped installs are out of scope (already noted in FR-2)."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The 'Keys provided again' rule says the wizard checks `process.env` for a prior value and the user may skip a key to keep that existing env value. However, it does not specify how the wizard reads the env var (e.g., does it display a masked hint like `[set]` or the actual value?).",
+          "why_it_matters": "Displaying the actual env value would leak secrets; not displaying anything may confuse users. The spec is silent on this UX/security tradeoff.",
+          "suggested_fix": "Specify that the wizard shows only a placeholder like `[env set]` and never prints the actual key value. Add this to the edge case rule."
+        },
+        {
+          "section": "Acceptance Criteria AC-1",
+          "category": "objective",
+          "problem": "AC-1 says adapters must be 'non-stub' and export the three functions, but does not define how 'non-stub' is verified in tests. A function that returns a hardcoded `{installed:false}` could pass as non-stub.",
+          "why_it_matters": "Without a concrete testable definition, the acceptance criterion is subjective and cannot be automated, weakening testability.",
+          "suggested_fix": "Define 'non-stub' as: each function contains at least one filesystem operation (e.g., `fs.existsSync`, `fs.mkdir`, `fs.copyFile`) and is not a one-line placeholder. Add this to the tests document."
+        },
+        {
+          "section": "Functional Requirements FR-5",
+          "category": "objective",
+          "problem": "The spec says `package.json` has no dependencies, but the wizard requires the adapters at runtime via `require`. It does not specify how the adapters are resolved (relative path vs. package export). If `files` includes `installers/`, the require path must be relative to the wizard, but this is not stated.",
+          "why_it_matters": "If the require path is wrong, the installed global package will fail at runtime, violating AC-6. The spec must pin the resolution mechanism.",
+          "suggested_fix": "Specify that `bin/setup-wizard.js` requires adapters via a relative path like `require('../installers/claude-code')` and that `files` must include `installers/` and `kit/` (already stated). Add a test that runs the wizard from a simulated global install."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The exit code rule says `2` = configuration/usage error before any install (bad arguments, missing kit source). However, FR-1 says any argument is rejected as a usage error (exit 2). It does not specify what happens if the kit source is missing but the user has already been prompted for keys (i.e., after key collection but before install).",
+          "why_it_matters": "The spec says 'before any install' but the wizard collects keys first. If the kit source is missing, the wizard would have already collected keys (in memory) and then exit 2. This is inconsistent with 'before any install' and could confuse users who already entered keys.",
+          "suggested_fix": "Clarify that the kit source check happens before key collection (or at least before any install) and that exit 2 is used regardless of whether keys were collected. Add a note that keys are discarded on exit."
+        },
+        {
+          "section": "Functional Requirements FR-3",
+          "category": "objective",
+          "problem": "For OpenCode, the spec says it 'reads `.claude/skills/` directly' and shares the Claude Code location. However, it does not specify whether the OpenCode adapter's `detect()` checks for OpenCode's own config directory (e.g., `~/.opencode`) or only checks for the shared `.claude/skills` folder. If OpenCode is installed but the shared folder is absent, `detect()` might return false incorrectly.",
+          "why_it_matters": "Detection must be accurate to avoid skipping a tool that is actually installed. The spec is ambiguous about what constitutes 'installed' for OpenCode.",
+          "suggested_fix": "Specify that OpenCode's `detect()` checks for the OpenCode executable/config (e.g., `~/.opencode` or `opencode` in PATH) and then `install()` verifies/creates the shared `.claude/skills` folder. Update FR-3 accordingly."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}

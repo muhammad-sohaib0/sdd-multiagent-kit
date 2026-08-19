@@ -1,0 +1,387 @@
+{
+  "document": "spec_milestone_2",
+  "pass": 2,
+  "round": 10,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_2.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 6,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "Direct internal contradiction regarding how an 'unknown provider' entry in `providers.yaml` is handled.",
+          "why_it_matters": "In the execution description of FR-1, the text states 'a model whose provider key is missing or whose entry names an unknown provider/model fails as a transport/400 error and is counted absent that round'. However, in the Exit Codes section of FR-1, it states that exit code `2` is raised for 'any internal error (... unknown provider \u2014 each with a clear message on stderr)'. An engineer implementing the script cannot fulfill both behaviors simultaneously.",
+          "suggested_fix": "Resolve the contradiction: specify that structural/configuration invalidity (such as an unknown provider name in `providers.yaml`) immediately halts the script with exit code `2` before making network requests, whereas runtime 400 Bad Request responses from valid providers count as per-model failures without halting the script."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "Unspecified file origin or embedding mechanism for the PLAN.md \u00a74.3 rubric schema in `orchestrate_critique_loop.py`.",
+          "why_it_matters": "FR-1 mandates that the orchestrator 'embeds the PLAN.md \u00a74.3 rubric schema and the document text' into the prompt, but fails to define whether the schema is loaded dynamically from a repo file path or baked into the Python script as a hardcoded string constant. If loaded dynamically, no CLI argument or default path is specified.",
+          "suggested_fix": "Explicitly state that the JSON schema and prompt rubric template are embedded directly as Python string constants inside `orchestrate_critique_loop.py`."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "needs_clarify",
+          "problem": "Ambiguity regarding whether enum value constraints on issues/verdict are part of structural shape validation in `validate_critique.py`.",
+          "why_it_matters": "FR-2 states `validate_critique.py` re-validates JSON 'shape only' (fields/types/presence), leaving semantic rules to FR-1. It is unclear if checking enum values (e.g., `category` must be `objective`|`needs_clarify`, or `verdict` must be `pass`|`needs_revision`) falls under shape validation or semantic validation.",
+          "suggested_fix": "Clarify in FR-2 whether `validate_critique.py` validates string values against target enum sets (`pass`/`needs_revision`, `objective`/`needs_clarify`) as part of shape validation."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_2.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 5,
+      "scores": {
+        "clarity": 6,
+        "completeness": 6,
+        "edge_case_coverage": 6,
+        "internal_consistency": 4,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-1 (orchestrate_critique_loop.py) \u2014 Pass-1 vs Pass-2 rule line",
+          "category": "objective",
+          "problem": "FR-1 names the Pass-1 objective dimensions as 'clarity, structure, internal consistency, presence of required sections', but the required rubric schema (and 'Required vs optional fields (schema)' in FR-2) lists exactly five dimensions: clarity, completeness, edge_case_coverage, internal_consistency, testability. 'structure' and 'presence of required sections' are not schema dimensions, and 'completeness', 'edge_case_coverage', and 'testability' (the non-internal-consistency ones) are absent from the Pass-1 list.",
+          "why_it_matters": "The same document simultaneously asserts the Pass-1 prompt enumerates dimensions that don't exist in the schema AND that the schema is the source of truth for dimensions ('the rubric dimensions themselves come from the schema, so the \"which dimensions\" enumeration lives with the schema, not duplicated here'). The two statements are directly contradictory; an implementer cannot follow both.",
+          "suggested_fix": "Either (a) restate the Pass-1 rule line as 'score only the objective dimensions defined in the schema \u2014 clarity, completeness, internal_consistency' (or whichever subset is actually objective) and define the objective/subjective split in the schema itself, or (b) make the rule line truly dimension-agnostic and define the Pass-1 subset via a separate constant the script reads. In either case, remove the free-text list of dimension names from FR-1 and let the schema be authoritative."
+        },
+        {
+          "section": "FR-1 \u2014 Pass 1 scoring vs. required five-dimension schema",
+          "category": "objective",
+          "problem": "Pass 1 'scores only the objective dimensions' yet the schema mandates that every critic emits all five of clarity, completeness, edge_case_coverage, internal_consistency, testability. The spec never states what the non-scored (subjective) dimension values are when Pass 1 runs \u2014 null, a neutral default, the model's free-text answer anyway, or omitted (which would fail validate_critique.py since the field is required).",
+          "why_it_matters": "If subjective fields must be populated, the model is being asked to answer them on Pass 1 (defeating the point of skipping them). If they can be null, validate_critique.py will reject the entry because the field is listed as required with no nullable annotation. The two halves of the spec are not coordinated.",
+          "suggested_fix": "Specify explicitly: (a) the five scores are always present in every critic output regardless of pass, and on Pass 1 the subjective fields are explicitly filled with a defined neutral value (e.g., null with the schema marking them nullable on Pass 1), or (b) the schema has a per-pass 'applicable_scores' list the validator enforces, with Pass 1 allowing the three subjective fields to be absent."
+        },
+        {
+          "section": "FR-1 \u2014 --round-cap flag",
+          "category": "objective",
+          "problem": "The spec says the script 'accepts --round-cap for contract parity with the sub-skill and validates it \u2014 positive integer or 0 \u2014 but the cap itself is enforced by the critique-loop sub-skill's stopping logic'. A flag that is parsed, validated, and then ignored by its own script is an unusual contract; nothing else in the script behaves this way, and there is no explanation of why the orchestrator shouldn't enforce the cap itself given it already knows the round number.",
+          "why_it_matters": "Two independent enforcers of the same cap invite drift (sub-skill says 25, orchestrator says no cap \u2192 different totals, different escalation triggers). A reviewer or tester cannot tell which component is responsible for the bound by reading the spec, only that the sub-skill is.",
+          "suggested_fix": "Either make the orchestrator enforce the cap (it knows the round label and could compare it to the cap) and document the sub-skill as a higher-level session driver that adds its own policy on top, or drop the flag from the script's CLI entirely and document the cap as sub-skill-only. Pick one ownership and state it."
+        },
+        {
+          "section": "FR-1 \u2014 configurable pass rule line",
+          "category": "needs_clarify",
+          "problem": "The Pass-1 vs Pass-2 rule line is described as 'a single configurable sentence in the script's prompt-template constant', but no mechanism for configuration is specified: is it an env var, a CLI flag, a config-file field, or simply a Python constant edited in source? 'Configurable' is a property, not a spec.",
+          "why_it_matters": "If the goal is for the sub-skill or a maintainer to change the rule without code edits, that needs an interface (file, env, or CLI). If it is just a named constant, calling it 'configurable' misleads readers into expecting an extension point that may not exist.",
+          "suggested_fix": "Either (a) name the configuration mechanism (e.g., 'read from a `pass_rules:` map in providers.yaml, keyed by pass number') or (b) drop the word 'configurable' and call it a named Python constant in the prompt-template module."
+        },
+        {
+          "section": "FR-1 \u2014 --name filename usage",
+          "category": "needs_clarify",
+          "problem": "`{document}` in the output filename is the `--name` id 'used verbatim \u2014 it must be a plain document id, no path separators, since it becomes part of the filename'. The spec does not say what the script does when the id contains a path separator (or other unsafe filename characters): error? sanitize silently? strip? reject with a specific exit code?",
+          "why_it_matters": "A silent sanitization would produce output files that don't match what the caller asked for, making logs hard to correlate; a silent accept with a mangled name could collide with another document. The contract is undefined for the very input the spec warns against.",
+          "suggested_fix": "State the exact behavior: e.g., 'if --name contains a path separator or any character outside [A-Za-z0-9._-], the script exits 2 with a stderr message naming the offending character'. Make it an explicit, testable input-validation rule."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 no minimum quorum",
+          "category": "needs_clarify",
+          "problem": "The spec explicitly states 'There is no minimum quorum \u2014 a round completes with whatever valid critics it got; n_valid == 0 is the only \"no signal\" case.' Combined with AC-3's Pass-2 rule ('advances ... only when every currently-valid critic scores perfect'), a round with a single valid critic who scores 10 advances the session, even when six of the seven critics failed for the round.",
+          "why_it_matters": "An 'all 10s' gate with 1/7 valid is a weaker signal than an 'all 10s' gate with 7/7 valid, but the spec treats them identically. This is at minimum a design choice the user should be aware of; at worst, a single-flaky-critic session can rubber-stamp a document. The spec does not flag this trade-off.",
+          "suggested_fix": "State the quorum policy explicitly: either 'Pass 2 requires n_valid >= 5 (or some named threshold) before the perfect-score gate is evaluated' or 'Pass 2 has no quorum and may advance on 1/7 valid critics; this is intentional and matches the no-exclusion policy'. If the latter, add an Acceptance Criterion or Edge Case line that documents the deliberate trade-off."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 Unparseable response / JSON repair",
+          "category": "objective",
+          "problem": "The extractor 'tries every `{` as a candidate JSON start' on a failed parse. There is no bound on this \u2014 a multi-megabyte response with thousands of `{` characters in prose (the spec explicitly allows 'prose that itself contains braces') would force the extractor to attempt that many parses.",
+          "why_it_matters": "Combined with the 12000-token cap on Ollama responses, a single round could spend significant wall-clock time on extraction of one bad response, eating into the per-call hard deadline and potentially causing other in-flight calls to time out by side effect.",
+          "suggested_fix": "Bound the repair attempts: e.g., 'try up to the first N `{` positions where N is a small constant (suggest 8), or up to the first 4 KB of the response, whichever is smaller; if no candidate parses, mark invalid'. Make the bound an explicit number so it is testable."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 'Free-tier transport' label",
+          "category": "needs_clarify",
+          "problem": "The bullet is titled 'Free-tier transport' but the rules inside (429 backoff, 5xx backoff, timeout backoff, \u22645 transport tries) apply to all providers, paid or free. The label implies these are special-case rules for the free tier, which contradicts FR-1's 'applies the retry policy' and the universal provider list.",
+          "why_it_matters": "A reader skimming for the policy summary could reasonably believe the limits only apply to one provider, leading to mis-implementation or mis-tests.",
+          "suggested_fix": "Rename the bullet to 'Transport retry policy' (or 'All-provider transport retry policy') and move the free-tier reference (if still needed) into a sub-clause that calls out any genuine free-tier-specific behavior. Currently there is none stated."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 output snippet on final failure",
+          "category": "needs_clarify",
+          "problem": "On final failure the script logs 'up to 300 characters, whitespace-normalized, printed as `last raw text: <snippet>`'. The spec does not define 'whitespace-normalized' \u2014 collapsed to single spaces? newlines stripped? trimmed? This affects test assertions and log greppability.",
+          "why_it_matters": "Tests asserting 'no embedded newlines' will fail against a 'collapsed-to-spaces' definition; tests asserting 'trimmed' will fail against 'preserve-original-spans'. The contract is non-deterministic without a definition.",
+          "suggested_fix": "Define the normalization explicitly: e.g., 'replace any run of whitespace (including newlines and tabs) with a single space, then trim leading/trailing spaces, then take the first 300 characters of the result'. Make the definition a one-liner."
+        },
+        {
+          "section": "FR-2 \u2014 validate_critique.py exit code granularity",
+          "category": "needs_clarify",
+          "problem": "Exit code 1 covers two distinct conditions: 'any malformed entry is found' and 'the input cannot be read/parsed'. A caller cannot tell from the exit code alone whether the file was unreadable, the JSON was unparseable, or the JSON parsed but failed shape validation. All three lump under 1.",
+          "why_it_matters": "The orchestrator's FR-1 says it validates via this script; if the orchestrator needs to distinguish 'bad file' from 'bad shape' (e.g., to log different escalation messages), a single exit code forces string-matching on stderr. CI/verification use cases face the same problem.",
+          "suggested_fix": "Either split into two exit codes (1 = unparseable/unreadable, 2 = parsed but malformed shape) or document explicitly that 1 is intentionally coarse and that the stderr message is the source of truth (and define the message format)."
+        },
+        {
+          "section": "FR-2 \u2014 --file vs stdin behavior",
+          "category": "needs_clarify",
+          "problem": "Spec says 'when --file is omitted, reads the JSON from stdin' but does not address: (a) what happens if both --file and stdin are present, (b) what happens if --file is provided but empty/unreadable, (c) what happens if stdin is a TTY (no data piped).",
+          "why_it_matters": "An agent invoking the script in a pipe-less shell will get an indeterminate result. A test that pipes both --file and stdin will not know the spec's resolution.",
+          "suggested_fix": "Add three lines: 'if both --file and stdin are provided, exit 2 with a stderr message'; 'if --file is provided but the file is missing/unreadable, exit 1 with a stderr message'; 'if --file is omitted and stdin is a TTY/empty, exit 1 with a stderr message'. Each one line, each testable."
+        },
+        {
+          "section": "FR-3 / AC-5 \u2014 critique-loop sub-skill content",
+          "category": "needs_clarify",
+          "problem": "FR-3 lists the sub-skill's responsibilities at a high level ('instructs the agent on invoking, triaging, and stopping') and AC-5 says the same in different words. There is no content outline, no required sections, no example triage decision, no specification of how 'rejects with reason' is captured or where the reason is stored for the next round's input.",
+          "why_it_matters": "AC-1 calls a file a 'stub' if it has 'no real implementation'. With only the high-level instruction, a reviewer cannot judge whether the sub-skill is implemented or a stub. The spec is self-referentially incomplete at the very deliverable it introduces.",
+          "suggested_fix": "Add a short 'Sub-skill structure' subsection: list the required H2 sections (e.g., 'When to invoke', 'How to invoke', 'Reading the critique log', 'Triage rules (objective / needs_clarify / false-positive)', 'Stopping conditions and escalation', 'Compiling the Clarify list'). For each, one or two sentences on what must be in it. This makes AC-1/AC-5 objectively checkable."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 empty issue list with low score",
+          "category": "needs_clarify",
+          "problem": "The bullet 'Empty issue list with low score: invalid (noise), retried' uses the word 'low' without a threshold. The validity rule elsewhere is 'overall_score < 10 with zero issues \u2192 invalid' (so any score 0\u20139 with zero issues is invalid). The 'low' here is a softer phrasing that doesn't match the rule.",
+          "why_it_matters": "If a future maintainer reads 'low' and interprets it as e.g. < 7, they will diverge from the explicit < 10 rule. The phrasing invites ambiguity in code review.",
+          "suggested_fix": "Replace 'low score' with 'overall_score < 10', matching the rule. Single phrase, single number."
+        },
+        {
+          "section": "FR-1 \u2014 stagger duration 4s",
+          "category": "needs_clarify",
+          "problem": "The first call per slot is staggered by '(slot_index-1)\u00d74s'. The constant 4 seconds is asserted without a derivation, a tunable, or even a note that it is a guess. With seven slots the last slot starts at 24s, which is a meaningful fraction of the 600s default timeout only for fast responses.",
+          "why_it_matters": "A user with a tight rate-limit budget on a single provider will need to tune this; a user with no rate-limit issues pays 24s of round latency for nothing. The spec offers no knob.",
+          "suggested_fix": "Either expose a CLI flag / providers.yaml field for stagger seconds (default 4) or document explicitly that 4s is a hard-coded value and explain the trade-off (e.g., '4s keeps the last slot under 30s for a 7-model panel and matches the free-tier 429 minimum window') so a future change is informed."
+        },
+        {
+          "section": "FR-1 \u2014 missing input size / document bound",
+          "category": "objective",
+          "problem": "No upper bound is placed on the input document size. A 50 MB document would be read into memory, embedded into the prompt, and sent to seven model endpoints \u2014 each of which may have its own token cap. There is no early-fail, no chunking, no size check, no warning.",
+          "why_it_matters": "The orchestrator will silently truncate or 4xx on the provider side (Google's maxOutputTokens 8000 is for output, not input; the input token cap is model-specific and not stated). The user gets a wall of provider errors instead of a clear 'document too large' message.",
+          "suggested_fix": "Add a pre-flight check: 'if the document exceeds N tokens (estimated by a simple heuristic, e.g., bytes / 4), exit 2 with a stderr message naming the size and the cap'. Or document explicitly that the orchestrator does not bound document size and the user is responsible. Pick a side."
+        },
+        {
+          "section": "FR-1 \u2014 output JSON top-level structure when n_valid == 0",
+          "category": "needs_clarify",
+          "problem": "The spec says the JSON is written 'even when n_valid == 0' but the top-level schema description doesn't explicitly show the empty-critics case. An implementer can infer `{document, pass, round, critics: [], n_valid: 0}`, but a verifier cannot test the spec by reading it \u2014 they have to test the code.",
+          "why_it_matters": "Acceptance criteria are easier to assert against when the empty case is named explicitly, especially since 'critics' is described elsewhere as 'an array containing only the valid critiques' (and the empty array is technically a vacuous truth on this definition).",
+          "suggested_fix": "Add one sentence: 'When n_valid == 0, the file is written with `critics: []` and `n_valid: 0`; no other top-level fields are added.'"
+        },
+        {
+          "section": "Cumulative History \u2014 'seven-article constitution' vs. 'seven-model critic panel'",
+          "category": "needs_clarify",
+          "problem": "The history says 'the seven-article constitution is fixed' and 'the critic panel is locked (seven models...)' in adjacent clauses. The co-incidence of 'seven' in two unrelated facts is easy to misread; a reader could conclude the constitution governs the seven models (it likely does not \u2014 constitutions are documents, not model counts).",
+          "why_it_matters": "Low-stakes but the kind of phrasing that propagates confusion into later milestones. By M5 readers will quote this as 'the seven-model constitution'.",
+          "suggested_fix": "Reorder or rephrase to separate the two facts: e.g., 'the seven-article constitution is fixed (see spec_milestone_1 \u00a7N); separately, the critic panel is locked at seven models across three provider keys'."
+        },
+        {
+          "section": "AC-3 \u2014 Pass 2 advance rule wording",
+          "category": "needs_clarify",
+          "problem": "AC-3 says 'Pass 2 advances ... only when every currently-valid critic scores perfect (or the round cap escalates)'. Combined with the no-quorum rule, this is a 1/7-can-advance rule. The acceptance criterion frames it as a robustness gate ('only when ... perfect'), which reads as a strong guarantee, but it is not.",
+          "why_it_matters": "AC-3 is the testable claim downstream consumers (CI, future milestones) will rely on. If the gate is weaker than it reads, a test that asserts '1 valid critic at 10 advances Pass 2' is correct per the spec but surprising per the prose.",
+          "suggested_fix": "Rewrite the AC-3 sentence to match the actual policy: 'Pass 2 advances only when all currently-valid critics in the round score overall_score == 10, regardless of how many critics were valid (no minimum quorum); otherwise the loop runs another round until the per-pass round cap (default 25) triggers escalation.' If the policy is to be strengthened, this is the place to say so."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 concurrent invocation race",
+          "category": "needs_clarify",
+          "problem": "'Concurrent invocations writing the same output file (same doc+pass+round) race with last-writer-wins; no locking is performed (out of scope).' The spec frames this as a known property, but the 'session' model is 'agent's repeated invocation sequence' \u2014 a single agent should not produce concurrent invocations for the same (doc, pass, round). Where do concurrent invocations come from?",
+          "why_it_matters": "If they cannot happen by design, the disclaimer is dead text. If they can (CI parallelism, multiple agents), the spec should say so and tell the reader how to avoid the race (unique `--name`, unique `--out`, etc.).",
+          "suggested_fix": "Either (a) add a line 'the session is single-agent by design; do not run two invocations with the same (doc, pass, round) in parallel' or (b) state the supported parallelism model (e.g., 'different documents or different passes can run in parallel; same (doc, pass, round) cannot')."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 5,
+      "scores": {
+        "clarity": 6,
+        "completeness": 5,
+        "edge_case_coverage": 7,
+        "internal_consistency": 4,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1 / US-1 / Edge Cases",
+          "category": "objective",
+          "problem": "Pass 1 scoring dimensions contradict the rubric schema. The spec states Pass 1 scores 'clarity, structure, internal consistency, presence of required sections' but the required schema (PLAN.md \u00a74.3, repeated in FR-2) defines five dimensions: clarity, completeness, edge_case_coverage, internal_consistency, testability. 'Structure' and 'presence of required sections' are not in the schema. The spec also claims 'the rubric dimensions themselves come from the schema, so the \"which dimensions\" enumeration lives with the schema, not duplicated here' \u2014 directly contradicting the Pass-1 rule line that duplicates and renames dimensions.",
+          "why_it_matters": "Implementers cannot know which scores to request from critics in Pass 1. The validate_critique.py shape check requires all five schema dimensions, but the Pass 1 prompt would ask for different ones. This guarantees validation failures or malformed critiques.",
+          "suggested_fix": "Align Pass 1 dimensions with the schema. Either (a) make Pass 1 score a subset of the five schema dimensions (e.g., clarity, internal_consistency, testability) and document which subset, or (b) change the schema to include 'structure' and 'required_sections' and update all references. Remove the claim that dimensions aren't duplicated if the Pass-1 rule line explicitly names them."
+        },
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "objective",
+          "problem": "Backoff totals are miscalculated. The spec states 429 backoff '30s \u00d7 attempt (attempt 1 \u2192 30s, 2 \u2192 60s, 3 \u2192 90s, 4 \u2192 120s; the \u22645 bound caps total backoff at 300s)' but 30+60+90+120+150 = 450s for 5 attempts. Similarly, 'other transport failures 8s \u00d7 attempt (\u226480s total)' but 8+16+24+32+40 = 120s. The stated caps (300s, 80s) are wrong.",
+          "why_it_matters": "Implementers will either implement the per-attempt formula (correct) or the total cap (wrong), causing inconsistent retry behavior. The spec is internally contradictory on a quantitative policy.",
+          "suggested_fix": "Correct the totals: 429 backoff sum for 5 attempts = 450s; transport backoff sum = 120s. Either update the 'caps total backoff at' numbers or change the per-attempt formula to match the intended caps (e.g., 429: 20s \u00d7 attempt \u2192 300s total; transport: 5.33s \u00d7 attempt \u2192 80s total)."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The script accepts `--round-cap` 'for contract parity with the sub-skill and validates it... but the cap itself is enforced by the critique-loop sub-skill's stopping logic'. The script validates a parameter it does not use for its stated purpose. This is a design smell and wastes validation effort.",
+          "why_it_matters": "Unused validated parameters confuse operators and tests. If the sub-skill enforces the cap, the script should not accept or validate `--round-cap` at all. The CLI contract should reflect what the script actually does.",
+          "suggested_fix": "Remove `--round-cap` from the orchestration script's CLI. The sub-skill tracks round count and stops invoking the script. If the script must know the cap for logging, make it an optional informational parameter without validation."
+        },
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "objective",
+          "problem": "Hardcoded provider-specific output caps (NVIDIA NIM `max_tokens` 8000, Google `maxOutputTokens` 8000, Ollama `num_predict` 12000) violate the config-driven panel requirement (US-4, FR-4). Adding a new provider/model requires code changes to define its output cap.",
+          "why_it_matters": "The spec claims 'model additions are data-only' but hardcodes caps per provider. This breaks US-4 and FR-4.",
+          "suggested_fix": "Move output caps into `providers.yaml` per model/provider entry (e.g., `output_cap` or `max_tokens`). The script reads the cap from config with a sensible default."
+        },
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "needs_clarify",
+          "problem": "Perfect score definition is ambiguous: 'perfect = overall_score 10 \u2014 a 10-with-zero-issues is valid and also perfect; only a sub-10 score with zero issues is invalid'. Does a score of 10 with non-zero issues count as 'perfect' for the stopping condition? The phrase 'perfect = overall_score 10' suggests yes, but 'a 10-with-zero-issues is valid and also perfect' implies 10-with-issues might not be 'perfect'.",
+          "why_it_matters": "The stopping condition ('every currently-valid critic scores perfect') depends on this. If 10-with-issues is not perfect, the loop continues unnecessarily. If it is perfect, the 'zero issues' parenthetical is misleading.",
+          "suggested_fix": "Explicitly state: 'A critique is perfect iff overall_score == 10 (issues array may be empty or non-empty). A critique with overall_score < 10 and zero issues is invalid (noise). A critique with overall_score < 10 and non-zero issues is valid but not perfect.'"
+        },
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "objective",
+          "problem": "HTTP 400 (bad request) is not retried, but 'all other 4xx/5xx follow the \u22645 transport budget'. This includes 401 (unauthorized) and 403 (forbidden) which are auth errors \u2014 retrying them will never succeed and wastes the transport budget. Missing API keys cause 400/401 and are explicitly called out as 'fails as a transport/400 error'.",
+          "why_it_matters": "A missing or invalid API key will cause the model to fail immediately each round with no retries (since 400 not retried), but the spec says 'no cross-round exclusion \u2014 a failed critic participates again next round'. This means the model will fail every round forever, logging errors each time, never excluded, never succeeding. The transport budget is irrelevant for 400.",
+          "suggested_fix": "Classify 401/403 as non-retryable (like 400) since they indicate config/auth errors. Or, treat missing API key as a config error detected before the call (validate `api_key_env` exists in environment at startup) and skip the model for the session with a clear log, rather than attempting calls that will 400/401."
+        },
+        {
+          "section": "FR-2 / FR-1",
+          "category": "objective",
+          "problem": "validate_critique.py validates shape only, requiring all five schema dimensions in `scores`. But Pass 1 critics are instructed to score only objective dimensions (which, per Issue 1, don't match the schema). A Pass 1 critique missing `completeness` or `edge_case_coverage` will fail shape validation even if the orchestrator accepted it.",
+          "why_it_matters": "The validation script will reject valid Pass 1 critiques, breaking the loop. The shape validator must align with what the orchestrator actually accepts for each pass.",
+          "suggested_fix": "Either (a) make validate_critique.py pass-aware (accept `--pass 1|2`) and validate only the required dimensions for that pass, or (b) require critics to always output all five dimensions (with null/0 for unscored ones in Pass 1) and update the Pass 1 prompt accordingly. Option (b) is simpler and matches the current schema."
+        },
+        {
+          "section": "FR-3 / Edge Cases",
+          "category": "needs_clarify",
+          "problem": "The critique-loop sub-skill (FR-3) must implement session-level logic: tracking consecutive non-progressing rounds, escalating on the second, enforcing round cap, and determining 'progressing' (document changed OR surfaced genuinely new actionable issue). The spec does not define how the sub-skill detects 'document changed' or 'genuinely new actionable issue' \u2014 these require semantic comparison across rounds, which is non-trivial.",
+          "why_it_matters": "Without a concrete algorithm, the sub-skill cannot be implemented reliably. 'Genuinely new' implies deduplication against previous rounds' issues. 'Document changed' implies diffing the milestone document. These are significant features deferred to a sub-skill with no spec.",
+          "suggested_fix": "Add a 'Session Logic' subsection to the spec (or to the sub-skill's own spec) defining: (1) how to store prior rounds' issues and document hashes, (2) a deduplication rule for issues (e.g., same section+problem text), (3) a 'progressing' predicate, (4) escalation message format. At minimum, acknowledge these as required sub-skill capabilities."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The extractor's truncation repair 'tries every `{` as a candidate JSON start' and 'best-effort closes an unterminated string and appends the minimal closing brackets'. This algorithm is underspecified: what if there are nested objects? What if the truncation occurs inside a string value containing `{`? The repaired object 'still passes the full validity check', but the repair algorithm itself could produce valid-but-wrong JSON (e.g., closing brackets at wrong nesting level).",
+          "why_it_matters": "A flawed repair could pass schema validation but represent a completely different critique (wrong scores, wrong issues). The spec says 'a bad repair never counts' because validity check catches it, but validity check only checks schema shape and the 'overall_score < 10 with zero issues' rule \u2014 it cannot detect semantic corruption.",
+          "suggested_fix": "Either (a) specify the repair algorithm precisely (e.g., 'find the last complete JSON object by parsing from each `{` forward, take the longest valid parse'), or (b) require providers to support streaming/partial JSON so truncation doesn't occur, or (c) increase output caps further and treat truncation as invalid (no repair), relying on the generous caps."
+        },
+        {
+          "section": "Cross-Reference / General",
+          "category": "needs_clarify",
+          "problem": "The spec repeatedly references `PLAN.md \u00a74.3` (rubric schema) and `PLAN.md \u00a74.4` (round cap escalation) but does not include their content. For a standalone specification, critical schemas and policies must be embedded or the spec is incomplete for implementation.",
+          "why_it_matters": "An implementer cannot build the orchestrator, validator, or sub-skill without the rubric schema (dimension definitions, score ranges, verdict enum) and the escalation policy details. The spec claims to be a companion but FR-1/FR-2/FR-3/AC-3/AC-4 all depend on PLAN.md content.",
+          "suggested_fix": "Inline the rubric schema (dimension names, types, ranges, verdict values) and the round-cap escalation rule in this spec. If PLAN.md is the source of truth, this spec should copy the relevant sections verbatim with a 'per PLAN.md \u00a74.3' citation."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 8,
+        "internal_consistency": 6,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The script's Pass-1 rule line states it scores 'only the objective dimensions of the schema \u2014 clarity, structure, internal consistency, presence of required sections'. However, the required output schema (and validate_critique.py) mandate all five rubric dimensions (clarity, completeness, edge_case_coverage, internal_consistency, testability).",
+          "why_it_matters": "If Pass 1 only populates 'clarity' and 'internal_consistency' but leaves the others empty/null, the output JSON will fail validate_critique.py's shape check (which requires all five). If the script fills the un-scored dimensions with dummy values (e.g., 10), it pollutes the data model and makes the JSON ambiguous to parse.",
+          "suggested_fix": "Explicitly define how the non-objective dimensions are represented in the Pass 1 JSON output. Specify whether they must be defaulted to 10, set to 0, or if validate_critique.py must conditionally relax its shape check for Pass 1 files."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The spec states the script 'embeds the PLAN.md \u00a74.3 rubric schema and the document text' and that 'the pass rule line is a single configurable sentence in the script's prompt-template constant'.",
+          "why_it_matters": "This implies the prompt template is hard-coded as a constant in the Python script. This tightly couples the prompt engineering to the code and makes it difficult to test or modify the prompt without patching the script itself, violating the separation of data and code established by the config-driven panel.",
+          "suggested_fix": "Move the prompt template and rubric schema into external files (e.g., under `kit/config/` or `kit/skills/critique-loop/`) and have the script load them, or explicitly justify why hard-coding the prompt template is acceptable for this milestone."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The spec requires the script to enforce a 'hard wall-clock deadline' per call to prevent slow byte dripping, but does not specify the mechanism for doing so.",
+          "why_it_matters": "Standard HTTP client socket timeouts (even read timeouts) do not always perfectly map to a hard wall-clock deadline for asynchronous concurrent tasks. Without specifying the mechanism (e.g., wrapping calls in a `concurrent.futures` timeout, or an explicit `threading.Timer`), the implementation might fail to meet this requirement or do so in a brittle way.",
+          "suggested_fix": "Specify the concurrency mechanism (e.g., `asyncio.wait_for` or `concurrent.futures.ThreadPoolExecutor` with a hard timeout) to ensure the wall-clock deadline is strictly enforceable across the parallel panel."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The spec states: 'Concurrent invocations writing the same output file (same doc+pass+round) race with last-writer-wins; no locking is performed (out of scope).'",
+          "why_it_matters": "If two concurrent invocations target the exact same document, pass, and round, they will overwrite each other's results, leading to data loss and invalid state. While locking is out of scope, allowing silent data loss is a severe edge case that breaks the reliability of the critique log.",
+          "suggested_fix": "Add a check to fail fast (exit 2) or append a unique suffix if the output file already exists, rather than silently overwriting it. Alternatively, explicitly state that concurrent invocations of the *same* doc+pass+round are unsupported and considered user error."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The extractor is described as accepting 'markdown-fenced JSON (fences anywhere in the response, not just at the start), surrounding prose \u2014 including prose that itself contains braces \u2014 trailing commas, and output-cap truncation'.",
+          "why_it_matters": "Trying 'every `{` as a candidate JSON start' and parsing prose with braces is computationally messy and highly prone to extracting the wrong JSON object if the critic outputs multiple blocks or discusses JSON structures in its prose. This aggressive tolerance might accept malformed or irrelevant JSON as valid.",
+          "suggested_fix": "Constrain the extractor to look for the *first* valid JSON object by attempting to parse from each `{` to its corresponding `}` (using a brace-counting or streaming parser), rather than blindly trying every `{` as a start. Require that the parsed object matches the top-level critique schema before accepting it."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_2.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-1 \u2014 `kit/scripts/orchestrate_critique_loop.py`",
+          "category": "objective",
+          "problem": "The specification does not define how `overall_score` is derived from the five rubric dimension scores.",
+          "why_it_matters": "Without a deterministic formula, different implementations may compute `overall_score` inconsistently, causing validation failures and breaking the pass\u20112 perfect\u2011score stopping condition.",
+          "suggested_fix": "Add an explicit definition, e.g., `overall_score = round(mean([clarity, completeness, edge_case_coverage, internal_consistency, testability]))` or specify any weighted formula to be used uniformly."
+        },
+        {
+          "section": "FR-1 \u2014 `kit/scripts/orchestrate_critique_loop.py`",
+          "category": "needs_clarify",
+          "problem": "The mechanism for re\u2011checking Clarify consistency in Pass\u202f2 is vague; the script does not indicate which `needs_clarify` issues were addressed.",
+          "why_it_matters": "Agents need a reliable way to verify that clarified issues have been resolved; ambiguity can lead to inconsistent adjudication and premature termination of the loop.",
+          "suggested_fix": "Include in the output JSON a field such as `clarify_checked_issues` listing the IDs of issues that were previously tagged `needs_clarify` and their resolved status, or document a convention for the agent to match Clarify responses to the original issue list."
+        },
+        {
+          "section": "FR-1 \u2014 `kit/scripts/orchestrate_critique_loop.py`",
+          "category": "objective",
+          "problem": "Reference to a \u201cpass rule line\u201d constant is made, but the exact sentence template and its location are not provided.",
+          "why_it_matters": "Implementers need the precise wording to embed in the prompt; differing phrasing could alter model behavior and break the intended scoring differences between Pass\u202f1 and Pass\u202f2.",
+          "suggested_fix": "Specify the exact template string (e.g., `\"Score only the objective dimensions: clarity, structure, internal consistency, and required sections. Tag any subjective issues as needs_clarify.\"`) and indicate the file (e.g., `kit/scripts/constants.py`)."
+        },
+        {
+          "section": "Config\u2011driven panel (`providers.yaml`)",
+          "category": "objective",
+          "problem": "The spec references the M1 configuration format but does not include a concise schema for `providers.yaml`.",
+          "why_it_matters": "Missing schema can lead to malformed config files that pass loading but cause runtime errors (e.g., missing `api_key_env`, incorrect `critic_slots` ordering).",
+          "suggested_fix": "Add a brief schema description in this document, enumerating required top\u2011level keys (`providers`, `critic_slots`) and required fields per provider entry (`provider`, `model`, `api_key_env`, optional `timeout`)."
+        },
+        {
+          "section": "FR-2 \u2014 `kit/scripts/validate_critique.py`",
+          "category": "needs_clarify",
+          "problem": "Shape validation does not enforce consistency between `overall_score` and the five dimension scores.",
+          "why_it_matters": "A critique could pass shape validation while reporting an `overall_score` that does not reflect the detailed scores, undermining the integrity of the scoring pipeline.",
+          "suggested_fix": "Extend the validator to compute the expected overall score from the five dimension scores (using the formula defined in FR\u20111) and raise an error if the reported `overall_score` differs."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

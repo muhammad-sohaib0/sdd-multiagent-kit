@@ -1,0 +1,119 @@
+{
+  "document": "spec_milestone_4",
+  "pass": 2,
+  "round": 11,
+  "critics": [
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_4.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 5,
+      "scores": {
+        "clarity": 6,
+        "completeness": 7,
+        "edge_case_coverage": 5,
+        "internal_consistency": 5,
+        "testability": 4
+      },
+      "issues": [
+        {
+          "section": "FR-1 \u2014 `README.md` (quickstart description)",
+          "category": "objective",
+          "problem": "The spec claims the installed kit has no runtime dependencies beyond Node (\u226518), yet the critique engine is a Python script (`kit/scripts/orchestrate_critique_loop.py`) that requires a Python interpreter. This is a factual contradiction.",
+          "why_it_matters": "Users will be misled about the environment they must provision, leading to failed installations or runtime errors, and it violates the internal consistency requirement.",
+          "suggested_fix": "Either change the engine to a Node\u2011only implementation or explicitly state that Python (\u22653.10) is also a required runtime. Update FR-1 and related acceptance criteria to reflect the correct dependency set."
+        },
+        {
+          "section": "FR-6 \u2014 `CLAUDE.md` + `AGENTS.md` (precedence and non\u2011stub rule)",
+          "category": "needs_clarify",
+          "problem": "The rule that tool\u2011specific files may \"reference AGENTS.md without duplicating\" yet must still be a non\u2011stub (\u2265200 words) is ambiguous. It is unclear how a file can satisfy the word\u2011count requirement while containing only references.",
+          "why_it_matters": "Implementers might produce minimal reference\u2011only files that fail the non\u2011stub definition, causing AC\u20111 to be unmet and creating inconsistency between precedence and content requirements.",
+          "suggested_fix": "Specify that tool\u2011specific files must contain at least 200 words of original prose in addition to any references, and define a validation method (e.g., a lint rule) that checks both the word count and that no contradictory statements exist with AGENTS.md."
+        },
+        {
+          "section": "Acceptance Criteria / Testability",
+          "category": "needs_clarify",
+          "problem": "The spec lists acceptance criteria but provides no concrete test procedures or automated checks for word counts, placeholder headings, .gitignore pattern compliance, or consistency of env\u2011var names and triggers.",
+          "why_it_matters": "Without explicit tests, reviewers must perform manual verification, increasing the chance of missed defects and making the milestone harder to validate programmatically.",
+          "suggested_fix": "Add a brief test plan (or reference the `tests_milestone_4.md` file) that includes scripts or checklist items for: word\u2011count validation, presence of required sections (e.g., `## Acknowledgements`), exact `.gitignore` patterns, placeholder heading verification, and consistency checks of paths, commands, and env\u2011var names."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_4.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements FR-1",
+          "category": "needs_clarify",
+          "problem": "The quickstart command is specified as `npm install -g sdd-multiagent-kit && sdd-setup`, but the spec does not clarify whether `sdd-setup` is a global command after global install or if it requires `npx` or a local path. The M3 installer details are referenced but not summarized here, leaving ambiguity for implementers.",
+          "why_it_matters": "Without clarity, the README quickstart may be written incorrectly, causing user confusion and failing AC-4 (correct `sdd-setup` command).",
+          "suggested_fix": "Explicitly state that `sdd-setup` is available as a global bin after `npm install -g`, or provide the exact invocation (e.g., `npx sdd-multiagent-kit sdd-setup`)."
+        },
+        {
+          "section": "Edge Cases & Rules - Non-stub defined",
+          "category": "needs_clarify",
+          "problem": "The non-stub definition says 'strip markdown marker characters (`#`, `*`, backticks) before counting' but does not specify how to handle other markdown syntax like `>`, `-`, `|`, or inline links. This could lead to inconsistent word counts across deliverables.",
+          "why_it_matters": "Inconsistent counting could cause some files to be deemed non-stub when they are actually below threshold, or vice versa, affecting AC-1 acceptance.",
+          "suggested_fix": "Define a more precise stripping rule (e.g., remove all markdown punctuation except alphanumeric and spaces) or provide a reference counting script."
+        },
+        {
+          "section": "Edge Cases & Rules - .gitignore",
+          "category": "objective",
+          "problem": "The spec says `.gitignore` must include `outputs/critique-log/` but does not clarify whether the entire `outputs/` directory should be ignored or only that subdirectory. The repo's real files include `outputs/` (as per cross-reference paths), so ignoring the whole directory would conflict with tracking spec files.",
+          "why_it_matters": "Ambiguity could lead to either ignoring legitimate source files (violating the 'never excluding legitimate source' rule) or accidentally committing transient logs.",
+          "suggested_fix": "Explicitly state that only `outputs/critique-log/` is ignored, and that other `outputs/` subdirectories (e.g., `outputs/milestones/`) are tracked."
+        },
+        {
+          "section": "Functional Requirements FR-6",
+          "category": "needs_clarify",
+          "problem": "The spec says AGENTS.md is the 'precedence base' and CLAUDE.md may reference it, but does not define how future tool-specific files (e.g., GITHUB.md) should handle conflicts with CLAUDE.md when AGENTS.md is silent. The conflict rule only covers direct contradictions with AGENTS.md, not between two non-base files.",
+          "why_it_matters": "Without a rule, future contributors may create conflicting instructions between CLAUDE.md and GITHUB.md, leading to agent confusion.",
+          "suggested_fix": "Add a rule that when two tool-specific files conflict and AGENTS.md is silent, the more specific tool's file (e.g., GITHUB.md for GitHub Actions) governs, or require escalation to AGENTS.md."
+        },
+        {
+          "section": "Acceptance Criteria AC-5",
+          "category": "objective",
+          "problem": "AC-5 requires a `.git` directory present at the repo root, but the spec also says 'nothing is committed during the milestone itself.' It does not clarify whether `git init` alone (without any commit) is sufficient, or if an initial commit is required for the repository to be considered initialized.",
+          "why_it_matters": "If a commit is required, the milestone would violate the 'nothing is committed' rule; if not, the acceptance test may be too weak.",
+          "suggested_fix": "Explicitly state that `git init` without any commit is sufficient for AC-5, and that the first commit is deferred to the maintainer after the milestone."
+        },
+        {
+          "section": "Functional Requirements FR-8 - Trigger",
+          "category": "needs_clarify",
+          "problem": "The spec says the trigger `/sdd` is recognized automatically by Claude Code, Claude Desktop, and OpenCode, but for Antigravity it is embedded as `Invocation: /sdd` in the master SKILL.md. It does not clarify whether the skill works in Antigravity without additional configuration or if the `Invocation:` line is the only mechanism.",
+          "why_it_matters": "Ambiguity could lead to incorrect documentation in AGENTS.md/CLAUDE.md about how to invoke the skill in Antigravity, failing AC-4.",
+          "suggested_fix": "Add a note that for Antigravity, the `Invocation:` line is the sole mechanism and no other configuration is needed, or specify any additional steps."
+        },
+        {
+          "section": "Edge Cases & Rules - Terminology",
+          "category": "objective",
+          "problem": "The terminology section defines PHR and ADR but does not explain how they are used in the documentation layer. The README's acknowledgement credits source repositories, but the spec does not state whether the kit's own PHR/ADR records should be referenced anywhere in the docs (e.g., in ARCHITECTURE or CHANGELOG).",
+          "why_it_matters": "Without guidance, implementers may omit references to PHR/ADR history, making the docs less self-describing and failing the goal of 'fully self-describing' repository.",
+          "suggested_fix": "Add a requirement that ARCHITECTURE.md or CHANGELOG.md includes a brief mention of the PHR/ADR history location, even if not part of the acknowledgement."
+        },
+        {
+          "section": "Functional Requirements FR-7",
+          "category": "needs_clarify",
+          "problem": "The spec says SECURITY.md must define 'what constitutes a security issue' including 'disclosure of secrets, malicious skill content, supply-chain tampering,' but does not specify whether the scope includes the documentation files themselves (e.g., if a doc contains a leaked secret).",
+          "why_it_matters": "Ambiguity could lead to inconsistent security reporting for documentation-related issues, which are part of the repo.",
+          "suggested_fix": "Clarify that security scope includes all repo content, including docs, and that any secret disclosure in docs is a reportable issue."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}

@@ -1,0 +1,135 @@
+{
+  "document": "spec_milestone_5",
+  "pass": 2,
+  "round": 3,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 10,
+      "scores": {
+        "clarity": 10,
+        "completeness": 10,
+        "edge_case_coverage": 10,
+        "internal_consistency": 10,
+        "testability": 10
+      },
+      "issues": [],
+      "verdict": "pass"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 8,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements \u2013 FR-2",
+          "category": "needs_clarify",
+          "problem": "The phrase \u201cfaithful to the kit's standard\u201d is not concretely defined; it does not list the exact headings, ordering, or required content that must appear in each of the five example documents.",
+          "why_it_matters": "Without precise criteria, reviewers (or automated tests) cannot reliably verify compliance, leading to subjective judgments and potential regressions.",
+          "suggested_fix": "Add an explicit checklist of required section headings and ordering for each document type, e.g., for spec: \"Goal\", \"Functional Requirements\", \"Acceptance Criteria\"; for plan: \"Architecture\", \"Rationale\", \"Acceptance Mapping\", etc."
+        },
+        {
+          "section": "Acceptance Criteria \u2013 AC-2",
+          "category": "needs_clarify",
+          "problem": "AC-2 references \u201cfaithful to the kit's standard\u201d but provides no measurable test; it also does not require verification of the required table rows or heading presence.",
+          "why_it_matters": "A vague acceptance criterion cannot be automated and may be interpreted inconsistently, undermining the rigor of the milestone verification.",
+          "suggested_fix": "Rewrite AC-2 to enumerate concrete checks, e.g., \"Each file contains the exact headings listed in the FR-2 checklist and includes at least one row in every required table\"."
+        },
+        {
+          "section": "Edge Cases & Rules \u2013 Non\u2011stub rule",
+          "category": "needs_clarify",
+          "problem": "The rule states prose files must be \u2265200 words but does not specify whether this applies to each individual file (e.g., README, PLAN.md) or to the collective prose content.",
+          "why_it_matters": "Ambiguity may cause some files to be under\u2011documented while still passing review, violating the intent of the non\u2011stub requirement.",
+          "suggested_fix": "Clarify that each prose file (PLAN.md, examples/README.md, and each of the five milestone documents) must individually contain at least 200 words of substantive text."
+        },
+        {
+          "section": "Cross\u2011Reference Table",
+          "category": "needs_clarify",
+          "problem": "The table lists paths for milestone\u202f5 artifacts (spec_milestone_5.md, etc.) that are not part of the deliverables for this milestone, which focuses on the example project under milestone\u202f1.",
+          "why_it_matters": "Including unrelated paths can confuse implementers and reviewers, leading them to create or look for files that are out of scope for this milestone.",
+          "suggested_fix": "Separate the cross\u2011reference table into two sections: one for the current milestone\u2019s own artifacts and another for the example project\u2019s milestone\u202f1 artifacts, or remove the milestone\u202f5 entries if they are not required here."
+        },
+        {
+          "section": "Edge Cases & Rules \u2013 Simplicity rule",
+          "category": "needs_clarify",
+          "problem": "The rule forbids new dependencies but does not explicitly state whether the example project's source code may import third\u2011party packages (outside the standard library).",
+          "why_it_matters": "Implementers might inadvertently add a dependency, violating the simplicity principle and potentially breaking the \u201cdependency\u2011free\u201d claim of the example.",
+          "suggested_fix": "Add a sentence to the Simplicity rule: \"The example project's implementation must use only Python's standard library; any third\u2011party package imports are prohibited.\""
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements / FR-1",
+          "category": "needs_clarify",
+          "problem": "FR-1 states PLAN.md is the kit's designated brief format and that the kit is invoked against any folder containing a PLAN.md, but it does not specify the exact required headings for the brief beyond the ones listed in AC-1. The kit's scan behavior is referenced but not defined here, leaving ambiguity about what constitutes a valid brief.",
+          "why_it_matters": "Without a precise definition of the brief format, the example PLAN.md may not be directly invokable, and the acceptance criterion AC-1 becomes untestable in practice.",
+          "suggested_fix": "Explicitly list the required headings and any structural constraints for PLAN.md in FR-1, or reference the exact section of AGENTS.md that defines the format."
+        },
+        {
+          "section": "Edge Cases & Rules / Non-stub",
+          "category": "needs_clarify",
+          "problem": "The non-stub rule requires \u2265200 words for prose files, but the example spec/plan/workflow files are described as 'hand-crafted representatives' that must be 'faithful to the kit's shape'. It is unclear whether the 200-word minimum applies to each of these files individually or if the kit's own output would meet that threshold.",
+          "why_it_matters": "If the kit's own generated files are shorter than 200 words, the example would be inconsistent with the kit's actual output, undermining the teaching purpose.",
+          "suggested_fix": "Clarify whether the 200-word minimum is a hard requirement for the example files or a guideline, and provide a rationale for why the kit's own output would satisfy it."
+        },
+        {
+          "section": "Edge Cases & Rules / Internal consistency",
+          "category": "needs_clarify",
+          "problem": "The rule states that 'Any tasks build steps are illustrative and reference files that need not exist in the repo.' This creates a potential inconsistency: the example is meant to demonstrate the kit's output shape, but if the tasks reference non-existent files, a user studying the example might be confused about what the build actually produces.",
+          "why_it_matters": "The example is a teaching artifact; if build steps reference files that don't exist, it undermines the 'runnable' and 'end-to-end' claims in the Goal section.",
+          "suggested_fix": "Either require that referenced files exist in the example (even as stubs) or add a clear note in the tasks document that the build steps are illustrative and not executable."
+        },
+        {
+          "section": "Acceptance Criteria / AC-1",
+          "category": "objective",
+          "problem": "AC-1's testable check includes 'contains the brief's required headings (## Brief, ## Requirements, ## Non-negotiable, ## Out of scope, ## Success criteria) that the kit's scan can parse'. However, the kit's scan behavior is not defined in this document, and it is unclear whether these headings are the exact ones the kit expects or if the kit uses different headings.",
+          "why_it_matters": "If the kit's parser expects different headings, the example PLAN.md would fail AC-1 despite meeting the stated criteria, making the acceptance test unreliable.",
+          "suggested_fix": "Reference the exact parser logic or heading list from AGENTS.md or the kit's source code to ensure the example matches the kit's expectations."
+        },
+        {
+          "section": "Out of Scope",
+          "category": "needs_clarify",
+          "problem": "The Out of Scope section says 'No compiled/implemented example artifact ships', but the Goal section says the example demonstrates 'the build that follows from it' and 'the build steps the way the kit does'. This is contradictory: if no artifact ships, how can the build be demonstrated?",
+          "why_it_matters": "The contradiction could lead to confusion about what the example actually includes, and whether the tasks document should contain executable build steps or just illustrative ones.",
+          "suggested_fix": "Clarify that the example ships only the output shape (documents) and that the build steps are illustrative, not executable, and remove the phrase 'the build that follows' from the Goal or rephrase it to 'the build steps that would follow'."
+        },
+        {
+          "section": "Edge Cases & Rules / Platform-agnostic",
+          "category": "objective",
+          "problem": "The rule prohibits platform-specific steps like 'chmod +x' and OS-specific paths, but it does not specify how to handle cross-platform concerns like line endings or file permissions in the example. The example is a Python CLI tool; the tasks document might need to include installation steps that are platform-specific (e.g., pip on Windows vs. Linux).",
+          "why_it_matters": "Without clear guidance, the example tasks document might inadvertently include platform-specific steps, violating the rule and making the example less portable.",
+          "suggested_fix": "Add a note that any installation or execution steps must be generic (e.g., 'python3 script.py') and avoid OS-specific commands, or explicitly state that the tasks document should not include installation steps at all."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 3
+}

@@ -1,0 +1,21 @@
+# Dependencies / build artifacts
+node_modules/
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+*.crt
+
+# Transient artifacts / logs
+*.log
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/

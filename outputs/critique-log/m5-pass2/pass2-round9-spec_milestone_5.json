@@ -1,0 +1,133 @@
+{
+  "document": "spec_milestone_5",
+  "pass": 2,
+  "round": 9,
+  "critics": [
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements / FR-2",
+          "category": "needs_clarify",
+          "problem": "The heading-order requirement is ambiguous: 'required headings appear in the listed order' but 'additional headings may be interleaved anywhere'. If an additional heading is interleaved between two required headings, does the relative order of required headings still hold? The spec does not define whether 'order' means contiguous or merely relative sequence.",
+          "why_it_matters": "Without a precise definition, implementers may produce files that pass or fail the order check inconsistently, leading to false acceptance/rejection in AC-2 verification.",
+          "suggested_fix": "Clarify that 'in order' means the required headings appear in the specified relative sequence, with additional headings allowed anywhere between them (i.e., non-contiguous is acceptable). Add an explicit example or testable rule."
+        },
+        {
+          "section": "Edge Cases & Rules / Non-stub",
+          "category": "needs_clarify",
+          "problem": "The word-count rule says '\u2265200 words per file, individually, counting whitespace-delimited tokens with markdown marker characters and code blocks excluded'. It is unclear whether headings themselves count as tokens, and whether inline code spans (backticks) are excluded like code blocks. The phrase 'markdown marker characters' is vague.",
+          "why_it_matters": "Ambiguity in token counting makes the threshold non-reproducible; two reviewers could count the same file differently, undermining the 'rough threshold' intent and AC-1/AC-2 testability.",
+          "suggested_fix": "Define precisely: exclude heading lines, fenced code blocks, and inline code spans; count only prose tokens. Provide a sample counting snippet or a reference to a counting script."
+        },
+        {
+          "section": "Edge Cases & Rules / Platform-agnostic",
+          "category": "needs_clarify",
+          "problem": "The rule permits 'generic env-var assignment notation (e.g., QUOTE_DATA_DIR=<path>)' but forbids 'shell keywords like export/set'. It is unclear whether the example tasks may include commands like 'python3 quote.py --data-dir $QUOTE_DATA_DIR' where the variable reference uses shell syntax, or whether that counts as a shell keyword violation.",
+          "why_it_matters": "The boundary between 'variable references in prose' and 'shell syntax' is fuzzy; a task author could inadvertently violate the rule, and AC-2 verification would be subjective.",
+          "suggested_fix": "Explicitly state that variable references must appear only in prose or as plain placeholder text (e.g., '<path>'), never inside command lines that imply shell expansion. Provide a concrete allowed and forbidden example."
+        },
+        {
+          "section": "Acceptance Criteria / AC-2",
+          "category": "objective",
+          "problem": "AC-2 says 'each file containing exactly the FR-2 heading set' but FR-2 says 'at least the kit's required section headings' and 'Additional headings are permitted'. The word 'exactly' contradicts the 'at least' and 'additional permitted' language, creating an internal inconsistency.",
+          "why_it_matters": "A verifier following AC-2 literally would reject files with extra headings, while FR-2 explicitly allows them. This breaks internal consistency and makes the acceptance test unreliable.",
+          "suggested_fix": "Change AC-2 to 'each file containing at least the FR-2 required heading set (in order), with additional headings permitted' to match FR-2 exactly."
+        },
+        {
+          "section": "Functional Requirements / FR-2",
+          "category": "objective",
+          "problem": "The cross-reference consistency rule says 'every FR has a corresponding workflow node, and every AC has a test row \u2014 verified by string match (each FR-N/AC-N identifier appears in the workflow's traceability section and the tests' mapping section)'. However, the spec does not define the exact identifier format (e.g., 'FR-1' vs 'FR1' vs 'FR 1'), nor whether the workflow node must be a separate row or can appear in prose.",
+          "why_it_matters": "String-match verification is brittle; if the example files use a slightly different format (e.g., 'FR-1' vs 'FR1'), the check fails despite semantic correctness, or passes spuriously if identifiers appear in unrelated prose.",
+          "suggested_fix": "Specify the exact identifier regex (e.g., /FR-\\d+/ and /AC-\\d+/) and require that they appear in the designated table columns/rows, not merely anywhere in the file."
+        },
+        {
+          "section": "Edge Cases & Rules / Internal consistency",
+          "category": "needs_clarify",
+          "problem": "The rule states 'tasks build steps are illustrative and reference files that need not exist in the repo' and 'Illustrative references to unshipped files are documentation, not dependencies'. However, it is unclear whether the tasks document may reference the brief's PLAN.md or other example files that DO exist, and whether such references must be consistent with the actual file paths.",
+          "why_it_matters": "Without clarity, the example tasks could reference non-existent paths that confuse users trying to follow the workflow, undermining the teaching purpose and the 'self-contained' claim.",
+          "suggested_fix": "Clarify that references to shipped example files (e.g., PLAN.md) must use correct relative paths, while references to unshipped source files (e.g., quote.py) are explicitly marked as illustrative and need not resolve."
+        },
+        {
+          "section": "User Scenario / US-1",
+          "category": "needs_clarify",
+          "problem": "US-1 says 'run it in a fresh copy/directory to avoid overwriting the shipped example' but does not specify whether the kit's output would overwrite the example files if run in-place, or whether the kit has any protection mechanism. The spec does not define expected behavior if a user ignores this warning.",
+          "why_it_matters": "Users may accidentally destroy the shipped example, and the spec provides no guidance on recovery or whether the kit should guard against this. This affects the robustness of the user experience.",
+          "suggested_fix": "Add a note that the kit does not protect against overwriting, and recommend a specific command (e.g., 'cp -r examples/sample-project /tmp/demo && cd /tmp/demo') in the README. Optionally, consider a kit-level safeguard."
+        },
+        {
+          "section": "Out of Scope",
+          "category": "objective",
+          "problem": "The Out-of-Scope section says 'any example source code (e.g., quote.py)' is not shipped, but FR-1 describes the brief as 'a small, dependency-free Python 3 command-line tool (a quote CLI)'. The spec does not clarify whether the brief itself must contain enough detail to implement the tool without source code, or whether the brief may reference non-existent files that the user must create.",
+          "why_it_matters": "If the brief references quote.py as if it exists, users may be confused when they cannot find it. The boundary between 'brief describes the tool' and 'brief assumes source exists' is unclear.",
+          "suggested_fix": "Explicitly state that the brief must describe the tool's behavior and file layout without assuming any source files exist, and that any file references in the brief are illustrative only."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 5,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements (FR-2) / Acceptance Criteria (AC-2)",
+          "category": "objective",
+          "problem": "FR-2 permits additional headings interleaved with required ones, while AC-2 states that each file must contain *exactly* the FR-2 heading set.",
+          "why_it_matters": "Implementers will be unsure whether they may add extra headings, leading to either unnecessary rework or accidental rejection of a valid example.",
+          "suggested_fix": "Align the language: either change AC-2 to allow additional headings (e.g., \"contains at least the FR-2 heading set\") or remove the \"exactly\" qualifier from AC-2."
+        },
+        {
+          "section": "Functional Requirements (FR-2)",
+          "category": "needs_clarify",
+          "problem": "The rule \"additional headings may be interleaved anywhere\" conflicts with the requirement that \"required headings appear in the listed order\".",
+          "why_it_matters": "If an additional heading is placed between two required headings, it could be interpreted as breaking the required order, causing ambiguity in validation.",
+          "suggested_fix": "Clarify that required headings must appear in the specified order, but other headings may appear before the first required heading, after the last, or between required headings **provided the relative order of required headings is preserved**."
+        },
+        {
+          "section": "Edge Cases & Rules \u2013 Non\u2011stub word\u2011count rule",
+          "category": "needs_clarify",
+          "problem": "The description of the word\u2011count calculation is vague (\"counting whitespace\u2011delimited tokens with markdown marker characters and code blocks excluded \u2014 a rough threshold, not a lint\").",
+          "why_it_matters": "Automated tools or reviewers may interpret the rule differently, leading to inconsistent enforcement of the \u2265200\u2011word minimum.",
+          "suggested_fix": "Provide a concrete algorithm or reference an existing linter (e.g., \"strip markdown syntax, ignore fenced code blocks, then count tokens separated by whitespace; the count must be \u2265200\")."
+        },
+        {
+          "section": "Functional Requirements (FR-2) \u2013 Tasks document",
+          "category": "needs_clarify",
+          "problem": "The spec mandates a blockquote note at the top of `tasks_milestone_1.md` but does not specify its required content or purpose.",
+          "why_it_matters": "Authors may omit the blockquote or insert unrelated text, causing AC\u20112 to fail without a clear reason.",
+          "suggested_fix": "Define the expected blockquote content (e.g., \"> NOTE: The following build steps are illustrative and do not correspond to actual files in the repository.\") or at least state that any non\u2011empty blockquote satisfies the requirement."
+        },
+        {
+          "section": "Acceptance Criteria (AC-2) \u2013 Cross\u2011reference verification",
+          "category": "needs_clarify",
+          "problem": "The spec says verification is done by \"string match\" of identifiers (FR\u2011N/AC\u2011N) but does not define handling of multiple occurrences, case sensitivity, or formatting variations.",
+          "why_it_matters": "Different implementations could produce false positives/negatives, making the acceptance test unreliable.",
+          "suggested_fix": "Specify the matching rules explicitly (e.g., \"identifiers must appear exactly as `FR-1`, `AC-2` etc., case\u2011sensitive, surrounded by word boundaries, and each identifier must appear at least once in the designated section\")."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}

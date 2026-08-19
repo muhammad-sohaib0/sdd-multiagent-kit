@@ -1,0 +1,119 @@
+{
+  "document": "spec_milestone_5",
+  "pass": 2,
+  "round": 10,
+  "critics": [
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements / FR-2",
+          "category": "needs_clarify",
+          "problem": "The requirement states that each file must contain 'at least' the required headings in 'relative order', but the definition of 'relative order' is ambiguous: does it mean the headings must appear in the exact sequence listed, or can additional headings be interleaved between them? The text later says 'additional headings may be interleaved anywhere', which contradicts the earlier 'relative order' phrasing.",
+          "why_it_matters": "Without a clear definition, implementers may interpret the heading order differently, leading to inconsistent example files that fail the acceptance criteria or the kit's own validation.",
+          "suggested_fix": "Clarify that 'relative order' means the required headings appear in the listed sequence, but additional headings can be inserted between them, and provide an explicit example or a formal definition (e.g., 'the required headings must appear in the order listed, with optional additional headings anywhere')."
+        },
+        {
+          "section": "Edge Cases & Rules / Non-stub",
+          "category": "needs_clarify",
+          "problem": "The word-count threshold is defined as '\u2265200 words per file, individually, counting whitespace-delimited tokens with markdown marker characters and code blocks excluded \u2014 a rough threshold, not a lint'. This is vague: what exactly counts as a 'markdown marker character'? Are inline code spans excluded? Are table cells counted? The phrase 'rough threshold, not a lint' suggests it is not strictly enforced, but AC-1 and AC-2 require 'non-stub' without specifying how to measure it.",
+          "why_it_matters": "Ambiguity in the word-count rule makes it impossible to objectively verify whether a file meets the non-stub requirement, leading to subjective acceptance decisions and potential disputes.",
+          "suggested_fix": "Provide a precise definition of what counts as a word (e.g., 'any sequence of non-whitespace characters that is not part of a markdown link, image, or code block'), and state whether the threshold is a hard requirement or a guideline. Alternatively, replace the word-count with a more objective check (e.g., 'each required heading must have at least one substantive paragraph of at least 50 words')."
+        },
+        {
+          "section": "Edge Cases & Rules / Platform-agnostic",
+          "category": "needs_clarify",
+          "problem": "The rule prohibits 'shell keywords like export/set' and 'shell expansion like $VAR in command examples', but later permits 'generic env-var assignment notation (e.g., QUOTE_DATA_DIR=<path>)'. It is unclear whether the generic notation is allowed in command examples or only in prose. Also, the rule does not specify whether commands like 'python3 quote.py' are allowed (they are, since 'Mentioning the runtime (python3) is permitted'), but it does not clarify if command examples can include flags like '--help'.",
+          "why_it_matters": "Ambiguity could lead to example tasks that inadvertently include platform-specific commands, violating the platform-agnostic requirement and making the example less portable.",
+          "suggested_fix": "Explicitly state that generic env-var assignment notation is allowed in prose and in command examples, but shell-specific syntax (e.g., 'export', 'set', '$VAR') is not. Provide a list of allowed command patterns (e.g., 'python3 <script> [args]') and prohibited patterns (e.g., 'chmod +x', 'source venv/bin/activate')."
+        },
+        {
+          "section": "Acceptance Criteria / AC-1",
+          "category": "needs_clarify",
+          "problem": "AC-1 states the brief must be 'directly invokable by the kit' and that invocation is '/sdd run against the folder containing the brief, with the kit installed in a supported tool (per docs/GUIDE.md \u00a72; no additional configuration or prerequisites beyond the kit)'. However, it does not specify what happens if the kit is not installed or if the user runs the critique engine instead. The relationship between '/sdd' and the critique engine is described as 'complementary, not alternatives', but the acceptance test does not define a concrete test for the critique engine path.",
+          "why_it_matters": "Without a clear test for the critique engine path, the acceptance criteria may be incomplete, and users may not know how to verify that the example works with both tools.",
+          "suggested_fix": "Add a sub-check to AC-1 that verifies the critique engine can be run against the example spec (e.g., 'python3 kit/scripts/orchestrate_critique_loop.py ...' produces a valid critique report), or explicitly state that the critique engine is out of scope for AC-1."
+        },
+        {
+          "section": "Functional Requirements / FR-2",
+          "category": "objective",
+          "problem": "FR-2 requires that 'every FR has a corresponding workflow node, and every AC has a test row' and that this is 'verified by string match: identifiers are exactly FR-<n> and AC-<n> (hyphenated, case-sensitive), and each spec identifier must appear at least once in the workflow's traceability section and the tests' mapping section, respectively.' However, the spec does not define what constitutes a 'workflow node' or a 'test row' \u2014 it only requires the identifier to appear somewhere in the section. This could be satisfied by a mention in prose, not necessarily a structured mapping.",
+          "why_it_matters": "The acceptance criterion may be too weak, allowing a file that merely mentions 'FR-1' in a sentence to pass, even if there is no actual traceability mapping. This undermines the purpose of the cross-reference consistency requirement.",
+          "suggested_fix": "Define the expected structure of the traceability sections (e.g., a table with columns 'Identifier' and 'Node/Test'), and require that each identifier appears in a dedicated row or cell, not just in free text."
+        },
+        {
+          "section": "Edge Cases & Rules / Internal consistency",
+          "category": "needs_clarify",
+          "problem": "The rule states that 'Any tasks build steps are illustrative and reference files that need not exist in the repo' and that 'Illustrative references to unshipped files are documentation, not dependencies'. However, it also says 'references to files that do ship (e.g., the brief) must use their real paths'. It is unclear how to distinguish between 'illustrative' and 'real' references, especially for files like 'quote.py' that are not shipped but are referenced in the tasks. The rule does not specify whether the tasks document must include a disclaimer or a marker for illustrative references beyond the blockquote note.",
+          "why_it_matters": "Without a clear distinction, users may be confused about which files actually exist, and the example may be misinterpreted as requiring unshipped files, violating the self-contained principle.",
+          "suggested_fix": "Add a rule that all references to unshipped files must be clearly marked as illustrative (e.g., in a code block or with a note), and that the tasks document must include a legend or note explaining that such references are not part of the shipped example."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 6,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "The goal states the milestone will provide a \"complete, runnable example project\" yet later clarifies that no source code is shipped and only the output shape is provided.",
+          "why_it_matters": "Readers may expect an executable project and be confused when none is present, leading to misuse of the example or wasted effort.",
+          "suggested_fix": "Rephrase the goal to emphasise that the milestone delivers a complete, self\u2011contained example *set* that demonstrates the kit workflow, not a runnable source code artifact."
+        },
+        {
+          "section": "Cross-Reference",
+          "category": "objective",
+          "problem": "The cross\u2011reference table for Milestone\u20115 documents lists Plan, Tasks, Workflow, and Tests but omits the Spec document (spec_milestone_5.md).",
+          "why_it_matters": "Omitting the spec entry makes the milestone\u2019s own deliverable list incomplete and can cause reviewers to miss the spec file during verification.",
+          "suggested_fix": "Add a row for the Spec document with path `outputs/milestones/milestone_5/spec_milestone_5.md`."
+        },
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "FR\u20112 requires a blockquote note at the top of `tasks_milestone_1.md` but does not specify the required content, length, or exact placement relative to other elements.",
+          "why_it_matters": "Implementers may omit the blockquote, place it elsewhere, or use placeholder text, causing the document to fail the non\u2011stub rule without a clear way to detect the violation.",
+          "suggested_fix": "Define the blockquote requirement explicitly, e.g., \"The file must start with a blockquote containing the sentence: 'The following build steps are illustrative and do not correspond to shipped source files.'\""
+        },
+        {
+          "section": "AC-1",
+          "category": "needs_clarify",
+          "problem": "The acceptance criterion mentions that the brief must be \"directly invokable by the kit\" and that invocation is `/sdd` against the folder, but it provides no concrete verification method (e.g., expected exit code, output pattern).",
+          "why_it_matters": "Automated testing cannot reliably determine whether the invocation succeeded, making the criterion ambiguous and difficult to enforce.",
+          "suggested_fix": "Specify a concrete test, such as running `/sdd examples/sample-project` and asserting that the command exits with code 0 and produces a directory `outputs/milestones/milestone_1` containing the five required files."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The rule forbidding placeholder text lists exact tokens (`TODO`, `lorem ipsum`, `TBD`) but does not cover common variations like `TODO:`, `TBD.`, or phrases such as \"to be decided\".",
+          "why_it_matters": "Authors could unintentionally include placeholders that evade detection, violating the non\u2011stub requirement while appearing compliant.",
+          "suggested_fix": "Expand the rule to include common variants or define a regex pattern (e.g., `/\\b(TODO|TBD|lorem\\s+ipsum)\\b/i`) that captures these cases."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}

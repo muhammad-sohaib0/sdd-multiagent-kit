@@ -1,0 +1,130 @@
+{
+  "document": "spec_milestone_1",
+  "pass": 2,
+  "round": 2,
+  "critics": [
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 9,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-2 / clarify-interview",
+          "category": "objective",
+          "problem": "The clarify-interview input/output contract states 'Output: human answers folded into the spec', but the edge-case rule for an empty list says 'skip gracefully, ask nothing'. This creates ambiguity about whether the sub-skill produces an empty output artifact or no output artifact when the list is empty, which affects the history-logger's PHR recording for the phase transition.",
+          "why_it_matters": "If the clarify-interview produces no output artifact when skipped, the history-logger's rule 'A transition with no produced artifact \u2192 record it anyway' applies, but the clarify-interview's own contract implies an output is always produced. This inconsistency could cause the master skill to mis-handle the PHR logging or incorrectly flag the sub-skill as failed.",
+          "suggested_fix": "Clarify in the clarify-interview row that when the list is empty, the output is an explicit 'no-op' marker or the spec is passed through unchanged, ensuring the output contract is technically fulfilled even when no questions are asked."
+        },
+        {
+          "section": "3A. The Two Gates / Simplicity Gate",
+          "category": "needs_clarify",
+          "problem": "The Simplicity Gate states the default limit is 3 standalone components per milestone, but does not specify whether the kit's own bootstrap build (which produces 13 files) counts as a single standalone component or is evaluated differently against this limit during its own self-application.",
+          "why_it_matters": "If the 13 files are evaluated as 13 separate components, the bootstrap build would fail its own Simplicity Gate. The spec says the kit deliverable counts as a single component, but this needs to be explicitly confirmed as applying to the bootstrap self-build scenario."
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 10,
+      "scores": {
+        "clarity": 10,
+        "completeness": 10,
+        "edge_case_coverage": 10,
+        "internal_consistency": 10,
+        "testability": 10
+      },
+      "issues": [],
+      "verdict": "pass"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Cross-references",
+          "category": "needs_clarify",
+          "problem": "References to non-existent sections (e.g., \u00a77.5, \u00a75.3, \u00a74.2) are used for edge\u2011case rules and gate definitions, but this document does not contain those numbered subsections.",
+          "why_it_matters": "Incorrect section numbers prevent reviewers and automated tools from locating the referenced rules, breaking traceability and potentially causing mis\u2011implementation of edge\u2011case handling.",
+          "suggested_fix": null
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-3 / AC-6 / AC-7",
+          "category": "objective",
+          "problem": "The constitution template is required to render seven articles verbatim from PLAN.md \u00a76, but the actual article text is not included in this spec. AC-7 states the Stranger Test input (the five-document set) must be fully specified within the set so the stranger needs no external PLAN.md. Without the verbatim article text in this spec, the constitution.template.md cannot be verified against AC-6, and the Stranger Test cannot verify check (3) without external reference.",
+          "why_it_matters": "Breaks the self-contained requirement for the Stranger Test and makes AC-6 unverifiable from the milestone documents alone. The kit's own bootstrap depends on this content being complete and verifiable without the brief.",
+          "suggested_fix": "Include the full text of all seven constitution articles (Standalone-First; Observable Interfaces; Tests Before Implementation; Simplicity by Default; Framework Trust; Real-World Testing; Amendment Process) verbatim in this spec, either in FR-3 or as an appendix, so kit/constitution.template.md can be authored and verified entirely from this milestone's documents."
+        },
+        {
+          "section": "FR-2 (clarify-interview row) vs \u00a74.5 (needs_clarify.md format)",
+          "category": "objective",
+          "problem": "Two conflicting formats are specified for needs_clarify.md. FR-2 table says: 'each entry written `- **section**: problem \u2014 why_it_matters`' (bold section, colon, em dash). \u00a74.5 says: 'Format: a Markdown list of tuples `- {section, problem, why_it_matters}`' (curly braces, commas). These are syntactically different and would cause parsing failures in clarify-interview.",
+          "why_it_matters": "The clarify-interview sub-skill must parse this file to fold answers into the spec. A format mismatch means the sub-skill cannot reliably consume its input, breaking the Clarify phase.",
+          "suggested_fix": "Pick one format and use it consistently. The FR-2 format (`- **section**: problem \u2014 why_it_matters`) is more human-readable and matches the critique schema's field names; adopt it in both places and remove the curly-brace version."
+        },
+        {
+          "section": "\u00a76 (Secret detection) / AC-3",
+          "category": "objective",
+          "problem": "The secret detection rule references a 'small check helper in tests_milestone_1.md' to enforce the \u226532-char blob heuristic. But tests_milestone_1.md is one of the 13 shipped files that AC-3 scans for secrets. This creates a circular dependency: the test file that validates the kit must itself pass the validation, but it contains the validation logic that may trigger on its own code patterns.",
+          "why_it_matters": "The secret scan (AC-3) must pass on all 13 files including tests_milestone_1.md. If the helper code contains base64/hex-like strings (e.g., test fixtures, constants), it could falsely fail its own validation, or the helper cannot be shipped without violating the rule it enforces.",
+          "suggested_fix": "Move the secret-scan helper out of the 13 shipped files (e.g., into a separate validation script delivered in M2 with the critique engine), or explicitly allowlist any constants the helper contains in the \u00a76 allowlist, or redefine the heuristic to be fully regex-expressible so no helper is needed."
+        },
+        {
+          "section": "FR-2 (research-ct-scan edge-case rule)",
+          "category": "needs_clarify",
+          "problem": "The installed-skill awareness fallback says: 'If the agent cannot enumerate them, treat installed-skill awareness as \"none detected\" and use generic boilerplate.' It does not specify behavior when the agent CAN enumerate skill directories but they are empty, malformed, or contain skills with missing/invalid metadata.",
+          "why_it_matters": "Real CLI tools may have skill directories that exist but are unreadable, empty, or contain invalid SKILL.md files. The sub-skill needs defined behavior for these cases to avoid halting or producing incorrect conditional categories.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "AC-7 (Stranger Test check 3) / \u00a74.5 (consistent with definition)",
+          "category": "needs_clarify",
+          "problem": "Check (3) requires each sub-skill's SKILL.md to be 'consistent with its FR-2 input/output/edge-case' and \u00a74.5 defines this as 'must name the sub-skill's input, output, and at least the edge-case rule from its FR-2 row'. It is ambiguous whether 'name' means merely mentioning the concepts (e.g., 'input: brief') or including the full semantic rule text (e.g., the full edge-case rule paragraph from the FR-2 table).",
+          "why_it_matters": "The Stranger Test is a pass/fail gate for the milestone. If 'name' requires full rule text, the SKILL.md files must be more verbose; if it only requires mention, they can be concise. This affects the authored content and the test's determinism.",
+          "suggested_fix": ""
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 4
+}

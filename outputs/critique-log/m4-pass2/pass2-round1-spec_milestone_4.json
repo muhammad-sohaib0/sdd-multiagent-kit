@@ -1,0 +1,178 @@
+{
+  "document": "spec_milestone_4",
+  "pass": 2,
+  "round": 1,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_4.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Acceptance Criteria (AC-4)",
+          "category": "needs_clarify",
+          "problem": "AC-4 mandates consistency across 'the three env-var names', but the document never explicitly lists or defines what these three environment variables are.",
+          "why_it_matters": "Test suites and reviewers cannot verify document correctness against AC-4 without ambiguity over which specific environment variables are required.",
+          "suggested_fix": "Explicitly list the three expected environment variable names in FR-1/Edge Cases or AC-4."
+        },
+        {
+          "section": "Acceptance Criteria (AC-5)",
+          "category": "needs_clarify",
+          "problem": "AC-5 introduces a requirement for `.gitignore`, but `.gitignore` is absent from Goal, FR-1 through FR-7, and AC-1 (which explicitly lists eleven files).",
+          "why_it_matters": "It is unclear whether creating or updating `.gitignore` is an explicit deliverable of Milestone 4 or a pre-existing repo setup prerequisite.",
+          "suggested_fix": "Add `.gitignore` to FR-7 and AC-1 file deliverables list, or clarify its ownership in Edge Cases."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_4.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements / FR-1",
+          "category": "needs_clarify",
+          "problem": "The quickstart command is `npm install -g sdd-multiagent-kit && sdd-setup`, but the package name is not explicitly defined elsewhere in the spec. It is unclear if this is the intended npm package name or a placeholder.",
+          "why_it_matters": "If the package name is wrong, the quickstart will fail, and the docs will be inconsistent with the actual kit, violating AC-4.",
+          "suggested_fix": "Explicitly state the npm package name in the spec (e.g., in a 'Package Name' section) and ensure it matches the actual package.json from M3."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The spec says 'Docs must be consistent with the built kit (paths, commands, `/sdd`, env-var names)' but does not list the exact env-var names. AC-4 mentions 'the three env-var names' but they are not enumerated.",
+          "why_it_matters": "Without listing the exact env-var names, implementers cannot verify consistency, and testers cannot check AC-4 objectively.",
+          "suggested_fix": "Add a subsection listing the three env-var names (e.g., SDD_API_KEY, SDD_MODEL, SDD_DEBUG) and any other critical paths/commands that must be consistent."
+        },
+        {
+          "section": "Acceptance Criteria / AC-1",
+          "category": "objective",
+          "problem": "AC-1 requires all eleven files to be 'non-stub', but 'non-stub' is not defined. Does it mean each file must have a minimum length, contain specific sections, or pass a lint check?",
+          "why_it_matters": "Ambiguity in 'non-stub' makes the acceptance criterion subjective and hard to test automatically.",
+          "suggested_fix": "Define 'non-stub' explicitly, e.g., each file must contain at least N words, include required headings, and not contain placeholder text like 'TODO' or 'lorem ipsum'."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The spec mentions 'the `/sdd` trigger' but does not explain what this trigger is or where it is used. It is unclear if this is a command, a file, or a keyboard shortcut.",
+          "why_it_matters": "If the trigger is not documented, contributors may not know how to invoke the kit's functionality, and the docs may be incomplete.",
+          "suggested_fix": "Add a brief explanation of the `/sdd` trigger (e.g., a slash command in a chat interface) and reference where it is defined in the kit."
+        },
+        {
+          "section": "Out of Scope / Deferred",
+          "category": "needs_clarify",
+          "problem": "The spec defers 'Examples / sample-project' to M5, but does not clarify whether the documentation should include any minimal example or placeholder for future examples. This could lead to incomplete docs.",
+          "why_it_matters": "Without a placeholder, the docs may not guide users on where to find examples, reducing usability.",
+          "suggested_fix": "Add a note in the spec that README or GUIDE should include a 'Examples' section with a link to a future M5 location, even if the content is deferred."
+        },
+        {
+          "section": "Functional Requirements / FR-6",
+          "category": "needs_clarify",
+          "problem": "FR-6 requires both CLAUDE.md and AGENTS.md, but does not specify the relationship between them. Should AGENTS.md be a superset, or should they be identical?",
+          "why_it_matters": "If the two files conflict or duplicate content, agents may get confused, and maintainability suffers.",
+          "suggested_fix": "Clarify that AGENTS.md is the cross-tool convention and CLAUDE.md is Claude-specific, with a note that CLAUDE.md may reference AGENTS.md for shared instructions."
+        },
+        {
+          "section": "Acceptance Criteria / AC-5",
+          "category": "objective",
+          "problem": "AC-5 requires a `.gitignore` that excludes 'secrets/env files and transient artifacts', but does not specify which files are considered 'secrets' or 'transient'. This could lead to over- or under-exclusion.",
+          "why_it_matters": "If the .gitignore is too permissive, secrets may be committed; if too restrictive, legitimate files may be ignored.",
+          "suggested_fix": "List specific patterns (e.g., `.env`, `*.pem`, `node_modules/`, `*.log`) in the spec or reference a standard template."
+        },
+        {
+          "section": "Cross-Reference",
+          "category": "objective",
+          "problem": "The cross-reference table lists companion documents (plan, tasks, workflow, tests) but does not specify whether these documents are required to be updated in this milestone or are just references.",
+          "why_it_matters": "If the companion documents are not updated to reflect the documentation layer, they may become stale, violating the completeness gate.",
+          "suggested_fix": "Add a note that companion documents must be updated to reference the new docs, or explicitly state they are out of scope for M4."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_4.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 3,
+      "scores": {
+        "clarity": 4,
+        "completeness": 3,
+        "edge_case_coverage": 3,
+        "internal_consistency": 4,
+        "testability": 2
+      },
+      "issues": [
+        {
+          "section": "Edge Cases & Rules / Acceptance Criteria",
+          "category": "needs_clarify",
+          "problem": "The spec references \"the three env\u2011var names\" required by the kit but never enumerates them.",
+          "why_it_matters": "Without an explicit list, authors cannot verify that the documentation matches the actual runtime requirements, leading to stale or incorrect docs and potential runtime failures.",
+          "suggested_fix": "Add a bullet list naming the three environment variables (e.g., `SDD_API_KEY`, `SDD_MODEL`, `SDD_ENDPOINT`) and describe their purpose."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "needs_clarify",
+          "problem": "AC\u20115 requires a `.gitignore` that excludes secrets and transient artifacts, yet the spec does not specify its location, required entries, or how to validate it.",
+          "why_it_matters": "Contributors may omit critical ignore patterns, exposing secrets or cluttering the repository, which violates security and cleanliness goals.",
+          "suggested_fix": "Provide an example `.gitignore` snippet (e.g., `*.env`, `node_modules/`, `dist/`) and state that it must reside at the repository root."
+        },
+        {
+          "section": "Functional Requirements \u2013 FR\u20111",
+          "category": "needs_clarify",
+          "problem": "The acknowledgement of adapted patterns must be \"clearly\u2011marked\" but the spec does not define what constitutes a clear mark (heading, badge, inline text, etc.).",
+          "why_it_matters": "Authors might hide the acknowledgement in a footnote or comment, violating the credit requirement and breaking US\u20113.",
+          "suggested_fix": "Define a mandatory top\u2011level section titled `Acknowledgements` that contains the exact phrasing: \"This project adapts patterns from `github/spec-kit` and `panaversity/spec-kit-plus`.\""
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The spec mentions the `/sdd` trigger but does not specify the exact command syntax or context in which it is used.",
+          "why_it_matters": "Documentation that omits the precise trigger will be inconsistent with the built kit, causing confusion for both humans and AI tools.",
+          "suggested_fix": "Add a concrete example, e.g., `npm run sdd` or `node /sdd/index.js`, and describe any required arguments."
+        },
+        {
+          "section": "Acceptance Criteria \u2013 AC\u20114",
+          "category": "needs_clarify",
+          "problem": "AC\u20114 requires docs to be consistent with the built kit, including version information, yet the spec never states the current kit version.",
+          "why_it_matters": "Version drift can cause mismatched commands or paths, breaking the completeness gate.",
+          "suggested_fix": "Introduce a `VERSION` constant in the spec (e.g., `0.1.0`) and require that all docs reference it where appropriate."
+        },
+        {
+          "section": "General",
+          "category": "needs_clarify",
+          "problem": "The term \"non\u2011stub\" in AC\u20111 is undefined; there is no metric for what qualifies as a stub document.",
+          "why_it_matters": "Authors may submit placeholder files that technically exist but contain no useful content, failing the spirit of the milestone.",
+          "suggested_fix": "Specify a minimum content requirement, such as at least 200 words or the presence of the required sections for each file."
+        },
+        {
+          "section": "Testability",
+          "category": "needs_clarify",
+          "problem": "The spec provides no test plan or verification steps for the documentation layer, making it impossible to automate AC checks.",
+          "why_it_matters": "Without testable criteria, reviewers cannot reliably confirm that all acceptance criteria are met, leading to subjective judgments.",
+          "suggested_fix": "Add a `tests/docs_test.md` outline that lists checks (e.g., existence of files, presence of quick\u2011start command, acknowledgement text, env\u2011var list, .gitignore entries) and describe how they can be validated programmatically."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 3
+}

@@ -1,0 +1,228 @@
+{
+  "document": "spec_milestone_1",
+  "pass": 1,
+  "round": 4,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 10,
+      "scores": {
+        "clarity": 10,
+        "completeness": 10,
+        "edge_case_coverage": 10,
+        "internal_consistency": 10,
+        "testability": 10
+      },
+      "issues": [],
+      "verdict": "pass"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 9,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "The `clarify-interview` sub-skill is defined to compile the `needs_clarify` list from Pass 1, but the exact mechanism for how Pass 1 (which arrives in M2) hands this list to the M1 `clarify-interview` sub-skill is not explicitly defined.",
+          "why_it_matters": "Without a clear interface contract between the M2 critique engine and the M1 clarify sub-skill, the M2 implementation might parse or format the `needs_clarify` tuples in a way that the M1 sub-skill does not expect, breaking the pipeline."
+        },
+        {
+          "section": "3A",
+          "category": "needs_clarify",
+          "problem": "The Simplicity Gate specifies a default of 3 standalone components per milestone, but it does not define where or how the written justification for additional components is stored.",
+          "why_it_matters": "If the justification is not stored in a standardized location (e.g., in the plan.md or an ADR), the gate cannot be reliably checked by the critique loop or a fresh session in the Stranger Test."
+        },
+        {
+          "section": "AC-7",
+          "category": "needs_clarify",
+          "problem": "The Stranger Test defines 'contract parity' for the 13 files, but does not specify if the test should also verify the absence of the `critique-loop` sub-skill in the M1 output.",
+          "why_it_matters": "A fresh session might hallucinate or infer the existence of an 11th sub-skill from the master skill's text, which would violate the M1 scope but might not be caught by the current parity check."
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 9,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "8. Acceptance Criteria",
+          "category": "needs_clarify",
+          "problem": "The wording of AC-7 (\u201ccontract parity, not byte parity\u201d) is ambiguous and may be interpreted differently by implementers.",
+          "why_it_matters": "Unclear expectations could lead to inconsistent implementations of the Stranger Test, risking failure to meet the acceptance criteria."
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-1 step 3 / milestone-builder",
+          "category": "needs_clarify",
+          "problem": "milestone-builder's output is described as a 'milestone breakdown' but no file path, schema, or serialization format is specified",
+          "why_it_matters": "The master skill's handoff into step 4 (per-milestone work) needs a defined artifact, and the downstream sub-skills (specify, plan-builder, etc.) need a stable contract for what they receive",
+          "suggested_fix": null
+        },
+        {
+          "section": "US-1",
+          "category": "needs_clarify",
+          "problem": "US-1 says the user 'invoking the kit's entry point' before M3 ships, but the /sdd trigger and installer are M3; the manual invocation mechanism for the M1 content is not described",
+          "why_it_matters": "Until M3 ships, the M1 content is the user-facing surface; without a documented pre-installer invocation path US-1 cannot be exercised as written",
+          "suggested_fix": null
+        },
+        {
+          "section": "FR-2 clarify-interview",
+          "category": "needs_clarify",
+          "problem": "The 'compiled needs_clarify list' is described as a set of {section, problem, why_it_matters} tuples but no concrete serialization (JSON file, markdown list, PHR entry, stdin stream) is specified",
+          "why_it_matters": "clarify-interview is the boundary between the critique phase (M2) and the human; the handoff format must be stable for M2 to produce and M1 to consume",
+          "suggested_fix": null
+        },
+        {
+          "section": "FR-2 research-ct-scan (installed-skill awareness)",
+          "category": "needs_clarify",
+          "problem": "The rule 'if one matches a conditional category, draft that category with that skill's conventions' does not specify behavior when multiple installed skills match the same conditional category",
+          "why_it_matters": "Real CLI tool installations frequently have overlapping skills (e.g., two testing frameworks, two task-runner plugins); without a tie-breaking rule the sub-skill's behavior is undefined on a common configuration",
+          "suggested_fix": null
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 8,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-1 (master skill orchestration)",
+          "category": "objective",
+          "problem": "Multiple bare references to PLAN.md sections (e.g., 'PLAN.md \u00a74.2', 'PLAN.md \u00a74.3', 'PLAN.md \u00a74.4', 'PLAN.md \u00a75.3', 'PLAN.md \u00a77.5', 'PLAN.md \u00a75.4') violate the document's own cross-reference convention which states: 'Bare references (\u00a73, \u00a74.3, FR-x, AC-x) point at sections of *this* document. No bare number is ever left ambiguous.' References to the brief (PLAN.md) must use explicit 'PLAN.md' prefix.",
+          "why_it_matters": "Creates ambiguity for implementers and breaks the project's own referencing convention. A fresh session implementing from the five-document set (per Stranger Test) would not have PLAN.md context.",
+          "suggested_fix": "Replace all bare 'PLAN.md \u00a7X.Y' references with explicit 'PLAN.md \u00a7X.Y' (already correct in some places) or inline the referenced content. Ensure every reference to the brief uses the explicit 'PLAN.md' prefix consistently."
+        },
+        {
+          "section": "FR-2 (clarify-interview sub-skill)",
+          "category": "objective",
+          "problem": "Input description references 'schema per PLAN.md \u00a74.3' as a bare reference to the brief, violating cross-reference convention.",
+          "why_it_matters": "Same ambiguity issue; the sub-skill contract depends on an external schema not contained in the five-document set.",
+          "suggested_fix": "Either inline the critique issue schema from PLAN.md \u00a74.3 into this spec, or explicitly mark it as 'PLAN.md \u00a74.3' with the understanding that the Stranger Test input includes the brief."
+        },
+        {
+          "section": "FR-2 (milestone-builder sub-skill)",
+          "category": "objective",
+          "problem": "Edge-case rule references 'PLAN.md \u00a77.5' as bare reference.",
+          "why_it_matters": "Cross-reference convention violation; implementer cannot resolve without the brief.",
+          "suggested_fix": "Use explicit 'PLAN.md \u00a77.5' prefix or inline the milestone ordering rule."
+        },
+        {
+          "section": "FR-2 (history-logger sub-skill)",
+          "category": "objective",
+          "problem": "Edge-case rule references 'PLAN.md \u00a78.2' as bare reference for ADR significance test.",
+          "why_it_matters": "The ADR significance test criteria are not defined in this document, creating a dependency on the brief.",
+          "suggested_fix": "Inline the ADR significance test criteria from PLAN.md \u00a78.2, or explicitly reference as 'PLAN.md \u00a78.2' and clarify Stranger Test scope."
+        },
+        {
+          "section": "\u00a73A (Two Gates)",
+          "category": "objective",
+          "problem": "References to 'PLAN.md \u00a75.3, \u00a77.5' and 'PLAN.md \u00a75.4' are bare references violating convention.",
+          "why_it_matters": "Gate criteria depend on external definitions not in the five-document set.",
+          "suggested_fix": "Inline the forward-reference check criteria and scenario traceability rule, or use explicit 'PLAN.md' prefixes consistently."
+        },
+        {
+          "section": "\u00a74.4 (PHR/ADR records)",
+          "category": "objective",
+          "problem": "References 'PHR milestone_0/003' but the numbering convention states 'Numbering resets per milestone within each milestone's folder (001, 002, \u2026)' starting from milestone_1. The 'milestone_0' prefix is unexplained and inconsistent.",
+          "why_it_matters": "Confuses the PHR numbering scheme; implementers won't know if milestone_0 is a special bootstrap milestone or an error.",
+          "suggested_fix": "Clarify whether milestone_0 exists as a bootstrap phase, or change the reference to match the documented convention (e.g., 'PHR milestone_1/003' or explain the exception)."
+        },
+        {
+          "section": "\u00a76 (Authentication/Security)",
+          "category": "objective",
+          "problem": "The secret allowlist 'lives in `tests_milestone_1.md`' but `tests_milestone_1.md` is a generated milestone deliverable (outputs/milestones/milestone_1/tests_milestone_1.md), not one of the 13 shipped kit files (\u00a74.1). The secret scan operates on the 13 shipped files, creating a circular dependency: the allowlist for scanning shipped files lives in a file produced by the kit.",
+          "why_it_matters": "The kit cannot validate its own shipped content at install time if the allowlist is a generated artifact. This breaks the 'shipped kit' self-containment.",
+          "suggested_fix": "Move the allowlist to a shipped configuration file (e.g., `kit/config/secret-allowlist.yaml`) or embed it in the master skill/history-logger sub-skill, so it travels with the 13 shipped files."
+        },
+        {
+          "section": "\u00a74.3 (providers.yaml schema)",
+          "category": "objective",
+          "problem": "Validation rule comment states: 'every `model` referenced in `critic_slots` MUST also exist under a `providers[].models` entry whose `id` equals that slot's `provider` id.' This is incorrectly worded: the provider's `id` (e.g., 'nvidia-nim') does not equal the model's `id` (e.g., 'nvidia/nemotron-3-ultra-550b-a55b'). The rule should be: each critic_slot's model must exist in the models list of the provider where providers[].id == critic_slot.provider.",
+          "why_it_matters": "Misleading validation rule could cause implementers to write incorrect validators.",
+          "suggested_fix": "Rewrite the validation rule comment to: 'Each critic_slot's model must exist under providers[].models where providers[].id == critic_slot.provider.'"
+        },
+        {
+          "section": "AC-7 (Stranger Test)",
+          "category": "needs_clarify",
+          "problem": "The Stranger Test hands the five-document set to a fresh session with 'implement this, ask no questions.' But this spec contains numerous references to PLAN.md (the brief) that a fresh session would not have. The five-document set per \u00a79 includes only this spec, plan, tasks, workflow, tests \u2014 not PLAN.md. There is a fundamental tension: the spec depends on the brief for definitions (critique schema, ADR significance test, milestone ordering, etc.), but the Stranger Test excludes the brief.",
+          "why_it_matters": "If the Stranger Test input is truly only the five milestone documents, then this spec must inline all referenced PLAN.md content. If the brief is part of the Stranger Test input, that must be stated explicitly. This is a product/architecture decision the drafter cannot infer.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a73A (Simplicity Gate)",
+          "category": "needs_clarify",
+          "problem": "The gate states 'up to a default of 3 standalone components per milestone' but does not specify where this default is configured, whether it's overridable, or how the 'written justification' for additional components is recorded (in the spec? plan? ADR?).",
+          "why_it_matters": "Implementers need to know where the default lives and how justifications are captured to enforce the gate correctly.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a76 (Authentication/Security)",
+          "category": "needs_clarify",
+          "problem": "The concrete detection rule lists four specific regex patterns for secrets. It is unclear whether these patterns are exhaustive or illustrative. Additionally, the allowlist mechanism (in tests_milestone_1.md per current text) is problematic as noted in the objective issue above, but even if relocated, the policy for what constitutes an 'allowlisted constant' vs a secret is a business decision.",
+          "why_it_matters": "Security scanning behavior must be deterministic; the pattern list and allowlist governance need explicit definition.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "AC-7 (Stranger Test - contract parity)",
+          "category": "needs_clarify",
+          "problem": "The definition of 'contract parity' states 'each sub-skill's SKILL.md consistent with its FR-2 input/output/edge-case (exact prose need not match).' The term 'consistent with' is subjective. For a pass/fail gate, the criteria need to be more precise (e.g., 'contains all required frontmatter fields', 'describes the same input/output types', 'includes the stated edge-case rule').",
+          "why_it_matters": "Without precise criteria, the Stranger Test verdict could vary between evaluators, undermining the gate's objectivity.",
+          "suggested_fix": ""
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

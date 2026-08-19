@@ -1,0 +1,244 @@
+{
+  "document": "spec_milestone_3",
+  "pass": 2,
+  "round": 14,
+  "critics": [
+    {
+      "model": "mistralai/mistral-nemotron",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "The specification for key handling is overly complex and could be simplified. The rules for skipping, re-prompting, and handling whitespace are convoluted and may lead to implementation errors.",
+          "why_it_matters": "Complex rules increase the likelihood of bugs and make the implementation harder to maintain. Simplifying the key handling logic would improve robustness and reduce potential points of failure.",
+          "suggested_fix": "Streamline the key handling logic by clearly defining the acceptable input formats and simplifying the re-prompting rules. Consider using a library for secure key input to handle masking and validation."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The handling of partial installs and re-runs is not clearly defined. The specification mentions that a Ctrl-C during install may leave a partial destination folder, but the exact behavior and recovery mechanism are not well-documented.",
+          "why_it_matters": "Partial installs can lead to inconsistent states and potential issues during re-runs. Clear documentation on how partial installs are handled and recovered from is essential for robustness.",
+          "suggested_fix": "Provide a detailed description of how partial installs are detected and handled, including the recovery mechanism during re-runs. Ensure that the behavior is consistent across all adapters."
+        },
+        {
+          "section": "Out of Scope (deferred)",
+          "category": "objective",
+          "problem": "The deferred items include critical documentation and features that are essential for a complete and usable product. Deferring these items may lead to a fragmented user experience and difficulties in adoption.",
+          "why_it_matters": "Comprehensive documentation and examples are crucial for user adoption and understanding. Deferring these items may result in a product that is difficult to use and maintain.",
+          "suggested_fix": "Prioritize the inclusion of essential documentation and examples in the current milestone to ensure a complete and usable product. Consider breaking down the deferred items into smaller, manageable tasks that can be addressed incrementally."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "The specification for the Antigravity adapter's `confirmEnabled()` function is not clear about how the invocation phrase is checked. The description mentions that it checks the phrase is present but does not specify the exact matching criteria.",
+          "why_it_matters": "Ambiguity in the matching criteria can lead to inconsistent behavior and potential issues in the confirmation process. Clear and precise specifications are essential for reliable implementation.",
+          "suggested_fix": "Provide a detailed description of the exact matching criteria for the invocation phrase, including any case sensitivity or formatting requirements. Ensure that the specification is consistent with the behavior of the other adapters."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The specification does not clearly define the behavior when multiple tools are installed and selected. The interaction between shared and separate install locations is not well-documented.",
+          "why_it_matters": "Clear documentation on the behavior when multiple tools are installed and selected is essential for ensuring consistent and predictable behavior. Ambiguity in this area can lead to confusion and potential issues.",
+          "suggested_fix": "Provide a detailed description of the behavior when multiple tools are installed and selected, including the interaction between shared and separate install locations. Ensure that the specification is consistent with the behavior of the individual adapters."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The spec says the wizard should \"print the link as a plain\u2011text line to the reserved guide's docs location\" but never defines what that link is.",
+          "why_it_matters": "Implementers have no concrete value to output, risking either omission or fabrication of content, which violates the requirement that no secret or placeholder content be generated.",
+          "suggested_fix": "Add a concrete placeholder, e.g. `https://example.com/docs/GUIDE.md#guide-for-pakistani-users`, or state that the wizard should output the literal string `docs/GUIDE.md#guide-for-pakistani-users`."
+        },
+        {
+          "section": "Tool selection prompt",
+          "category": "needs_clarify",
+          "problem": "The behavior of the \"all\" keyword is ambiguous when some detected tools are unavailable.",
+          "why_it_matters": "Users may expect \"all\" to install every possible tool, leading to confusion or errors if the wizard attempts to install undetected tools.",
+          "suggested_fix": "Specify that \"all\" selects all *detected* tools and ignores any that are not installed, and that the wizard should inform the user which tools will actually be processed."
+        },
+        {
+          "section": "FR-3 \u2013 OpenCode detection & install guards",
+          "category": "needs_clarify",
+          "problem": "The term \"populated\" is used with two different meanings (loose detection vs. strict install guard) without explicit differentiation.",
+          "why_it_matters": "Implementers might apply the wrong definition in either detection or the no\u2011op guard, causing false positives/negatives and violating idempotency guarantees.",
+          "suggested_fix": "Introduce two distinct properties, e.g. `hasConfig` for detection and `hasKitMarker` for the install guard, or clearly restate the two definitions with separate wording."
+        },
+        {
+          "section": "Interrupt handling during install",
+          "category": "needs_clarify",
+          "problem": "The spec mentions that a Ctrl\u2011C during `install()` may leave a partial folder but does not state whether the wizard should attempt cleanup or leave it for the next run.",
+          "why_it_matters": "Leaving partially written files can cause inconsistent state, especially if subsequent runs assume a clean destination directory.",
+          "suggested_fix": "Require the wizard to either (a) attempt to delete the partially copied directory on SIGINT, or (b) mark the directory as incomplete and ensure the next run overwrites it safely, and document this behavior."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "critic-gemini-3.6-flash",
+      "document": "spec_milestone_3.md",
+      "round": 3,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 6,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-3",
+          "category": "objective",
+          "problem": "Claude Desktop's `install()` behavior is internally contradictory across FR-3 and Edge Cases (Re-runs). FR-3 states 'its install() copies only if the shared folder is not populated with the kit', but two sentences later states 'the second install() re-copies the same content', while Edge Cases (Re-runs) explicitly claims 'OpenCode is the one deliberate exception... all other adapters overwrite in place on every run'.",
+          "why_it_matters": "Implementers cannot determine whether `installers/claude-desktop.js` should conditionally skip copying when populated (like OpenCode) or unconditionally overwrite in place (like Claude Code).",
+          "suggested_fix": "Remove the clause 'copies only if the shared folder is not populated with the kit' from Claude Desktop in FR-3, making its `install()` behavior unconditionally overwrite in place, fully aligning with Claude Code and the Re-runs section rule."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The text string/link format printed when the user answers `y` to the Pakistani guide prompt is underspecified ('prints the link as a plain-text line to the reserved guide's docs location').",
+          "why_it_matters": "CLI integration tests cannot reliably verify terminal output without an exact expected string format (e.g., `docs/GUIDE.md#guide-for-pakistani-users` vs `Guide link: docs/GUIDE.md#guide-for-pakistani-users`).",
+          "suggested_fix": "Specify the exact string output format printed when `y` is selected, e.g., `Pakistani users guide: docs/GUIDE.md#guide-for-pakistani-users`."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The summary status string format for skipped keys is ambiguous when `process.env` already contains a key vs when it does not.",
+          "why_it_matters": "FR-1 defines exact strings for `(set in env)`, `(not set \u2014 add it to your shell profile or .env)`, and `entered this session...`, but only states 'and marks the ones the user skipped this run' without defining the exact status text for a skipped prompt.",
+          "suggested_fix": "Explicitly state the exact status text format when a prompt is skipped (e.g., `NVIDIA_NIM_API_KEY (set in env \u2014 skipped)` vs `NVIDIA_NIM_API_KEY (not set \u2014 skipped)`)."
+        },
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "It is unclarified whether `detect()` returns `location: null` or the path string when `installed: false` but the kit directory exists on disk for OpenCode.",
+          "why_it_matters": "FR-2 specifies `location` is non-null only when the kit is actually installed for that tool, whereas FR-3 states for OpenCode that `location` is the shared folder path when populated, without explicitly linking it to whether `installed` evaluated to `true`.",
+          "suggested_fix": "Explicitly mandate that across all adapters, if `installed` is `false`, `location` MUST be `null`, regardless of filesystem conditions."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_3.md",
+      "round": 3,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 6,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 5,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "internal_consistency",
+          "problem": "Contradictory reporting of keys entered during the session. First states keys entered this run are 'not reported as \"set in env\"', then states 'a key entered this session is reported as \"entered this session (not persisted)\"'. These are different statuses; the reminder format must pick one consistent terminology.",
+          "why_it_matters": "The final reminder is the user's only record of what happened. Inconsistent labels will confuse users and make automated parsing of wizard output unreliable.",
+          "suggested_fix": "Define a single status enum for the reminder: e.g., 'set in env', 'entered this session (not persisted)', 'skipped', 'not set'. Use exactly these labels throughout FR-1 and the reminder specification."
+        },
+        {
+          "section": "FR-1",
+          "category": "internal_consistency",
+          "problem": "Non-TTY behavior for the Pakistani-guide prompt is underspecified. The prompt is skipped on non-TTY, but the reminder printed 'instead' does not mention the guide slot at all. The spec does not say whether the guide link should appear in the reminder on non-TTY runs.",
+          "why_it_matters": "Users running in CI or piped contexts lose access to the guide link entirely with no fallback. The slot is reserved for a reason; the spec must define its non-TTY representation.",
+          "suggested_fix": "Either (a) print the guide link in the non-TTY reminder as a separate line, or (b) explicitly state the guide is TTY-only and document that limitation in Out of Scope."
+        },
+        {
+          "section": "FR-3 (Claude Desktop)",
+          "category": "internal_consistency",
+          "problem": "Claude Desktop install() behavior contradicts itself: 'copies only if the shared folder is not populated with the kit' vs 'the second install() re-copies the same content into the same folder \u2014 no conflict'. The first implies a no-op when kit already present; the second implies overwrite every time.",
+          "why_it_matters": "Implementers will not know whether to guard the copy or always overwrite. This directly affects idempotency and re-run semantics for the shared folder.",
+          "suggested_fix": "Decide: either (a) Claude Desktop install() always overwrites (like Claude Code), or (b) it no-ops when kit-marked. Update both the per-tool rule and the 'Re-runs' section to match."
+        },
+        {
+          "section": "FR-3 (OpenCode)",
+          "category": "internal_consistency",
+          "problem": "Deliberate inconsistency between detect()'s 'populated' (loose: any non-empty folder) and install()'s 'populated' (strict: kit-marked via SKILL.md name). detect() returns location=path when loose-populated, but install() then overwrites if not kit-marked. The wizard will show a location path that suggests the kit is already there, then overwrite it.",
+          "why_it_matters": "User-facing detection output will claim the kit is installed at a location, but the subsequent install will replace it. This erodes trust in the wizard's reporting.",
+          "suggested_fix": "Align the two definitions, or make detect() return location=null when the folder is not kit-marked (strict sense). If loose sense is kept for detection signal, document that location may point to a non-kit folder that will be refreshed."
+        },
+        {
+          "section": "FR-2 (Antigravity confirmEnabled)",
+          "category": "clarity",
+          "problem": "confirmEnabled() 'verifies the copied SKILL.md description contains the canonical invocation phrase Invocation: /sdd'. 'Contains' is ambiguous: substring match? exact line match? case-sensitive? The adapter writes the exact line 'Invocation: /sdd' but the check should match the adapter's own output deterministically.",
+          "why_it_matters": "A substring match could false-positive on unrelated text. The spec says 'matching its own output is deterministic' but doesn't mandate the check algorithm.",
+          "suggested_fix": "Specify: confirmEnabled() reads the description frontmatter field, splits by newline, and checks for a line exactly equal to 'Invocation: /sdd' (case-sensitive, no extra whitespace)."
+        },
+        {
+          "section": "FR-1 (Key validation)",
+          "category": "needs_clarify",
+          "problem": "Rejecting keys with internal whitespace is a 'format sanity check' but keys are described as 'opaque strings'. Real API keys (e.g., some JWTs, base64 with padding) may contain whitespace or control characters. The restriction is arbitrary and may break valid keys.",
+          "why_it_matters": "Users with legitimate keys containing spaces/tabs/newlines will be unable to enter them. The wizard performs no provider validation anyway, so this check adds friction without safety.",
+          "suggested_fix": "Remove the internal-whitespace rejection. Accept any non-empty trimmed string. If a sanity check is desired, limit to 'must not be empty after trim' and 'must not contain newline' (since input is line-oriented)."
+        },
+        {
+          "section": "FR-2 (Adapter discovery)",
+          "category": "completeness",
+          "problem": "Discovery uses readdirSync on installers/ (non-recursive). The spec says 'non-.js files are ignored \u2014 they may ship for other purposes, e.g. a per-tool README, without conflict'. But it doesn't specify behavior for subdirectories under installers/. Are they ignored? Do they cause errors?",
+          "why_it_matters": "A contributor adding a tool might create a subdirectory by mistake. The wizard should either ignore subdirectories explicitly or error with a clear message.",
+          "suggested_fix": "State: 'Subdirectories under installers/ are ignored. Only .js files directly in installers/ are loaded.'"
+        },
+        {
+          "section": "FR-2 (Kit path discovery)",
+          "category": "edge_case_coverage",
+          "problem": "Kit path discovery walks parent directories until finding package.json with name: sdd-multiagent-kit AND sibling kit/ containing SKILL.md. In a monorepo with multiple packages named sdd-multiagent-kit (e.g., in different workspaces), the 'nearest matching ancestor wins' rule may pick the wrong one if the wizard is symlinked or run from a nested node_modules.",
+          "why_it_matters": "Global npm installs and monorepo setups are common. The heuristic is fragile and could load the wrong kit content.",
+          "suggested_fix": "Add a fallback: if the walk reaches the directory containing the wizard's own package.json (i.e., __dirname/../package.json), verify it matches and stop. Or require an explicit environment variable override for non-standard layouts."
+        },
+        {
+          "section": "Edge Cases (Re-runs)",
+          "category": "internal_consistency",
+          "problem": "Re-runs section says 'the adapter copies the whole shipped kit/ tree, writing each source file into the destination at its relative path (creating or overwriting files of the same name); it never deletes other files in the destination folder'. But OpenCode's install() no-ops when kit-marked, meaning it does NOT overwrite. This is correctly called out as an exception, but the general rule should not claim 'overwriting files of the same name' as universal.",
+          "why_it_matters": "The general rule is inaccurate for the one exception. Implementers may apply the general rule to OpenCode and break the no-op guarantee.",
+          "suggested_fix": "Qualify the general rule: 'All adapters except OpenCode overwrite in place on every run. OpenCode's install() no-ops when the shared folder is kit-marked (see FR-3).'"
+        },
+        {
+          "section": "Acceptance Criteria (AC-2)",
+          "category": "testability",
+          "problem": "AC-2: 'The wizard collects all three keys in one pass and offers the Pakistani-guide slot directly beneath the NVIDIA key prompt (slot only).' 'Slot only' is not verifiable. The test cannot confirm the guide content is correct because it doesn't exist until M4. The acceptance criterion should specify the exact prompt text and link format expected.",
+          "why_it_matters": "Without exact expected output, automated tests cannot verify the slot is present and correctly formatted.",
+          "suggested_fix": "Define the exact prompt line: e.g., 'Guide for Pakistani users \u2014 Learn more? [y/N] ' and the exact link printed on 'y': 'https://example.com/docs/GUIDE.md#guide-for-pakistani-users (reserved, content in M4)'."
+        },
+        {
+          "section": "FR-1 (Exit codes)",
+          "category": "completeness",
+          "problem": "Exit code 2 covers 'configuration/usage error before any install (bad arguments, missing kit source, Node <18, unresolvable home directory)'. But the spec also says 'any other argument exits 2' and '--help/-h prints usage and exits 0, --version prints version and exits 0'. It doesn't specify behavior for combined flags (e.g., --help --version) or unknown flags with --help.",
+          "why_it_matters": "CLI argument parsing edge cases are common sources of bugs. The spec should define the argument parsing strategy (e.g., 'first non-flag argument errors', 'flags processed left-to-right', 'unknown flag errors immediately').",
+          "suggested_fix": "Add: 'Argument parsing: process.argv.slice(2). If first arg is --help or -h, print usage and exit 0. Else if first arg is --version, print version and exit 0. Else if any arg exists, print 'Unknown argument: <arg>' and exit 2. No positional arguments accepted.'"
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 4
+}

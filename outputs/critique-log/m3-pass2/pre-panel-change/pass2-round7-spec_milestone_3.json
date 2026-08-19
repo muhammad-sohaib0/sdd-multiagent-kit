@@ -1,0 +1,178 @@
+{
+  "document": "spec_milestone_3",
+  "pass": 2,
+  "round": 7,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 8,
+        "internal_consistency": 6,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-2 \u2014 Adapter interface / FR-3 \u2014 Per-tool install locations",
+          "category": "objective",
+          "problem": "Contradiction between FR-2 and FR-3 regarding `detect()`'s `location` return value when a tool is installed but the kit is not yet populated. FR-2 states `location` is the absolute path where the kit is installed or will be installed (`null` only when `installed: false`). However, FR-3 explicitly states for Claude Desktop, OpenCode, and Antigravity that `location` is the path when populated, else `null`.",
+          "why_it_matters": "Adapter developers cannot determine whether `detect()` should return `null` or the destination path when `installed: true` but the kit files do not exist on disk prior to installation.",
+          "suggested_fix": "Standardize the definition across FR-2 and FR-3. Clarify that `detect()` returns `{ installed: boolean, location: string | null }` where `installed` indicates tool presence on the system, and `location` is the absolute path if the skill folder already exists, or `null` if the kit is not yet installed."
+        },
+        {
+          "section": "FR-2 \u2014 Adapter interface (extension pattern, \u00a711.4)",
+          "category": "objective",
+          "problem": "The adapter module interface does not define how a tool's identifier (e.g. `claude-code`) or display name is declared or exposed to `setup-wizard.js`.",
+          "why_it_matters": "FR-1 requires user prompting by tool name, and FR-2 requires errors to be prefixed with the tool id. Without declaring whether adapters export an `id` string or if the wizard derives the id from the filename, adapter implementations will lack uniform metadata.",
+          "suggested_fix": "Explicitly state in FR-2 how tool `id` is derived or exported (e.g., export an `id` string property from each adapter module, or state that `id` is derived from the adapter filename without extension)."
+        },
+        {
+          "section": "FR-2 \u2014 Adapter interface (extension pattern, \u00a711.4)",
+          "category": "objective",
+          "problem": "The return shape specified for `confirmEnabled()` reuses `{ installed: bool, location: string|null }` rather than returning a clear confirmation status field.",
+          "why_it_matters": "Reusing `installed` for trigger confirmation creates confusion between filesystem presence and trigger verification success, making it unclear which field signals verification failure to the wizard.",
+          "suggested_fix": "Change `confirmEnabled()` return type to `{ confirmed: boolean, location: string | null }`, or explicitly define in FR-2 that `installed: true` in `confirmEnabled()`'s return value represents positive trigger confirmation."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 9,
+        "internal_consistency": 9,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1 (key prompt)",
+          "category": "needs_clarify",
+          "problem": "The spec says the wizard \"prints the three env\u2011var names as a reminder of where the keys belong\" but does not specify the exact format, ordering, or where this output appears.",
+          "why_it_matters": "Implementers may display the reminder inconsistently, leading to user confusion or accidental exposure of the variable names in logs.",
+          "suggested_fix": "Add a concrete example of the reminder output (e.g., `Set the following environment variables: NVIDIA_NIM_API_KEY, GOOGLE_AISTUDIO_API_KEY, OLLAMA_API_KEY`) and state that it must be printed to stdout after all prompts, without any additional formatting."
+        },
+        {
+          "section": "Adapter discovery (FR-2)",
+          "category": "needs_clarify",
+          "problem": "The spec states the wizard discovers adapters by requiring every `.js` file in `installers/`, but does not define behavior when non\u2011JS files, sub\u2011directories, or files that do not export the required functions are present.",
+          "why_it_matters": "Unexpected files could cause runtime errors or silent omission of valid adapters, breaking the extension pattern.",
+          "suggested_fix": "Specify that the wizard should filter for files ending in `.js` that export `detect`, `install`, and `confirmEnabled` as functions, and log a warning (or abort with exit code\u202f2) for any file that fails this contract."
+        },
+        {
+          "section": "Testability (overall)",
+          "category": "objective",
+          "problem": "The document references a separate tests file but does not embed any concrete test cases, success criteria, or a testing harness within this spec.",
+          "why_it_matters": "Without explicit test definitions, reviewers cannot verify compliance automatically, increasing the risk of regressions and making the acceptance criteria vague.",
+          "suggested_fix": "Add a concise test matrix in this spec (or inline) that enumerates unit tests for each adapter function, integration tests for the wizard flow (including TTY vs non\u2011TTY, key skipping, tool detection combos), and expected exit codes for each scenario."
+        },
+        {
+          "section": "Key handling contradiction (FR-1 & FR-5)",
+          "category": "needs_clarify",
+          "problem": "FR\u20111 says keys are never used by the wizard and are read by the kit at runtime, yet FR\u20115 describes the wizard as the entry point that \u201cstarts\u201d and the kit as part of the installed package. The relationship between wizard, kit, and runtime environment is ambiguous.",
+          "why_it_matters": "Implementers might mistakenly attempt to set environment variables within the wizard or pass them to adapters, violating the no\u2011secret\u2011write rule.",
+          "suggested_fix": "Clarify that the wizard only prompts for keys for user awareness; it does **not** set or forward them to any process. The installed skill (the kit) will read the variables from the user's environment when the AI tool runs, independent of the wizard."
+        },
+        {
+          "section": "Skipping keys and exit codes (Edge Cases)",
+          "category": "needs_clarify",
+          "problem": "The spec mentions that skipping a key never affects the exit code, but does not define what happens if a tool that requires a skipped key is selected for installation.",
+          "why_it_matters": "A user could install a tool without providing the required API key, leading to runtime failures that are not reflected in the installer\u2019s exit status, making debugging harder.",
+          "suggested_fix": "State that if a tool is selected for installation but the corresponding environment variable is missing, the wizard should still attempt installation but record a warning and set the final exit code to\u202f1 (partial success) to indicate a downstream failure risk."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_3.md",
+      "round": 3,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 6,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The Pakistani-guide slot prints a link to 'the reserved guide's docs location (a wizard constant pointing to `docs/GUIDE.md`'s `#guide-for-pakistani-users` section)'. It is unclear whether this link is a file:// URL, a relative path, a GitHub URL, or a placeholder string. The spec says 'the link names the reserved location' and 'slot only \u2014 content supplied separately, never fabricated', but also says the wizard 'prints the link'.",
+          "why_it_matters": "Implementers cannot know what string to print. A file:// link breaks if the docs aren't locally present; a GitHub URL assumes a specific repo structure; a placeholder defeats the purpose of a 'Learn more' action.",
+          "suggested_fix": "Specify the exact link format (e.g., 'https://github.com/<org>/<repo>/blob/main/docs/GUIDE.md#guide-for-pakistani-users') or state that the wizard prints a static placeholder string like '[Guide for Pakistani users](docs/GUIDE.md#guide-for-pakistani-users) \u2014 content coming in M4'."
+        },
+        {
+          "section": "FR-3 (OpenCode)",
+          "category": "needs_clarify",
+          "problem": "OpenCode detection checks for 'a non-empty OpenCode config directory (e.g. `~/.opencode/` or `~/.config/opencode/`)' \u2014 the 'e.g.' makes the list non-exhaustive. No criteria define what makes the directory 'non-empty' (any file? specific files?). Antigravity detection similarly says 'or the Antigravity app is detected' with no detection method.",
+          "why_it_matters": "Adapters will implement inconsistent detection logic. False positives install into non-functional tools; false negatives skip installed tools.",
+          "suggested_fix": "Enumerate exact paths and/or executable names for each tool. Define 'non-empty' (e.g., 'contains at least one file or subdirectory'). Specify Antigravity app detection (e.g., '`antigravity` executable on PATH' or '`~/Applications/Antigravity.app` exists')."
+        },
+        {
+          "section": "FR-2 (Adapter discovery)",
+          "category": "objective",
+          "problem": "The wizard discovers adapters by 'requiring every `.js` file in `installers/`'. There is no guard against non-adapter files (tests, utilities, stray scripts) being loaded and crashing the wizard if they don't export the three required functions.",
+          "why_it_matters": "A single unrelated `.js` file in `installers/` breaks the entire setup. The extension pattern promises 'adding a tool means dropping one new file' but doesn't protect against accidental breakage.",
+          "suggested_fix": "Require each adapter file to export a `toolId` string (or similar) and validate the three functions exist. Skip files that fail validation with a warning. Or mandate a naming convention (e.g., `installer-<tool>.js`) and only require those."
+        },
+        {
+          "section": "FR-2 (confirmEnabled)",
+          "category": "needs_clarify",
+          "problem": "For the three native tools, `confirmEnabled()` must verify 'a native slash-command registration is verified'. The spec does not say how: checking for a specific file? Running a CLI command? Querying an API? For Antigravity, it checks the SKILL.md description contains 'Invocation: /sdd' but doesn't specify where in the file this line must appear.",
+          "why_it_matters": "Implementers will guess. Inconsistent verification means the wizard may report success when the trigger doesn't actually work, or fail when it does.",
+          "suggested_fix": "Define the verification mechanism per tool (e.g., 'Claude Code: verify `~/.claude/skills/sdd-multiagent-kit/COMMAND.md` exists'). For Antigravity, specify the line location (e.g., 'first line of SKILL.md' or 'after the `## Invocation` header')."
+        },
+        {
+          "section": "Edge Cases (Tool selection)",
+          "category": "needs_clarify",
+          "problem": "The tool selection prompt accepts 'a valid tool name (comma-separated), `all`, or aborts'. The spec never defines what the valid tool names are \u2014 adapter file names? Display names? The `toolId` from the adapter? The user sees a list but the spec doesn't say what that list contains.",
+          "why_it_matters": "The wizard cannot validate input without a canonical list. Users won't know what to type.",
+          "suggested_fix": "State that the wizard presents a numbered list of detected tools with their `toolId` (e.g., '1) claude-code', '2) opencode') and accepts numbers, comma-separated `toolId`s, or `all`."
+        },
+        {
+          "section": "FR-2 (kitPath derivation)",
+          "category": "needs_clarify",
+          "problem": "The wizard 'walks up from `bin/setup-wizard.js`'s location to the package root (robust under npm's `bin` symlink) and appends `kit`'. No algorithm is given for 'walk up to package root' \u2014 e.g., stop at `package.json`? Stop at directory containing `kit/`? What if the package is linked via `npm link`?",
+          "why_it_matters": "Incorrect derivation breaks the installer in linked/development installs. 'Robust under npm's bin symlink' is a requirement, not a solution.",
+          "suggested_fix": "Specify the algorithm: 'Resolve the real path of `bin/setup-wizard.js`, then ascend directories until a directory containing both `package.json` and `kit/` is found. Error if not found within 5 levels.'"
+        },
+        {
+          "section": "FR-3 (OpenCode install)",
+          "category": "needs_clarify",
+          "problem": "OpenCode's `install()` 'verifies the shared folder is populated, performing the copy only if it is absent'. 'Populated' is undefined \u2014 does it mean the directory exists? Contains at least one file? Contains the full kit tree? A partial/corrupted copy from a previous failed run would be 'populated' and skip the copy.",
+          "why_it_matters": "A partial kit installation would be treated as complete, leaving the user with broken skills.",
+          "suggested_fix": "Define 'populated' as 'the directory exists and contains the file `SKILL.md` (or another canonical kit marker file)'."
+        },
+        {
+          "section": "Edge Cases (PHR)",
+          "category": "needs_clarify",
+          "problem": "The spec states 'the wizard never writes a key into `kit/`, the repo, or a PHR/log.' 'PHR' is undefined.",
+          "why_it_matters": "Unclear requirement. Could mean 'process history record', 'persistent history record', or a typo for 'PII'.",
+          "suggested_fix": "Define PHR or replace with standard terminology (e.g., 'shell history', 'terminal scrollback', 'log files')."
+        },
+        {
+          "section": "Edge Cases (Concurrency)",
+          "category": "objective",
+          "problem": "No mention of concurrent `sdd-setup` runs. Two simultaneous wizards could corrupt the shared `~/.claude/skills/sdd-multiagent-kit/` directory during copy.",
+          "why_it_matters": "Concurrent runs are plausible (e.g., multiple terminals). File corruption leaves the kit in a broken state.",
+          "suggested_fix": "Add a file-based lock (e.g., `~/.sdd-setup.lock`) or document that concurrent runs are unsupported and may corrupt the installation."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 3
+}

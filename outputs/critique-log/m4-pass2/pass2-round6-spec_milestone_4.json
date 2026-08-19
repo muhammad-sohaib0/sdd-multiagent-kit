@@ -1,0 +1,112 @@
+{
+  "document": "spec_milestone_4",
+  "pass": 2,
+  "round": 6,
+  "critics": [
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_4.md",
+      "round": 0,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-6",
+          "category": "needs_clarify",
+          "problem": "The spec states that AGENTS.md is the precedence base and CLAUDE.md may reference it without repeating, but it does not specify whether CLAUDE.md must contain any content at all or if it can be a single line pointing to AGENTS.md. The non-stub definition requires \u2265200 words for prose files, which would conflict with a minimal reference-only CLAUDE.md.",
+          "why_it_matters": "Without clarification, implementers may create a CLAUDE.md that is just a pointer, failing the non-stub word count, or they may duplicate content unnecessarily, violating the 'may rely entirely on AGENTS.md' allowance.",
+          "suggested_fix": "Explicitly state that CLAUDE.md can be a short pointer (e.g., 'See AGENTS.md for instructions') and is exempt from the word-count threshold, or require it to have substantive content while still not contradicting AGENTS.md."
+        },
+        {
+          "section": "Edge Cases & Rules - Non-stub definition",
+          "category": "needs_clarify",
+          "problem": "The word-count rule says 'strip markdown marker characters (#, *, backticks) before counting' but does not specify how to handle other markdown syntax like links, images, or HTML comments. Also, it says 'exclude fenced code blocks' but does not clarify if inline code is counted after stripping backticks.",
+          "why_it_matters": "Ambiguity in counting rules can lead to inconsistent enforcement and disputes over whether a file meets the non-stub threshold.",
+          "suggested_fix": "Define a precise counting method: e.g., count all words in the raw text after removing fenced code blocks and markdown link syntax, and treat inline code as text after stripping backticks. Provide an example."
+        },
+        {
+          "section": "FR-8 - Kit identity constants",
+          "category": "needs_clarify",
+          "problem": "The spec says the trigger '/sdd' is recognized automatically by Claude Code, Claude Desktop, and OpenCode via the skill's name frontmatter, but it does not specify how the Antigravity master SKILL.md's 'Invocation:' phrase is structured or how it relates to the skill name. This could lead to inconsistent documentation across tools.",
+          "why_it_matters": "If the mechanism is not clearly defined, the docs may describe the trigger inconsistently, causing confusion for users and agents.",
+          "suggested_fix": "Provide a concrete example of the Antigravity SKILL.md frontmatter and the 'Invocation:' phrase, and state that all tools use the same skill name 'sdd-multiagent-kit' for recognition."
+        },
+        {
+          "section": "AC-1",
+          "category": "objective",
+          "problem": "AC-1 lists 'eleven listed files' but the enumeration includes 11 files (README, CLAUDE, AGENTS, CONTRIBUTING, SECURITY, SUPPORT, LICENSE, CHANGELOG, docs/GUIDE, docs/ARCHITECTURE, docs/BOOTSTRAP) plus .gitignore, making twelve deliverables. The wording 'eleven listed files' is incorrect and could cause miscounting.",
+          "why_it_matters": "Incorrect count in acceptance criteria can lead to verification errors and disputes about completeness.",
+          "suggested_fix": "Change 'eleven listed files' to 'the eleven listed files' (which is correct) or rephrase to 'the twelve deliverables: the eleven files listed plus .gitignore'."
+        },
+        {
+          "section": "Edge Cases & Rules - .gitignore",
+          "category": "needs_clarify",
+          "problem": "The spec mandates that .gitignore must include 'temp/transient artifacts (e.g., editor droppings like .vscode/.idea/ user settings, __pycache__/, *.pyc, OS/editor transient files like Thumbs.db, *.swp)' but does not specify whether these are required patterns or just examples. The phrase 'e.g.' suggests they are examples, but the earlier list ('.env', '.env.*', 'node_modules/', 'outputs/critique-log/', '*.log', '.DS_Store') is mandatory. This ambiguity could lead to incomplete .gitignore files.",
+          "why_it_matters": "If implementers treat the transient artifacts as optional, they may omit critical exclusions, violating the spirit of the requirement and potentially exposing secrets or clutter.",
+          "suggested_fix": "Explicitly state that the listed transient artifacts are mandatory patterns, not just examples, or provide a definitive list of required patterns."
+        },
+        {
+          "section": "FR-7",
+          "category": "needs_clarify",
+          "problem": "The spec says SECURITY.md must include 'Private security reporting + scope' but does not define what 'scope' means (e.g., which components are in scope, what constitutes a security issue). This could lead to vague or incomplete security documentation.",
+          "why_it_matters": "Without a clear scope, users may not know what to report, and maintainers may receive irrelevant or incomplete reports.",
+          "suggested_fix": "Define the scope explicitly, e.g., 'all files in the repository, including kit/, bin/, installers/, docs/, and configuration files' and specify what is not in scope (e.g., third-party dependencies)."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_4.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-6 \u2014 `CLAUDE.md` + `AGENTS.md`.",
+          "category": "needs_clarify",
+          "problem": "The specification does not define how the precedence relationship between `AGENTS.md` and tool\u2011specific files (e.g., `CLAUDE.md`) must be expressed or validated.",
+          "why_it_matters": "Without a concrete rule, contributors may duplicate content, omit the required reference, or unintentionally create contradictions, breaking the intended single source of truth for repo conventions.",
+          "suggested_fix": "Add a mandatory requirement that every tool\u2011specific instruction file contain a single explicit reference line such as `See AGENTS.md for shared conventions.` and that a validation step (e.g., a lint rule) checks that no contradictory statements exist across files."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 Non\u2011stub definition",
+          "category": "needs_clarify",
+          "problem": "The word\u2011count rule is described informally (\"strip markdown marker characters\", \"exclude fenced code blocks\", \"a rough threshold, not a lint\").",
+          "why_it_matters": "Different reviewers may compute word counts differently, leading to inconsistent determinations of whether a file is a stub.",
+          "suggested_fix": "Specify a deterministic algorithm or reference a concrete tool (e.g., `markdown-word-count --exclude-code-blocks`) and give an exact command line that must be used for verification."
+        },
+        {
+          "section": "FR-8 \u2014 Kit identity constants (Trigger)",
+          "category": "needs_clarify",
+          "problem": "The spec mentions an `Invocation:` phrase in the Antigravity master `SKILL.md` but does not require that this file exist or that the docs reference it.",
+          "why_it_matters": "If the `SKILL.md` file is missing or undocumented, users and AI agents will lack the necessary information to trigger the skill, violating consistency with the documented trigger `/sdd`.",
+          "suggested_fix": "Add a requirement that the repository include `kit/SKILL.md` containing the `Invocation:` phrase and that the README (or a designated doc) explicitly mention this phrase and its purpose."
+        },
+        {
+          "section": "AC-5 \u2014 Git repository requirement",
+          "category": "needs_clarify",
+          "problem": "The acceptance criterion states the repo must be a git repository, but the spec does not explicitly require the presence of a `.git` directory or any initialization steps.",
+          "why_it_matters": "A repository lacking a proper git history cannot satisfy the criterion, yet the spec provides no guidance on how to verify or enforce it.",
+          "suggested_fix": "Include a clear requirement that the project be initialized with `git init` and that a `.git` folder exists at the repository root, optionally adding a script or checklist step to verify it."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}

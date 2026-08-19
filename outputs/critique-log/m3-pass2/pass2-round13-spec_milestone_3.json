@@ -1,0 +1,328 @@
+{
+  "document": "spec_milestone_3",
+  "pass": 2,
+  "round": 13,
+  "critics": [
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 5,
+      "scores": {
+        "clarity": 6,
+        "completeness": 5,
+        "edge_case_coverage": 6,
+        "internal_consistency": 5,
+        "testability": 4
+      },
+      "issues": [
+        {
+          "section": "FR-1 \u2013 Key handling",
+          "category": "needs_clarify",
+          "problem": "The spec mixes two contradictory behaviours for skipped keys: it says \"skipping is final for the run\" but also that a user may \"skip a key (leave it empty) to keep that existing env value\".",
+          "why_it_matters": "Implementers may either discard an existing environment variable or preserve it, leading to unpredictable runtime failures for tools that require the key.",
+          "suggested_fix": "Define a single, unambiguous rule: either (a) skipping retains the current `process.env` value, or (b) skipping means the key is absent for this run. Update the wording to reflect the chosen behaviour and adjust the reminder output accordingly."
+        },
+        {
+          "section": "FR-1 \u2013 Pakistani guide slot",
+          "category": "needs_clarify",
+          "problem": "The spec instructs the wizard to print a link to `GUIDE_SLOT = docs/GUIDE.md#guide-for-pakistani-users` but does not specify what to do if that file or anchor does not exist at runtime.",
+          "why_it_matters": "If the guide file is missing (e.g., in early development builds), the wizard could crash or print a broken link, violating the \u201cno secret values\u201d rule and confusing users.",
+          "suggested_fix": "Add a fallback behaviour: if the guide file or anchor cannot be resolved, print a generic placeholder URL or a clear warning that the guide is not yet available."
+        },
+        {
+          "section": "FR-2 \u2013 Duplicate adapter names",
+          "category": "needs_clarify",
+          "problem": "The spec says the wizard should error on duplicate `name` exports and \"listing both files\", but it does not define the exact error message format or exit code nuance.",
+          "why_it_matters": "Without a deterministic error format, test suites cannot reliably assert the failure, and developers may receive ambiguous output making debugging harder.",
+          "suggested_fix": "Specify the exact error string, e.g., `Error: Duplicate adapter name \"Claude Code\" found in files: installers/claude-code.js, installers/claude-desktop.js` and confirm it exits with code 2."
+        },
+        {
+          "section": "FR-3 \u2013 OpenCode install no\u2011op condition",
+          "category": "needs_clarify",
+          "problem": "The spec distinguishes between \"populated\" (any non\u2011empty folder) for `detect()` and a stricter kit\u2011identity check for `install()`, but the exact criteria for the kit\u2011identity check are only described as \"SKILL.md carries `name: sdd-multiagent-kit`\" without stating how to handle missing or malformed front\u2011matter.",
+          "why_it_matters": "Implementers may interpret the condition differently, causing either unnecessary overwrites or failure to install when the kit is actually present.",
+          "suggested_fix": "Define the kit\u2011identity check precisely: parse the YAML front\u2011matter of `SKILL.md`, verify the `name` field equals `sdd-multiagent-kit`, and treat any parsing error as \"not kit\u2011identified\"."
+        },
+        {
+          "section": "Package.json \u2013 No dependencies claim",
+          "category": "objective",
+          "problem": "The spec claims the wizard uses only the Node stdlib, yet masked key entry typically requires turning the terminal into raw mode, which is non\u2011trivial with pure `readline`. No implementation detail is provided.",
+          "why_it_matters": "If the implementation inadvertently pulls in a third\u2011party library (e.g., `keypress`), the claim of zero dependencies would be violated, breaking AC\u20115.",
+          "suggested_fix": "Add a brief implementation note confirming that raw mode is achieved via `process.stdin.setRawMode(true)` and that no external modules are required."
+        },
+        {
+          "section": "Testability",
+          "category": "objective",
+          "problem": "The document contains no explicit test cases, test harness description, or criteria for automated verification of the wizard's behaviour.",
+          "why_it_matters": "Without test specifications, reviewers cannot assess whether the implementation meets the acceptance criteria, and future regression testing is impossible.",
+          "suggested_fix": "Add a concise test plan outlining unit tests for each adapter interface, integration tests for the wizard flow (including TTY vs non\u2011TTY, key entry, guide slot, tool selection), and expected exit codes for each scenario."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "The Antigravity adapter requirement states that `install()` updates `SKILL.md` by 'replacing any stale invocation line', but does not define the pattern or structure used to identify a stale line.",
+          "why_it_matters": "Without exact string or regex rules for matching a 'stale invocation line', adapter implementations could break YAML frontmatter formatting, fail to replace existing lines, or duplicate invocation lines on repeated runs.",
+          "suggested_fix": "Specify the exact matching mechanism (e.g., regex `/^Invocation:.*$/m`) used to replace an existing invocation line in `SKILL.md`, or append `Invocation: /sdd` if no matching line exists."
+        },
+        {
+          "section": "FR-3",
+          "category": "needs_clarify",
+          "problem": "Claude Desktop detection requires checking its app config directory, but unlike OpenCode (which specifies 'non-empty config directory'), Claude Desktop's specification does not state whether mere existence (`fs.existsSync`) or non-empty presence is required.",
+          "why_it_matters": "An empty config folder created by administrative scripts or incomplete uninstalls could cause false-positive tool detection.",
+          "suggested_fix": "Explicitly state whether Claude Desktop detection checks for directory existence (`fs.existsSync`) or requires a non-empty directory."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The Pakistani-guide `y/N` interactive prompt does not specify the parsing logic for user input (e.g., default on empty string / Enter key, case sensitivity, or multi-character strings like `yes`).",
+          "why_it_matters": "CLI unit/integration tests and interactive stdin drivers need deterministic confirmation rules to avoid test flakiness or endless prompt loops.",
+          "suggested_fix": "Specify that input is trimmed and converted to lowercase; `y` and `yes` are treated as affirmative, and any other input (including empty string / Enter key) defaults to `N`."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "mistralai/mistral-nemotron",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 9,
+        "internal_consistency": 9,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "The goal statement lacks measurable outcomes or success criteria. It describes the deliverables but not how their success will be evaluated beyond the acceptance criteria.",
+          "why_it_matters": "Without measurable outcomes, it's unclear how to determine if the milestone has been successfully achieved beyond the binary acceptance criteria.",
+          "suggested_fix": "Add specific, measurable outcomes tied to the deliverables (e.g., '90% of users can install the kit in under 5 minutes')."
+        },
+        {
+          "section": "User Scenarios",
+          "category": "objective",
+          "problem": "US-4 describes adding a tool later but does not specify how the system will handle versioning or backward compatibility for future tools.",
+          "why_it_matters": "Future tools may require different versions of the kit or adapters, leading to potential conflicts or breakages.",
+          "suggested_fix": "Explicitly state that future tools must be backward-compatible with the current kit version or specify a versioning strategy."
+        },
+        {
+          "section": "Functional Requirements (FR-1)",
+          "category": "objective",
+          "problem": "The key handling logic is overly complex and may confuse users. The distinction between 'skipped' and 'not set' keys is subtle and error-prone.",
+          "why_it_matters": "Users may inadvertently skip keys or fail to understand the implications of their choices, leading to runtime failures.",
+          "suggested_fix": "Simplify the key handling logic by either requiring all keys upfront or providing clearer feedback on the implications of skipping keys."
+        },
+        {
+          "section": "Functional Requirements (FR-3)",
+          "category": "objective",
+          "problem": "The OpenCode adapter's behavior is inconsistent with other adapters. It has a special no-op case that may lead to stale kit content.",
+          "why_it_matters": "This inconsistency could cause confusion for users and developers, especially when troubleshooting issues.",
+          "suggested_fix": "Either document this behavior more prominently or align OpenCode's behavior with other adapters to ensure consistency."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The section does not address how the system will handle concurrent installations or updates from multiple users or processes.",
+          "why_it_matters": "Concurrent operations could lead to race conditions or corrupted installations, especially in shared environments.",
+          "suggested_fix": "Add a section on concurrency handling or explicitly state that concurrent operations are out of scope for this milestone."
+        },
+        {
+          "section": "Out of Scope",
+          "category": "objective",
+          "problem": "The 'Out of Scope' section does not mention how the system will handle updates or patches to the kit after installation.",
+          "why_it_matters": "Users may expect automatic updates or a clear upgrade path, and the lack of guidance could lead to confusion or outdated installations.",
+          "suggested_fix": "Explicitly state that updates are out of scope for this milestone and provide a placeholder for future update mechanisms."
+        },
+        {
+          "section": "Acceptance Criteria (AC-1)",
+          "category": "objective",
+          "problem": "AC-1 requires adapters to be 'non-stub' but does not define what constitutes a stub. This is subjective and open to interpretation.",
+          "why_it_matters": "Without a clear definition, reviewers may disagree on whether an adapter meets the criteria, leading to ambiguity in acceptance.",
+          "suggested_fix": "Provide a clear definition of what constitutes a stub (e.g., 'An adapter is non-stub if it implements all required functions with at least basic functionality')."
+        },
+        {
+          "section": "Cross-Reference",
+          "category": "needs_clarify",
+          "problem": "The Cross-Reference table lists documents but does not indicate their relationship or how they interact with the current spec.",
+          "why_it_matters": "Without context, it's unclear how these documents contribute to the overall project or how they should be used in conjunction with the current spec.",
+          "suggested_fix": "Add a brief description of each document's purpose and its relationship to the current spec."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_3.md",
+      "round": 3,
+      "pass": 2,
+      "overall_score": 5,
+      "scores": {
+        "clarity": 6,
+        "completeness": 5,
+        "edge_case_coverage": 5,
+        "internal_consistency": 7,
+        "testability": 4
+      },
+      "issues": [
+        {
+          "section": "FR-1 (Pakistani-guide slot)",
+          "category": "needs_clarify",
+          "problem": "The exact prompt text and link format for the 'Guide for Pakistani users' Learn more option are unspecified. The spec says 'answering `y` prints the link as a plain-text line to the reserved guide's docs location' but does not define the prompt wording, the exact URL/link text to print, or whether the link should be clickable (e.g., file://, https://, or relative path).",
+          "why_it_matters": "Implementers will invent inconsistent UX; automated tests cannot verify the output without a canonical string. The slot is reserved (\u00a712) but the wizard must print something deterministic in M3.",
+          "suggested_fix": "Specify the exact prompt: 'Guide for Pakistani users \u2014 Learn more? [y/N] ' and the exact printed line: 'Guide: docs/GUIDE.md#guide-for-pakistani-users (content supplied in M4)'."
+        },
+        {
+          "section": "FR-1 (Key entry rules)",
+          "category": "needs_clarify",
+          "problem": "The spec says 'an entry that is non-empty after trimming but contains internal whitespace (any Unicode whitespace, including tabs) or control characters is rejected' but does not define whether leading/trailing whitespace is stripped before the internal-whitespace check. It also does not specify handling of pasted input containing newlines (e.g., a key with a trailing newline from clipboard).",
+          "why_it_matters": "Ambiguity leads to divergent validation logic. A key with leading spaces would be trimmed to non-empty, then fail the internal-whitespace check if the trim is not applied first \u2014 or pass if it is. Newlines in pasted input could cause false rejections or acceptances.",
+          "suggested_fix": "State: 'Input is trimmed of leading/trailing Unicode whitespace first. If the trimmed result is empty \u2192 skip. If the trimmed result contains any Unicode whitespace or control character \u2192 reject and re-prompt. Otherwise accept the trimmed string.' Also specify that a pasted newline terminates the current readline prompt (standard behavior) and the trimmed line is validated."
+        },
+        {
+          "section": "FR-1 (Final reminder format)",
+          "category": "needs_clarify",
+          "problem": "The final reminder message format is described in prose but not given as a concrete template. The spec lists three statuses but does not specify line breaks, indentation, ordering, or whether the 'entered this session' and 'skipped' markers appear on the same line as the env status.",
+          "why_it_matters": "Tests cannot assert exact output; users see inconsistent formatting across implementations. The reminder is printed on both TTY and non-TTY runs, so it is a primary UX surface.",
+          "suggested_fix": "Provide a verbatim template, e.g.:\n```\nAPI key status:\n  NVIDIA_NIM_API_KEY: set in env\n  GOOGLE_AISTUDIO_API_KEY: not set \u2014 add it to your shell profile or .env\n  OLLAMA_API_KEY: entered this session (not persisted) \u2014 add it to your shell profile or .env\nSkipped this run: GOOGLE_AISTUDIO_API_KEY\n```"
+        },
+        {
+          "section": "FR-2 (Adapter discovery)",
+          "category": "objective",
+          "problem": "The wizard discovers adapters by requiring each .js file under installers/ but does not specify the module resolution order. If installers/ contains claude-code.js and claude-code.mjs (or .cjs), both could be loaded, causing duplicate-name errors or nondeterministic selection.",
+          "why_it_matters": "Node's require() resolves .js before .mjs/.cjs only for bare specifiers; for explicit paths the extension matters. The spec says 'non-.js files are ignored' but does not forbid them or define behavior if they exist.",
+          "suggested_fix": "Restrict discovery to files matching *.js exactly (no other extensions). Reject any installers/ entry that does not end with .js at startup with a clear error (exit 2)."
+        },
+        {
+          "section": "FR-2 (Adapter name uniqueness)",
+          "category": "objective",
+          "problem": "Duplicate adapter names are a configuration error (exit 2) but the comparison is not specified as case-sensitive or case-insensitive. The tool selection prompt accepts names case-insensitively, so two adapters named 'Claude Code' and 'claude code' would be indistinguishable to the user but might pass the uniqueness check if it is case-sensitive.",
+          "why_it_matters": "User-facing tool selection would be ambiguous; the wizard would not know which adapter the user selected.",
+          "suggested_fix": "Require adapter names to be unique case-insensitively. Exit 2 with both file paths if a case-insensitive collision is detected."
+        },
+        {
+          "section": "FR-3 (OpenCode 'populated' dual meaning)",
+          "category": "needs_clarify",
+          "problem": "The spec explicitly defines two different meanings of 'populated' for OpenCode: detect() uses 'any non-empty folder' (loose), while install()'s no-op guard uses 'folder is kit-marked with SKILL.md name: sdd-multiagent-kit' (strict). This is acknowledged as deliberate but the terminology overlap is a maintenance hazard.",
+          "why_it_matters": "Future contributors will conflate the two checks. The spec should give them distinct names (e.g., 'folder-exists-and-nonempty' vs 'kit-identity-verified') and reference those names in both detect() and install() descriptions.",
+          "suggested_fix": "Rename the concepts in the spec: detect()'s location check = 'folder-present'; install()'s no-op condition = 'kit-identity-verified'. Update both sections to use the new terms."
+        },
+        {
+          "section": "FR-3 (Antigravity invocation injection)",
+          "category": "needs_clarify",
+          "problem": "The Antigravity adapter must 'write the canonical phrase, replacing any stale invocation line' in the copied SKILL.md description, but the spec does not specify: (a) the exact line to write (case-sensitive match for confirmEnabled), (b) whether it replaces the entire description or a single line, (c) what 'stale invocation line' means (regex? prefix?), (d) whether this write happens before or after confirmEnabled() is called.",
+          "why_it_matters": "confirmEnabled() checks for the exact phrase the adapter writes. If the injection logic is underspecified, confirmEnabled() will fail nondeterministically. The phrase 'Invocation: /sdd' is given as the canonical phrase but the exact line format (e.g., leading spaces, trailing newline) is not locked down.",
+          "suggested_fix": "Specify: 'The adapter ensures the SKILL.md description contains exactly one line matching /^Invocation: \\/sdd$/ (no leading/trailing spaces). On install(), after copying the kit tree, the adapter reads the destination SKILL.md, replaces any line matching /^Invocation:.*/ with 'Invocation: /sdd', or appends it if absent, then writes the file. confirmEnabled() reads the same file and checks for that exact line.'"
+        },
+        {
+          "section": "FR-3 (Claude Desktop detect location)",
+          "category": "objective",
+          "problem": "Claude Desktop's detect() must verify 'Claude Desktop itself \u2014 its app config directory' with per-platform paths, but the spec does not define what constitutes 'Claude Desktop installed' vs merely the config directory existing. A user could have the directory from a prior uninstall, or the directory could exist for another reason.",
+          "why_it_matters": "False-positive detection leads to offering installation into a non-functional tool, wasting user time and potentially creating broken config.",
+          "suggested_fix": "Define a concrete heuristic: e.g., 'detect() returns installed: true only if the platform-specific config directory exists AND contains a file named claude_desktop_config.json (or equivalent marker file used by Claude Desktop).' If no reliable marker exists, state that explicitly and accept the limitation."
+        },
+        {
+          "section": "FR-3 (OpenCode PATH scanning)",
+          "category": "objective",
+          "problem": "PATH scanning for 'opencode' executable uses 'Node stdlib fs only (checking each entry of process.env.PATH for an opencode file \u2014 on Windows also matching opencode.exe/opencode.cmd/opencode.bat; matching is case-sensitive on the exact basename)'. This misses: (a) directories in PATH that are symlinks, (b) executables without extension on Windows that are not .exe/.cmd/.bat (e.g., a shim), (c) case-insensitive filesystem behavior on macOS/Windows where 'OpEnCoDe' would not match.",
+          "why_it_matters": "False negatives on case-insensitive filesystems or non-standard executable names. The spec claims 'matching is case-sensitive on the exact basename' but does not address filesystem case-insensitivity.",
+          "suggested_fix": "On Windows, use case-insensitive matching for the basename. On macOS/Linux, use case-sensitive matching. Resolve symlinks in PATH entries before checking. Accept any file that is executable (fs.stat mode & 0o111) and basename matches 'opencode' case-insensitively on Windows, case-sensitively on POSIX."
+        },
+        {
+          "section": "FR-5 (package.json files list)",
+          "category": "objective",
+          "problem": "The files list is declared as 'exhaustive package-content list: kit/, bin/, and installers/, plus LICENSE and README.md'. However, the spec also says 'the list ships LICENSE/README.md when they exist; authoring their full content is deferred to M4'. If LICENSE/README.md do not exist at publish time, npm will not error but the package will lack them. The spec does not state whether the package should be published without them in M3 or whether placeholder files must exist.",
+          "why_it_matters": "If the package is published in M3 without LICENSE/README.md, the files list is misleading and downstream consumers may expect them. If placeholders are required, the spec must say so.",
+          "suggested_fix": "State: 'M3 publishes with placeholder LICENSE (MIT header only) and README.md (one-line description) so the files list is accurate. Full content replaces them in M4.' Or: 'M3 omits LICENSE/README.md; the files list is aspirational and will be satisfied in M4.'"
+        },
+        {
+          "section": "Edge Cases (Kit source missing)",
+          "category": "objective",
+          "problem": "The kitPath discovery walks parent directories until it finds a package.json with name: sdd-multiagent-kit whose sibling kit/ directory exists and contains SKILL.md. The spec does not specify behavior if multiple such package.json files exist (e.g., in a monorepo with nested packages). 'The nearest matching ancestor wins' is stated but 'nearest' is ambiguous when the wizard is run from a symlinked location or from a subdirectory of the kit itself.",
+          "why_it_matters": "Incorrect kitPath resolution causes silent installation of wrong content or startup failure. The walk algorithm must be deterministic and documented.",
+          "suggested_fix": "Define the walk algorithm precisely: 'Start from the directory containing bin/setup-wizard.js (resolved via __dirname). At each step, check for package.json with name: sdd-multiagent-kit AND a sibling kit/ directory containing SKILL.md. The first match wins. If the starting directory is inside kit/, the walk will find the parent package.json. Symlinks are resolved (fs.realpathSync) before walking.'"
+        },
+        {
+          "section": "Edge Cases (Re-runs / OpenCode no-op)",
+          "category": "needs_clarify",
+          "problem": "The OpenCode adapter's install() no-ops 'only when the shared folder is populated with the kit (its SKILL.md carries name: sdd-multiagent-kit)'. However, the shared folder is also used by Claude Code/Desktop. If a user installs via Claude Code (which overwrites), then runs sdd-setup again and selects only OpenCode, the OpenCode adapter will no-op even though the kit content may have been updated in the npm package. The spec calls this 'the one deliberate exception to the in-place re-run rule' but does not address version drift.",
+          "why_it_matters": "Users who update the npm package and re-run setup selecting only OpenCode will not receive the updated kit content. This is a silent stale-install bug.",
+          "suggested_fix": "Either: (a) Make OpenCode's install() compare a version/hash in SKILL.md (e.g., a version field) and re-copy if different, or (b) Document this limitation prominently in the wizard's output when OpenCode is selected and the kit is already present: 'OpenCode install skipped \u2014 kit already present. To refresh, run setup and select Claude Code or Claude Desktop, or remove ~/.claude/skills/sdd-multiagent-kit/ first.'"
+        },
+        {
+          "section": "Edge Cases (Ctrl-C during install)",
+          "category": "needs_clarify",
+          "problem": "The spec says 'A Ctrl-C during install() may leave a partial destination folder; a re-run's copy overwrites it, so the re-install heals partial state'. However, the wizard catches SIGINT and exits 130. If the signal arrives during a synchronous fs.copyFileSync loop, the process may terminate before the handler runs, leaving a partial folder. The next run's copy will overwrite, but the OpenCode no-op guard (kit-identity-verified) may see a partial SKILL.md and incorrectly no-op.",
+          "why_it_matters": "Partial SKILL.md could pass the 'name: sdd-multiagent-kit' check if the frontmatter was written before interruption, causing OpenCode to skip a needed refresh.",
+          "suggested_fix": "Require adapters to write to a temporary directory and atomically rename (fs.renameSync) into place, or write SKILL.md last. Specify this as an adapter contract: 'install() must leave the destination in a state where either the full kit is present with valid SKILL.md, or the destination is unchanged. Partial writes must not produce a valid SKILL.md.'"
+        },
+        {
+          "section": "Acceptance Criteria (AC-1)",
+          "category": "objective",
+          "problem": "AC-1 requires the four installers/*.js to 'exist and are non-stub (a stub = empty, placeholder, or TODO-only with no real implementation)'. This is a subjective definition. A file exporting detect/install/confirmEnabled that throw 'Not implemented' would technically export the functions but be a stub.",
+          "why_it_matters": "CI cannot automatically verify 'non-stub' without a concrete test (e.g., each function must not throw 'Not implemented' when called with valid inputs).",
+          "suggested_fix": "Replace with a testable criterion: 'Each adapter's detect(), install(), and confirmEnabled() are implemented and return the specified shapes when invoked with valid arguments in a test harness (see tests_milestone_3.md).'"
+        },
+        {
+          "section": "General (Testability of interactive flows)",
+          "category": "needs_clarify",
+          "problem": "The spec describes extensive interactive behavior (masked key entry, TTY detection, Pakistani guide prompt, tool selection prompt, invalid-input re-prompts) but provides no interface for automated testing (e.g., a --dry-run mode, a programmatic API, or injectable stdin/stdout). The wizard is a single CLI entry point with no separation of concerns.",
+          "why_it_matters": "M3's tests_milestone_3.md cannot verify FR-1/FR-3/FR-4 without a testable architecture. The spec must either define a test mode or acknowledge that interactive flows are manually verified only.",
+          "suggested_fix": "Add a non-functional requirement: 'The wizard's core logic (key collection, detection, selection, install orchestration) is factored into a pure function/class that accepts injected readline/stdin/stdout interfaces, enabling unit tests with fake TTY. The bin/setup-wizard.js entry point is a thin wrapper.'"
+        },
+        {
+          "section": "FR-1 (Key hints)",
+          "category": "needs_clarify",
+          "problem": "Before each key prompt the wizard 'checks process.env for a prior value and prints a hint (e.g., (existing value found)) if one exists'. The exact hint text, placement (same line? previous line?), and whether it appears for keys the user already entered this session (they are not in process.env) are unspecified.",
+          "why_it_matters": "Inconsistent UX; tests cannot verify hint presence/absence.",
+          "suggested_fix": "Specify: 'Before each key prompt, if process.env[KEY_NAME] is a non-empty string, print \" (existing value found)\" on the same line after the prompt colon. No hint for keys entered this session (they are not in process.env). Example: \"NVIDIA_NIM_API_KEY (existing value found): \"'."
+        },
+        {
+          "section": "FR-2 (kitPath derivation)",
+          "category": "objective",
+          "problem": "The wizard derives kitPath by walking from its own location until it finds a package.json with name: sdd-multiagent-kit whose sibling kit/ directory exists and contains SKILL.md. However, the wizard is installed globally via npm install -g, which places bin/setup-wizard.js in a global bin directory (e.g., /usr/local/bin/sdd-setup -> ../lib/node_modules/sdd-multiagent-kit/bin/setup-wizard.js). The walk from the resolved symlink will find the correct package.json, but the spec does not mention symlink resolution.",
+          "why_it_matters": "If the walk uses __dirname without realpath, it may land in the global bin directory (which has no package.json) and fail. The spec says 'walking parent directories from its own location' \u2014 'its own location' must be the real path.",
+          "suggested_fix": "Explicitly require: 'The wizard resolves its own real path via fs.realpathSync(__filename) before walking.'"
+        },
+        {
+          "section": "FR-3 (Antigravity detect)",
+          "category": "objective",
+          "problem": "Antigravity's detect() considers the tool installed when 'the agent config directory ~/.agents/skills/ exists (that directory is the detection signal \u2014 no bundle-id or app probing in this milestone)'. This directory could exist for unrelated reasons (e.g., a different agent framework). No secondary signal (executable, config file) is required.",
+          "why_it_matters": "High false-positive rate. Users without Antigravity but with a ~/.agents/skills/ directory will be offered a broken install.",
+          "suggested_fix": "Add a secondary signal: e.g., 'AND the directory contains a file named antigravity.json (or equivalent marker)'. If no reliable marker exists, state that detection is best-effort and the wizard will attempt install but confirmEnabled() will fail."
+        },
+        {
+          "section": "FR-4 (Trigger confirmation)",
+          "category": "needs_clarify",
+          "problem": "The wizard 'confirms the trigger for each installed tool' but the confirmation mechanism for the three native tools is only 'verifies the copied SKILL.md carries name: sdd-multiagent-kit in its YAML frontmatter'. This verifies the skill name, not that the tool actually registers /sdd. The spec assumes the tool's slash-command registry derives from the folder name, but this is an external behavior not verified by the wizard.",
+          "why_it_matters": "The wizard may report success while the tool fails to register /sdd (e.g., due to tool version mismatch, config syntax error). The acceptance criteria should not claim trigger confirmation beyond the file check.",
+          "suggested_fix": "Change 'confirms the trigger' to 'verifies the skill file identity (SKILL.md name field) which the tool uses to derive /sdd'. Remove any implication that the wizard tests the actual slash command."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 4
+}

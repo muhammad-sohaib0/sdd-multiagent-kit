@@ -1,0 +1,258 @@
+{
+  "document": "spec_milestone_3",
+  "pass": 2,
+  "round": 8,
+  "critics": [
+    {
+      "model": "mistralai/mistral-nemotron",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The specification does not explicitly state how the wizard handles cases where the user enters an invalid API key format (e.g., missing characters, incorrect structure).",
+          "why_it_matters": "Invalid key formats could lead to runtime failures in the tools that are not caught during setup, causing confusion for users.",
+          "suggested_fix": "Add validation for API key formats during input, with clear error messages for invalid formats."
+        },
+        {
+          "section": "FR-2",
+          "category": "objective",
+          "problem": "The specification does not detail how the wizard handles cases where the `install()` function throws an error that is not prefixed with the tool ID, or where the error message is malformed.",
+          "why_it_matters": "Malformed error messages could lead to unclear or misleading feedback to the user, making it difficult to diagnose issues.",
+          "suggested_fix": "Specify that the wizard should validate the error message format and handle malformed messages gracefully, possibly by wrapping them in a standard format."
+        },
+        {
+          "section": "FR-3",
+          "category": "objective",
+          "problem": "The specification does not address how the wizard handles cases where the user does not have write permissions for the target installation directories.",
+          "why_it_matters": "Permission issues could lead to silent failures or incomplete installations, causing the kit to not function as expected.",
+          "suggested_fix": "Add explicit handling for permission errors, including clear error messages and suggestions for resolving the issue (e.g., running the wizard with elevated privileges)."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The specification does not cover how the wizard handles cases where the user's home directory is not writable or does not exist.",
+          "why_it_matters": "This could lead to installation failures that are not clearly communicated to the user.",
+          "suggested_fix": "Add a specific edge case for handling unwritable or non-existent home directories, with clear error messages and suggestions for resolution."
+        },
+        {
+          "section": "Testability",
+          "category": "needs_clarify",
+          "problem": "The specification does not provide clear criteria for testing the interaction between the wizard and the adapters, particularly in edge cases.",
+          "why_it_matters": "Without clear test criteria, it is difficult to ensure that the wizard and adapters interact correctly in all scenarios.",
+          "suggested_fix": "Add specific test cases for the interaction between the wizard and the adapters, including edge cases such as partial installations and permission issues."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "critic gemini-3.6-flash",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 9,
+        "testability": 10
+      },
+      "issues": [
+        {
+          "section": "FR-3",
+          "category": "objective",
+          "problem": "OpenCode's `install()` is defined as a no-op when `~/.claude/skills/sdd-multiagent-kit/` is already populated, under the rationale that 'a Claude Code re-run refreshes the shared copy'. However, if a user has OpenCode installed but does NOT have Claude Code installed, re-running `sdd-setup` will never refresh or update the kit files because OpenCode will see the existing folder and skip copying.",
+          "why_it_matters": "Users who only use OpenCode cannot update their SDD kit installation to a newer version by re-running `sdd-setup`.",
+          "suggested_fix": "Specify that OpenCode's `install()` performs a full copy/overwrite if the shared folder is absent OR if OpenCode is the active adapter executing the install during a setup run, or explicitly specify that in-place re-runs refresh the shared directory regardless of which tool triggered the install."
+        },
+        {
+          "section": "FR-3",
+          "category": "needs_clarify",
+          "problem": "FR-3 requires checking if the `opencode` executable resolves on PATH using zero npm dependencies (Node stdlib only). Standard CLI commands like `which` are Unix-specific and fail on Windows (`where.exe`), and PATH executable extensions (`.exe`, `.cmd`) differ across platforms.",
+          "why_it_matters": "Without explicit cross-platform PATH detection requirements, implementations may throw uncaught process errors or fail detection on Windows environments.",
+          "suggested_fix": "Clarify how `detect()` should check PATH using Node stdlib across platforms (e.g., executing `where` on Windows and `which` on Unix/macOS via `child_process.execSync` inside a try/catch, or manually checking directories in `process.env.PATH`)."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The spec mentions printing a link to the \"reserved guide location\" for the Pakistani\u2011user guide but does not define the exact URL or format to output.",
+          "why_it_matters": "Implementers may output a malformed or ambiguous string, breaking the user experience and making automated testing difficult.",
+          "suggested_fix": "Add a constant definition, e.g. `const PAKISTANI_GUIDE_URL = \"https://github.com/yourorg/sdd-multiagent-kit/blob/main/docs/GUIDE.md#guide-for-pakistani-users\"`, and state that the wizard should print this exact URL when the user selects the Learn\u2011more option."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The handling of whitespace or an empty string entered at a key prompt is unspecified \u2013 it is unclear whether such input counts as a skipped key or as an empty secret.",
+          "why_it_matters": "Treating an empty string as a provided key could cause downstream tools to receive an invalid credential, while treating it as a skip without clarification may confuse users.",
+          "suggested_fix": "Specify that the wizard should trim the input; if the trimmed value is an empty string, the key is considered *skipped* and the existing environment value (if any) is left unchanged."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The UI for selecting which detected tools to install into is only described abstractly (\u201clets the user pick\u201d) without concrete prompt syntax or parsing rules.",
+          "why_it_matters": "Different implementations could interpret user input inconsistently (e.g., comma\u2011separated vs space\u2011separated), leading to selection errors or infinite re\u2011prompts.",
+          "suggested_fix": "Provide an explicit example prompt, e.g. `Enter tool names to install (comma\u2011separated, or \"all\"): `, and state that input should be split on commas, trimmed, case\u2011insensitive, and validated against the exported `name` values of detected adapters."
+        },
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "The required export style for adapter modules is not defined (named exports vs `module.exports`).",
+          "why_it_matters": "Node's module system will throw if the expected properties are not found, causing the wizard to exit with error 2 even when a correctly\u2011implemented adapter is present.",
+          "suggested_fix": "State that each adapter must use `module.exports = { name, detect, install, confirmEnabled }` (or an equivalent ES\u2011module default export) and that the wizard will `require` the file and verify these properties."
+        },
+        {
+          "section": "FR-3",
+          "category": "needs_clarify",
+          "problem": "Claude Code and Claude Desktop share the same destination folder, but the spec does not clarify how duplicate `install()` calls should behave.",
+          "why_it_matters": "Without guidance, an adapter might overwrite files unnecessarily or raise an error when the folder already exists, breaking idempotency.",
+          "suggested_fix": "Add a rule that adapters must check `fs.existsSync(destPath)` and, if the directory already contains a populated kit, perform a no\u2011op and return the existing path."
+        },
+        {
+          "section": "Edge Cases",
+          "category": "needs_clarify",
+          "problem": "The behavior of the tool\u2011selection prompt when `process.stdin.isTTY` is false is not defined.",
+          "why_it_matters": "In non\u2011interactive environments (e.g., CI pipelines) the wizard could hang waiting for input that will never arrive, or abort unexpectedly.",
+          "suggested_fix": "Specify that if stdin is not a TTY, the wizard should automatically select *all* detected tools (or abort with a clear message) rather than prompting."
+        },
+        {
+          "section": "AC-2",
+          "category": "needs_clarify",
+          "problem": "The phrase \u201cslot only\u201d for the Pakistani\u2011guide option is vague; it is unclear whether the slot should appear even when the NVIDIA key is already set in the environment.",
+          "why_it_matters": "Implementers might hide the slot conditionally, violating the requirement that the guide be offered to every user.",
+          "suggested_fix": "State explicitly: \u201cThe Learn\u2011more prompt must be displayed immediately after the NVIDIA key entry regardless of whether an existing environment value was detected.\u201d"
+        },
+        {
+          "section": "FR-5",
+          "category": "needs_clarify",
+          "problem": "The spec mentions that the wizard checks the Node version and exits with code\u202f2 on failure, but the exact error message is not specified.",
+          "why_it_matters": "Consistent error messaging is important for users and for automated tests that verify the exit condition.",
+          "suggested_fix": "Add a concrete message, e.g. `Error: Node.js version 18 or higher is required (detected v${process.version})` and confirm that the process exits with code\u202f2."
+        },
+        {
+          "section": "Testability",
+          "category": "objective",
+          "problem": "The document references a tests file but does not outline any test cases, success criteria, or how the wizard\u2019s behavior should be verified.",
+          "why_it_matters": "Without a test plan, reviewers cannot reliably assess compliance, and future contributors lack guidance for regression testing.",
+          "suggested_fix": "Include a brief test matrix in this spec (or in `tests_milestone_3.md`) that lists required unit/integration tests for each functional requirement, edge case, and exit\u2011code scenario."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_3.md",
+      "round": 3,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "Final reminder format for env-var status is underspecified. The spec gives one example (`NVIDIA_NIM_API_KEY (set in env)`) but doesn't define the exact output for all three keys when some are skipped, some set in env, some not set, and the order of lines.",
+          "why_it_matters": "Tests and users need deterministic output. Inconsistent formatting breaks script parsing and user expectations.",
+          "suggested_fix": "Add a concrete example block showing the exact reminder output for all combinations (set in env / not set / skipped) and specify line order (e.g., same order as prompts: NVIDIA, GOOGLE, OLLAMA)."
+        },
+        {
+          "section": "FR-2 / FR-5",
+          "category": "internal_consistency",
+          "problem": "`package.json` `files` array includes the entire `installers/` directory, but FR-2 says the wizard only requires `.js` files directly under `installers/` (non-recursive, non-`.js` ignored). Non-.js files (e.g., `.ts`, `.md`, test files) would be packaged but ignored at runtime, bloating the package.",
+          "why_it_matters": "Package size and supply-chain hygiene. Also creates ambiguity: are non-.js files in `installers/` allowed or forbidden?",
+          "suggested_fix": "Either restrict `files` to `installers/*.js` (using a glob or explicit list) or explicitly state that only `.js` files may exist in `installers/` and any others are a packaging error."
+        },
+        {
+          "section": "FR-3 (OpenCode)",
+          "category": "internal_consistency",
+          "problem": "`detect()` returns `installed: true` when OpenCode tool is present, but `location: null` when the shared folder is unpopulated. `confirmEnabled()` uses the *same return shape* but `installed: true` there means 'trigger confirmed'. The same field name carries opposite semantics across the two calls.",
+          "why_it_matters": "Adapter implementers and the wizard will confuse the two meanings. The wizard must treat `detect().installed` as 'tool present' and `confirmEnabled().installed` as 'trigger works' \u2014 a footgun.",
+          "suggested_fix": "Rename `confirmEnabled()` return field to `triggerConfirmed: bool` (keep `location` for symmetry) or define a distinct type. At minimum, add a bold warning in the spec that the `installed` field means different things in the two callbacks."
+        },
+        {
+          "section": "FR-3 (Antigravity)",
+          "category": "needs_clarify",
+          "problem": "`detect()` considers the tool installed when 'the Antigravity app is detected' \u2014 no concrete detection method is given (executable on PATH? config file? bundle ID?).",
+          "why_it_matters": "Implementers will guess differently, leading to inconsistent behavior across platforms.",
+          "suggested_fix": "Specify exact detection heuristics: e.g., `antigravity` executable on PATH, or `~/Library/Application Support/Antigravity` (macOS), `%APPDATA%\\Antigravity` (Windows), `~/.config/antigravity` (Linux)."
+        },
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "edge_case_coverage",
+          "problem": "No handling for whitespace-only user input at key prompts. Spec says 'empty-string env value counts as no value' and 'skip a key (leave it empty)' but doesn't say whether whitespace-only input is treated as empty/skip or as a literal key value.",
+          "why_it_matters": "Users may accidentally hit space; the wizard must define normalization (trim? reject? accept?).",
+          "suggested_fix": "State: 'Input is trimmed; empty after trim = skip. Whitespace-only is treated as skip.'"
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "Pakistani-guide slot description mixes user-facing behavior with maintainer rationale ('for every user, not only those without a paid signup \u2014 the option's *content* is what targets the signup gap'). The spec should describe *what the wizard does*, not *why the maintainer chose it*.",
+          "why_it_matters": "Clutters the spec, invites misinterpretation (e.g., should the wizard detect paid signup status?).",
+          "suggested_fix": "Rewrite purely behaviorally: 'Immediately after the NVIDIA key prompt (whether a key was entered or skipped), the wizard prints a single line: `Guide for Pakistani users \u2014 Learn more? [y/N]`. On `y` (case-insensitive), it prints the reserved doc link and continues. On any other input, it continues silently.'"
+        },
+        {
+          "section": "FR-2",
+          "category": "testability",
+          "problem": "Adapter `confirmEnabled()` for native tools 'verifies the copied `SKILL.md` frontmatter carries `name: sdd-multiagent-kit`'. The spec doesn't define the frontmatter format (YAML? TOML? JSON?) or whether the check is case-sensitive, or what happens if frontmatter is missing/malformed.",
+          "why_it_matters": "Implementation divergence; false negatives/positives.",
+          "suggested_fix": "Specify: frontmatter is YAML delimited by `---`, the `name` field is a string, comparison is exact case-sensitive match. On parse error or missing field, treat as not confirmed."
+        },
+        {
+          "section": "Edge Cases (Re-runs)",
+          "category": "internal_consistency",
+          "problem": "Spec says 'the adapter copies the whole shipped `kit/` tree... replacing kit-owned files and leaving any other file in the destination folder untouched'. But FR-2 `install(kitPath)` says it 'copies the kit skill content (`kitPath`) into the tool's location per \u00a710.3, creating the config directory if absent'. It doesn't specify *how* to copy (recursive? overwrite? delete extra files?). The 'leaving any other file untouched' rule appears only in the Edge Cases section, not in the `install()` contract.",
+          "why_it_matters": "Adapter authors reading only FR-2 may implement a clean-copy (delete destination first) which would violate the re-run rule.",
+          "suggested_fix": "Move the copy semantics into FR-2 `install()` contract: 'Copies the `kitPath` directory recursively into the destination, overwriting existing kit-owned files, preserving any non-kit files already present in the destination directory.'"
+        },
+        {
+          "section": "FR-5",
+          "category": "completeness",
+          "problem": "`package.json` must declare `engines: { \"node\": \">=18\" }` and the wizard checks `process.version` at startup, exiting 2 on Node <18. The spec doesn't define the exact error message or whether the check is semantic (major version) or exact (e.g., 18.0.0).",
+          "why_it_matters": "User-facing error must be actionable; test needs expected string.",
+          "suggested_fix": "Specify: 'Error message: `sdd-multiagent-kit requires Node.js >= 18. Current: ${process.version}. Please upgrade.` Exit code 2.'"
+        },
+        {
+          "section": "AC-1",
+          "category": "testability",
+          "problem": "Acceptance criterion 'non-stub (a stub = empty, placeholder, or `TODO`-only with no real implementation)' is subjective. No objective test can verify 'real implementation'.",
+          "why_it_matters": "CI gate cannot enforce this automatically; reviewer bias.",
+          "suggested_fix": "Replace with structural checks: 'Each adapter file exports four functions (`name`, `detect`, `install`, `confirmEnabled`). Each function has arity matching the spec (0, 0, 1, 0). No exported function body is empty or throws `NotImplementedError`.' Or move to a separate code-review checklist."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 4
+}

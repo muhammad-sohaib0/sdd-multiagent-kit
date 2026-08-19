@@ -1,0 +1,202 @@
+{
+  "document": "spec_milestone_5",
+  "pass": 2,
+  "round": 1,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "Unclear scope of the 'Non-stub' rule regarding non-output files like 'examples/sample-project/PLAN.md' and 'examples/README.md'.",
+          "why_it_matters": "If 'non-stub' criteria (\u2265200 words, no placeholder text) only apply to the 5 milestone output files, 'examples/README.md' or 'PLAN.md' could be created as minimal stubs without violating AC-2, leading to inconsistent quality checks.",
+          "suggested_fix": "Explicitly state in Edge Cases & Rules whether the non-stub definition applies to all created files under 'examples/' or specifically to the deliverable milestone output files."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "AC-1 states 'PLAN.md' must be 'directly invokable by the kit via its standard method', but does not define an objective, testable verification condition for invocation success.",
+          "why_it_matters": "Without an explicit success criterion (such as returning CLI exit code 0 and producing a non-empty critique/spec output file), automated test scripts cannot deterministically validate AC-1.",
+          "suggested_fix": "Update AC-1 to state that invoking the kit script against 'examples/sample-project/PLAN.md' exits with code 0 and generates a valid output document."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 4,
+      "scores": {
+        "clarity": 5,
+        "completeness": 3,
+        "edge_case_coverage": 4,
+        "internal_consistency": 4,
+        "testability": 4
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "The spec states the example ships the 'output shape' (spec/plan/tasks/workflow/tests), but the User Scenario (US-1) says the user can 'run the kit against it' to see the kit in action. If the example only ships the brief and the pre-written output shape, running the kit against the brief will overwrite or conflict with the provided example milestone set.",
+          "why_it_matters": "A user following US-1 will experience confusing state conflicts or file overwrites, defeating the 'teaching by imitation' goal.",
+          "suggested_fix": "Clarify the intended runtime state: specify that running the kit against the brief should target a separate output directory, or explicitly state that the provided example milestone set is read-only and meant for study, while the user must generate their own in a sandbox."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "FR-1 names the example brief `examples/sample-project/PLAN.md`, but the kit's standard SDD workflow (as implied by the five-document set) starts with a SPEC, not a PLAN. Using PLAN.md as the entry-point brief breaks the kit's own document hierarchy.",
+          "why_it_matters": "If the kit's orchestration script expects a spec to initiate the loop, pointing it at a PLAN.md will cause the workflow to fail or produce malformed outputs, violating AC-1.",
+          "suggested_fix": "Rename the example brief to `examples/sample-project/SPEC.md` or `examples/sample-project/BRIEF.md` to align with the kit's expected input shape, and update all references accordingly."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "needs_clarify",
+          "problem": "FR-2 requires the example milestone set to be 'faithful to the kit's output shape', but provides zero structural definitions or schemas for what that shape entails (e.g., required sections, metadata format).",
+          "why_it_matters": "Without a defined schema, the author of the example milestone set has no objective standard to meet, and the reviewer cannot objectively verify AC-2.",
+          "suggested_fix": "Add a sub-point to FR-2 explicitly listing the required sections or metadata fields for each of the five documents, or include a direct cross-reference to the M2 spec where the output shape is defined."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The 'Non-stub' rule mandates a minimum of 200 words for prose files, but provides no equivalent minimum for the `tasks_milestone_1.md` or `tests_milestone_1.md` files, which are typically structured lists rather than prose.",
+          "why_it_matters": "A `tasks` file with 10 well-defined checkboxes might be perfectly complete but fail the 200-word count, or an author might pad it with useless prose to pass, degrading the example's quality.",
+          "suggested_fix": "Refine the Non-stub rule to specify minimums for non-prose files (e.g., '\u22655 actionable task items' for tasks, '\u22653 test cases' for tests) instead of a universal word count."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "needs_clarify",
+          "problem": "AC-1 requires the brief to be 'directly invokable by the kit via its standard method', but does not specify the exact command or arguments needed to invoke it.",
+          "why_it_matters": "'Directly invokable' is ambiguous. If the standard method requires arguments (like a model name or output path), the user won't know what to pass, making the example difficult to run.",
+          "suggested_fix": "Add the exact, copy-pasteable command for invoking the kit against the example brief to AC-1 or FR-1 (e.g., `python3 kit/scripts/orchestrate_critique_loop.py --spec examples/sample-project/SPEC.md`)."
+        },
+        {
+          "section": "Cross-Reference",
+          "category": "objective",
+          "problem": "The Cross-Reference table lists `examples/sample-project/PLAN.md` but omits the five example milestone files required by FR-2.",
+          "why_it_matters": "The Cross-Reference is incomplete and fails to map the core deliverables of the milestone, risking them being overlooked during implementation.",
+          "suggested_fix": "Add rows for `examples/sample-project/outputs/milestones/milestone_1/spec_milestone_1.md`, `plan_milestone_1.md`, `tasks_milestone_1.md`, `workflow_milestone_1.md`, and `tests_milestone_1.md` to the table."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 8,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1 \u2014 `examples/sample-project/PLAN.md`",
+          "category": "objective",
+          "problem": "The brief\u2019s required length to satisfy the non\u2011stub rule is not stated.",
+          "why_it_matters": "Without an explicit \u2265200\u2011word requirement, implementers may produce a stub brief that fails the acceptance criteria, causing the milestone to be rejected.",
+          "suggested_fix": "Add a sentence to FR\u20111 (or the Edge Cases section) that the PLAN.md file must contain at least 200 words of substantive content."
+        },
+        {
+          "section": "Edge Cases & Rules \u2013 Simplicity rule",
+          "category": "needs_clarify",
+          "problem": "Reference to \"Article IV, Simplicity by Default\" is opaque to readers who do not have the constitution handy.",
+          "why_it_matters": "Readers cannot verify whether the example truly complies with the simplicity rule, risking hidden dependencies or unnecessary complexity.",
+          "suggested_fix": "Briefly restate the relevant part of Article\u202fIV or provide a direct link to the constitution section."
+        },
+        {
+          "section": "Edge Cases & Rules \u2013 OS compatibility",
+          "category": "needs_clarify",
+          "problem": "No guidance is given about platform\u2011specific considerations (e.g., Windows vs. Unix line endings, executable permissions).",
+          "why_it_matters": "The example is intended to be runnable out\u2011of\u2011the\u2011box; platform issues could break the \"run `/sdd`\" step for many users.",
+          "suggested_fix": "Add a bullet clarifying that the example must work on all supported OSes and that any scripts should have appropriate shebangs/permissions."
+        },
+        {
+          "section": "Acceptance Criteria \u2013 AC\u20111",
+          "category": "needs_clarify",
+          "problem": "The phrase \"or the critique engine against a produced document\" is ambiguous and seems to conflict with FR\u20111\u2019s description of invoking the kit directly on PLAN.md.",
+          "why_it_matters": "Ambiguity may cause implementers to use the wrong invocation method, leading to failed tests and confusion.",
+          "suggested_fix": "Rewrite AC\u20111 to explicitly state the supported invocation methods (e.g., \"run `/sdd examples/sample-project/PLAN.md` or `python3 kit/scripts/orchestrate_critique_loop.py examples/sample-project/PLAN.md`\"), and remove any contradictory wording."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements (FR-1)",
+          "category": "needs_clarify",
+          "problem": "The phrase 'directly invokable by the kit via its standard method' is ambiguous. The spec mentions two invocation methods: '/sdd' and 'python3 kit/scripts/orchestrate_critique_loop.py ...'. It is unclear whether both must work, or if one is sufficient. Also, the exact command-line arguments for the script are not specified, making it impossible to test AC-1 precisely.",
+          "why_it_matters": "Without a clear definition of 'directly invokable', testers cannot determine whether the example meets AC-1. Ambiguity in the invocation method leads to inconsistent verification and potential false positives/negatives.",
+          "suggested_fix": "Specify the exact command(s) that must work, e.g., 'python3 kit/scripts/orchestrate_critique_loop.py examples/sample-project/PLAN.md' and/or '/sdd' in a supported tool. If both are required, state that explicitly."
+        },
+        {
+          "section": "Edge Cases & Rules (Non-stub)",
+          "category": "needs_clarify",
+          "problem": "The non-stub rule requires '\u2265200 words for prose files', but it is not clear whether this applies to all five documents in the milestone set, or only to prose-heavy ones (e.g., spec, plan, workflow). The tests document might be more structured and could legitimately be shorter. The rule also does not define what counts as 'prose' versus structured content.",
+          "why_it_matters": "Without a clear scope, the example milestone set could be rejected or accepted incorrectly. If the tests document is expected to be 200+ words, it may force unnatural padding; if not, the rule is ambiguous.",
+          "suggested_fix": "Clarify that the non-stub rule applies to all five documents, but allow structured documents (like tests) to meet the word count through a combination of prose and structured content. Alternatively, define a separate minimum for structured documents."
+        },
+        {
+          "section": "Edge Cases & Rules (Simplicity rule)",
+          "category": "needs_clarify",
+          "problem": "The simplicity rule says 'no new dependencies, frameworks, or servers without strong reason.' The example is a 'dependency-free Python 3 command-line tool', but it is unclear whether the kit itself (which may have dependencies) counts as a dependency. Also, the rule does not specify what constitutes a 'strong reason' for adding dependencies, leaving room for subjective interpretation.",
+          "why_it_matters": "If the kit has dependencies, the example might inadvertently violate the rule. Without a clear definition of 'strong reason', the rule is not testable.",
+          "suggested_fix": "Define 'dependency' as external packages beyond the Python standard library and the kit's own dependencies. Provide examples of what would constitute a 'strong reason' (e.g., security, performance) and state that the example must not introduce any new dependencies beyond the kit's existing ones."
+        },
+        {
+          "section": "Acceptance Criteria (AC-2)",
+          "category": "objective",
+          "problem": "AC-2 requires the example milestone set to be 'faithful to the kit's standard', but the spec does not define what 'faithful' means in concrete terms. It references the non-stub rule, but that is only one aspect. Other aspects like document structure, section headings, and formatting are not specified.",
+          "why_it_matters": "Without a concrete definition of 'faithful', testers cannot objectively verify AC-2. The example could be non-stub but still deviate from the kit's expected output shape, leading to a false pass.",
+          "suggested_fix": "Reference the kit's document templates or schemas (if they exist) and require the example to match them exactly. If no templates exist, specify the required section headings and structure for each of the five documents."
+        },
+        {
+          "section": "Out of Scope",
+          "category": "needs_clarify",
+          "problem": "The out-of-scope section says 'The actual kit process output for the example (a compiled/implemented build): only the example milestone-set output shape ships'. This is confusing because the example milestone set is itself a 'process output' of the kit. It is unclear whether the example milestone set is supposed to be generated by running the kit or hand-crafted to match the output shape.",
+          "why_it_matters": "If the example milestone set is hand-crafted, it may not be truly representative of what the kit produces, undermining its teaching value. If it is generated, the spec should state that explicitly and provide the command to reproduce it.",
+          "suggested_fix": "Clarify that the example milestone set is hand-crafted to match the kit's output shape, not generated by the kit, and that this is intentional to avoid requiring the kit to be run during the build. Alternatively, provide a script to regenerate it."
+        },
+        {
+          "section": "Cross-Reference",
+          "category": "objective",
+          "problem": "The cross-reference table lists paths for the spec, plan, tasks, workflow, and tests documents, but these are the documents for milestone 5, not the example milestone set. The table does not include the paths for the example milestone set documents (e.g., `examples/sample-project/outputs/milestones/milestone_1/spec_milestone_1.md`).",
+          "why_it_matters": "The cross-reference is incomplete, making it harder for readers to locate the example documents. This is a minor but real inconsistency in the document's completeness.",
+          "suggested_fix": "Add rows for the example milestone set documents, or add a note that the example documents are listed in FR-2."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 4
+}

@@ -1,0 +1,81 @@
+{
+  "document": "spec_milestone_5",
+  "pass": 2,
+  "round": 8,
+  "critics": [
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 8,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements / FR-2",
+          "category": "needs_clarify",
+          "problem": "The heading order requirement is ambiguous: 'each required heading present, in that order' \u2014 but the spec also says 'the example files' own internal numbering of sections is their formatting, not part of the required heading names'. It is unclear whether the required headings must appear contiguously or may be interleaved with additional headings, and whether 'in that order' applies to the relative order of the required headings only or to the entire document.",
+          "why_it_matters": "Without a precise definition of 'in that order', AC-2's testable check cannot be implemented deterministically. A tester cannot distinguish between a compliant document with interleaved headings and a non-compliant one without a formal ordering rule.",
+          "suggested_fix": "Explicitly state: 'The required headings must appear in the listed relative order, but additional headings may appear anywhere between them. The order constraint applies only to the relative sequence of the required headings, not to the document as a whole.'"
+        },
+        {
+          "section": "Edge Cases & Rules / Non-stub",
+          "category": "needs_clarify",
+          "problem": "The word-count rule says '\u2265200 words per file, individually, counting whitespace-delimited tokens with markdown marker characters and code blocks excluded'. The exclusion of 'markdown marker characters' is ambiguous: does this mean stripping markdown syntax (e.g., `#`, `**`, backticks) before counting, or excluding entire lines that are markdown markers? Also, it is unclear whether the 200-word threshold applies to the brief, README, and all five example documents, or only to the prose deliverables listed.",
+          "why_it_matters": "Without a precise counting method, the Non-stub rule is not objectively testable. Two different testers could count the same file and get different results, making AC-1 and AC-2 unverifiable.",
+          "suggested_fix": "Define the counting algorithm precisely: 'Strip all markdown syntax (headings markers, bold/italic markers, inline code backticks, blockquote markers, list markers, table pipes, and code fences), then split on whitespace and count tokens. The threshold applies to the brief, README, and the spec/plan/workflow files; tasks and tests files are exempt.'"
+        },
+        {
+          "section": "Acceptance Criteria / AC-1",
+          "category": "objective",
+          "problem": "AC-1 states the brief is 'directly invokable by the kit' but the testable check only verifies file existence, heading presence, and non-stub status. It does not verify that the kit actually runs successfully against the brief. The invocation criterion is not actually tested.",
+          "why_it_matters": "The acceptance criterion promises a functional property (invokability) but the testable check does not exercise it. This creates a gap between the stated criterion and the verification method, potentially allowing a brief that fails at runtime to pass acceptance.",
+          "suggested_fix": "Add a testable check: 'Run `/sdd` against `examples/sample-project/` in a clean environment with the kit installed; the command must complete without error and produce a milestone set.' Alternatively, explicitly downgrade the criterion to 'structurally invokable' and remove the runtime claim."
+        },
+        {
+          "section": "Functional Requirements / FR-1",
+          "category": "needs_clarify",
+          "problem": "The spec says the brief 'must carry the required brief headings' and 'no additional metadata (front-matter, version, project name) is required'. The phrase 'is required' is ambiguous: does it mean such metadata is forbidden, or merely optional? If a user adds front-matter, does the brief become non-compliant?",
+          "why_it_matters": "The example brief is meant to be a template (US-2). If the spec is ambiguous about whether metadata is allowed, users may copy the example and add metadata, unknowingly violating the kit's scan expectations. This affects the teaching value and the AC-1 test.",
+          "suggested_fix": "Clarify: 'Additional metadata such as front-matter, version, or project name is permitted but not required. The kit's scan reads only the content under the required headings and ignores any additional metadata.'"
+        },
+        {
+          "section": "Edge Cases & Rules / Platform-agnostic",
+          "category": "needs_clarify",
+          "problem": "The rule permits 'generic env-var assignment notation (e.g., `QUOTE_DATA_DIR=<path>`)' but prohibits 'shell keywords like `export`/`set`'. It is unclear whether the example tasks document may include commands like `python3 quote.py --data-dir $QUOTE_DATA_DIR` where the variable is referenced but not assigned, or whether any variable reference is considered platform-specific.",
+          "why_it_matters": "The boundary between 'generic notation' and 'shell-specific' is fuzzy. A tester cannot objectively determine whether a given line violates the rule without a clearer definition, risking inconsistent enforcement.",
+          "suggested_fix": "Define explicitly: 'Variable references in command arguments are permitted (e.g., `python3 quote.py --data-dir $QUOTE_DATA_DIR`). Variable assignment is permitted only in the generic form `VAR=value` without shell keywords. Any use of `export`, `set`, `$()` command substitution, or shell-specific operators (e.g., `&&`, `||`, pipes) is prohibited.'"
+        },
+        {
+          "section": "Acceptance Criteria / AC-2",
+          "category": "objective",
+          "problem": "AC-2 requires 'the workflow/tests traceability consistent with the spec's FRs and ACs' but the testable check only verifies string matches (each FR-N/AC-N identifier appears in the traceability sections). It does not verify that the workflow nodes actually correspond to the FR content, or that test rows actually test the ACs \u2014 only that identifiers appear somewhere.",
+          "why_it_matters": "A document could pass AC-2 by listing all FR/AC identifiers in a traceability table without any meaningful mapping. This undermines the 'faithful to the kit's shape' requirement and the teaching value of the example.",
+          "suggested_fix": "Strengthen the testable check: 'For each FR-N, the workflow node must contain a description that references the FR's subject matter (not just the identifier). For each AC-N, the test row must include a test description that exercises the AC's stated behavior.' Alternatively, accept the string-match as a minimum and add a manual review step."
+        },
+        {
+          "section": "Edge Cases & Rules / Internal consistency",
+          "category": "needs_clarify",
+          "problem": "The rule says 'any `tasks` build steps are illustrative and reference files that need not exist in the repo'. This conflicts with the earlier statement that the example is 'self-contained' and 'must not depend on anything outside `examples/sample-project/`'. If build steps reference files like `quote.py` that do not exist, is the example still self-contained?",
+          "why_it_matters": "The self-containment requirement (standalone-first) and the illustrative-build-steps allowance are in tension. A user studying the example may be confused about whether the referenced files should exist, and a tester cannot determine compliance without a resolution.",
+          "suggested_fix": "Clarify: 'Self-containment applies to the brief and the milestone documents \u2014 they must not reference external resources for their content. The tasks build steps are explicitly marked as illustrative (via the blockquote note) and may reference source files that are not shipped; this does not violate self-containment because the steps are pedagogical, not operational.'"
+        },
+        {
+          "section": "Functional Requirements / FR-2",
+          "category": "objective",
+          "problem": "FR-2 requires the example set to be 'for `milestone_1`' and states 'the example project is a separate single-milestone project; its own milestone numbering starts at 1'. However, the spec does not define how the example project's milestone numbering interacts with the bootstrap's milestone numbering in the cross-reference table, which lists the example set under `milestone_1` while the bootstrap's own set is under `milestone_5`. This could confuse users about which milestone numbering scheme applies.",
+          "why_it_matters": "The example is a teaching artifact (US-1, US-2). If the numbering relationship is unclear, users may incorrectly assume the example's milestone_1 corresponds to the bootstrap's milestone_1, leading to confusion about the kit's workflow.",
+          "suggested_fix": "Add an explicit note in the Cross-Reference section: 'The example project's milestone numbering is independent of the bootstrap's. The example's `milestone_1` is the first (and only) milestone of the sample project, not the bootstrap's first milestone. The bootstrap's own milestone set is numbered 1\u20135.'"
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 1
+}

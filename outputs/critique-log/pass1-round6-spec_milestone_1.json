@@ -1,0 +1,218 @@
+{
+  "document": "spec_milestone_1",
+  "pass": 1,
+  "round": 6,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 10,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 10,
+        "testability": 10
+      },
+      "issues": [
+        {
+          "section": "3. Functional Requirements (FR-2) & 4.2 Patterns and Naming",
+          "category": "objective",
+          "problem": "FR-2 specifies that `clarify-interview` consumes the compiled needs_clarify list persisted at `outputs/milestones/milestone_N/needs_clarify.md`, but Section 4.2 does not specify the path for `needs_clarify.md` under single-milestone projects (US-3).",
+          "why_it_matters": "In a single-milestone project, files land directly in `outputs/` without a `milestone_N` folder, which could cause sub-skills to look in a non-existent path.",
+          "suggested_fix": "In Section 4.2 or FR-2, state that for single-milestone projects, the needs_clarify list is persisted at `outputs/needs_clarify.md`."
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 9,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The spec defines 'Build the milestone' (step 4i) as executing the milestone's ordered tasks to materialize artifacts. For the kit's own bootstrap build (this project), it states M1's build output is the 13 files at the \u00a74.1 paths. However, it is ambiguous whether the bootstrap build of M1 is expected to be executed *within* this M1 milestone cycle by the master skill itself, or if the M1 spec is merely defining the content that *enables* this execution for later.",
+          "why_it_matters": "If the master skill must execute its own bootstrap build during M1, it creates a recursive dependency where the master skill is executing before it fully exists. If it is merely defining the content, the acceptance criteria need to ensure the *instructions* for building are valid, rather than the build itself having occurred.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "The `clarify-interview` sub-skill input specifies: 'persisted at `outputs/milestones/milestone_N/needs_clarify.md`'. It is ambiguous whether this file is considered one of the milestone's official artifacts or a transient working file.",
+          "why_it_matters": "If it is an official artifact, it should be listed in the Data Model (\u00a74) and checked by the Structural Completeness Gate. If it is transient, it should be explicitly excluded from the gate checks to avoid false positives.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "AC-7",
+          "category": "needs_clarify",
+          "problem": "The Stranger Test acceptance criteria states the five-document set is 'fully specified within this five-document set, so the stranger needs no external PLAN.md'. However, the spec also references PLAN.md extensively for invariants like the critique schema (\u00a74.3) and stopping conditions (\u00a74.4).",
+          "why_it_matters": "If the stranger truly has zero context, they cannot resolve references to PLAN.md. It needs clarification on whether the five documents must *inline* all necessary information or if they are allowed to reference the brief (PLAN.md) under the assumption it is provided as the 'project brief' input.",
+          "suggested_fix": ""
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-1 / Step 4d (clarify-interview)",
+          "category": "objective",
+          "problem": "The spec mentions that the compiled `needs_clarify` list is persisted at `outputs/milestones/milestone_N/needs_clarify.md` but does not define the file's schema or required fields.",
+          "why_it_matters": "Implementers need a concrete format to generate and consume this artifact; without it, different agents may produce incompatible structures, breaking the Clarify phase and subsequent passes.",
+          "suggested_fix": "Add a concise schema definition (e.g., a YAML list of objects with `section`, `problem`, `why_it_matters` fields) to the spec, and reference it in the FR-1 description."
+        },
+        {
+          "section": "3A. The Two Gates",
+          "category": "objective",
+          "problem": "The default simplicity limit (3 standalone components) is referenced as a constant in the master skill, but the spec does not specify where or how this constant is defined or overridden.",
+          "why_it_matters": "Implementers need a precise location (e.g., a config key or variable in `kit/SKILL.md` or a separate `config.yaml`) to read and potentially override the limit; ambiguity can cause inconsistent enforcement of the Simplicity Gate.",
+          "suggested_fix": "Define the constant explicitly, e.g., `simplicity_default: 3` in a dedicated config file or as a top\u2011level variable in `kit/SKILL.md`, and document the override mechanism via the constitution."
+        },
+        {
+          "section": "3A. The Two Gates",
+          "category": "needs_clarify",
+          "problem": "It is unclear whether the Simplicity Gate's default of 3 standalone components applies per milestone or per project overall, and how an override in the constitution interacts with existing milestones.",
+          "why_it_matters": "Clarification is needed to ensure consistent application of the gate across multi\u2011milestone projects and to avoid contradictory interpretations during implementation."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 10,
+        "edge_case_coverage": 10,
+        "internal_consistency": 10,
+        "testability": 10
+      },
+      "issues": [
+        {
+          "section": "\u00a76 Authentication / Security",
+          "category": "objective",
+          "problem": "The document states 'Secret-shaped tokens that are not secrets are excluded via an explicit allowlist enumerated inline here \u2014 by default empty' but no actual allowlist enumeration appears in the document. The allowlist mechanism is referenced but not defined.",
+          "why_it_matters": "Without a defined allowlist location/format, the secret detection rule cannot be implemented or verified deterministically. Implementers won't know where to add exceptions or how the allowlist is structured.",
+          "suggested_fix": "Add an explicit 'Secret Allowlist' subsection in \u00a76 (or \u00a74.5) that shows the allowlist format (e.g., a YAML list or inline table) and states its default empty state. Example: 'Allowlist (default empty): [] \u2014 stored at kit/config/secret-allowlist.yaml or as a providers.yaml key.'"
+        },
+        {
+          "section": "\u00a74.3 providers.yaml schema / Validation rule",
+          "category": "objective",
+          "problem": "The validation rule states 'every model ID listed in a critic_slots slot must appear in the models list of the provider whose id equals that slot's provider id (i.e., the string values match exactly)' and references 'providers[<slot.provider>].models'. However, providers is an array of objects with 'id' fields, not an object keyed by id. The lookup notation is ambiguous.",
+          "why_it_matters": "An implementer writing the validation logic may misinterpret the data structure access pattern, leading to incorrect validation or runtime errors.",
+          "suggested_fix": "Clarify the validation rule: 'For each slot in critic_slots, find the provider object in providers where provider.id == slot.provider; then verify slot.model exists in that provider.models[].id list.'"
+        },
+        {
+          "section": "\u00a74.4 PHR / ADR records",
+          "category": "objective",
+          "problem": "The PHR template path shows 'outputs/history/prompts/milestone_N/NNN-phase-name.md' but the accompanying text says 'Numbering resets per milestone within each milestone's folder (001, 002, \u2026). Single-milestone projects use outputs/history/prompts/single-milestone/'. The template path uses 'milestone_N' as a placeholder but doesn't reflect the single-milestone path variant.",
+          "why_it_matters": "Implementers may hardcode only the multi-milestone path pattern and miss the single-milestone variant, causing PHR logging to fail for single-milestone projects.",
+          "suggested_fix": "Show both path patterns explicitly: 'Multi-milestone: outputs/history/prompts/milestone_N/NNN-phase-name.md; Single-milestone: outputs/history/prompts/single-milestone/NNN-phase-name.md'."
+        },
+        {
+          "section": "\u00a73A Simplicity Gate / \u00a74.5 Simplicity default",
+          "category": "needs_clarify",
+          "problem": "The default limit of 3 standalone components per milestone is acknowledged as 'a working number in the spirit of Simplicity by Default; it is not a scientifically-derived constant.' This is a business/design decision that affects project architecture constraints.",
+          "why_it_matters": "The number 3 will directly shape how projects using this kit are structured. Too low forces artificial consolidation; too high defeats the gate's purpose. This should be a conscious human decision, not an inherited default.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a76 Authentication / Security \u2014 Secret detection patterns",
+          "category": "needs_clarify",
+          "problem": "The four regex patterns for secret detection (sk-*, AIza*, Bearer *, base64/hex \u226532 chars) are specified as the 'current detection set'. The allowlist mechanism for false positives is referenced but not defined. The patterns themselves are a security policy choice.",
+          "why_it_matters": "Overly broad patterns cause false positives that block legitimate content; overly narrow patterns miss real secrets. The allowlist management process (who can add, review required, where stored) is undefined. This is a security posture decision.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "AC-7 Stranger Test \u2014 Contract parity definition",
+          "category": "needs_clarify",
+          "problem": "The Stranger Test defines 'Reproduce = contract parity, not byte parity' with three enumerated checks. Whether these three checks (inventory match, providers.yaml model IDs + binding, constitution articles + sub-skill FR-2 consistency) are necessary and sufficient for 'contract parity' is a product acceptance decision.",
+          "why_it_matters": "If the three checks are insufficient, a stranger implementation could pass the test but diverge behaviorally. If they're excessive, they may reject valid implementations. The boundary of 'contract parity' needs human confirmation.",
+          "suggested_fix": ""
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 8,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "\u00a75 (API/Integration) and \u00a78 AC-2 vs. Cumulative History (Retry policy line)",
+          "category": "needs_clarify",
+          "problem": "PHR `milestone_0/003` is cited in \u00a75 and AC-2 as documentation of the preflight verification that the six models are reachable on free tiers, but the inherited Cumulative History describes that same PHR `milestone_0/003` as the record of the retry policy (unparseable response, transport failure, non-cooperative flag). Either one PHR covers two distinct topics, the numbering is reused/collides, or the cumulative history is incomplete.",
+          "why_it_matters": "AC-2's testability depends on a PHR existing with the asserted content; a builder or reviewer going to look for a preflight PHR in `outputs/history/prompts/milestone_0/003-*.md` will not find preflight content if the file is actually about retry policy. This affects downstream verification of the free-tier claim.",
+          "suggested_fix": null
+        },
+        {
+          "section": "\u00a74.2 (Patterns and naming) vs. Cumulative History (Constitution line)",
+          "category": "needs_clarify",
+          "problem": "Cumulative History fixes the adopted constitution path for this project at `outputs/constitution.md`, but FR-1 step 2 states it generically as `constitution.md` from `constitution.template.md`, and \u00a74.2/\u00a73A/\u00a74.5 all reference the adopted constitution by the generic `constitution.md` name. The relationship between the project-specific path (`outputs/constitution.md`) and the generic path (project root?) is not stated; US-3 implies `outputs/`-rooted storage for the kit, but the convention for a non-kit downstream project is not pinned.",
+          "why_it_matters": "The kit is meant to install into other projects. A future project adopting the kit will not know whether the adopted constitution goes at the project root, in `outputs/`, or elsewhere, which can produce a layout that doesn't match the rest of the conventions.",
+          "suggested_fix": null
+        },
+        {
+          "section": "\u00a74.2 (Sub-skill frontmatter)",
+          "category": "objective",
+          "problem": "The required SKILL.md YAML frontmatter fields are listed as `name, description, version`, but the format/scheme of the `version` field is not specified (semver, CalVer, or otherwise). For the M1 ship, all ten SKILL.md files must carry a value, and without a specified scheme the 13 shipped files risk inconsistent values across the sub-skill set.",
+          "why_it_matters": "The version field is mandatory, the 13-file inventory is exact, and the gates/G2 will inspect these files; a missing or inconsistent format becomes a discoverable defect during build or critique.",
+          "suggested_fix": "Add one sentence to \u00a74.2 stating that the `version` field is a semver string (e.g., `0.1.0` for M1), increments by minor on additive changes, and resets at each new kit release."
+        },
+        {
+          "section": "\u00a74.5 (Simplicity default and override bullet)",
+          "category": "objective",
+          "problem": "The override clause is phrased as \"overridable once per project by editing the adopted `constitution.md` (adding a line such as `simplicity_default: N`)\". The phrase \"once per project\" is ambiguous \u2014 it could mean (a) a single line in the constitution that persists for the project lifetime, or (b) the override may be changed at most one time. Also, the format `simplicity_default: N` is not pinned to YAML, Markdown, or any parser, so the master skill has no canonical place to read it from.",
+          "why_it_matters": "The Simplicity Gate in \u00a73A depends on this value at runtime; a master skill implementing the gate has to know where to look and whether the value can be re-edited during the project.",
+          "suggested_fix": "Clarify the bullet to: \"The default of 3 standalone components is overridable by adding a single line `simplicity_default: <N>` to the adopted `constitution.md` (Markdown frontmatter or top-of-file field \u2014 pick one and state it). The override is set once at project adoption and applies to every milestone; any subsequent change is itself a constitution amendment requiring an ADR.\""
+        },
+        {
+          "section": "\u00a74.5 (\"AC-7 'consistent with its FR-2 contract'\" bullet)",
+          "category": "objective",
+          "problem": "The bullet is opened with a label-like fragment in single quotes rather than a complete sentence, and the AC-7 reference is a bare cross-reference per the convention. The fragment reads as an unfinished heading; a reader has to recognize that the body explains AC-7 check 3.",
+          "why_it_matters": "\u00a74.5 lists many bullets and this one is the only one phrased as a quoted label; it disrupts the otherwise parallel structure of the bullet list and slightly reduces scannability.",
+          "suggested_fix": "Rephrase the bullet to begin with a complete clause, e.g.: \"AC-7 check 3 ('each sub-skill's SKILL.md is consistent with its FR-2 contract'): the SKILL.md must name the sub-skill's input, output, and at least the edge-case rule from its FR-2 row (any wording is fine as long as those three are present and not contradicted).\""
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

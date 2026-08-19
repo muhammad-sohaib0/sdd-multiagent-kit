@@ -1,0 +1,237 @@
+{
+  "document": "spec_milestone_1",
+  "pass": 1,
+  "round": 9,
+  "critics": [
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 7,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "3A",
+          "category": "objective",
+          "problem": "The Simplicity Gate states the default limit of 3 standalone components is overridable project-wide once in `constitution.md`, but later in \u00a74.5 it states the override is a per-milestone heuristic evaluated independently. This creates an internal inconsistency about whether the override applies globally to all subsequent milestones or is evaluated per milestone.",
+          "why_it_matters": "An inconsistent definition of the Simplicity Gate override scope will lead to ambiguous gate enforcement during the build, potentially causing the master skill to apply the wrong threshold.",
+          "suggested_fix": "Clarify the exact mechanics: state that the override value is set globally once in `constitution.md` but is then applied as the limit for each individual milestone's evaluation."
+        },
+        {
+          "section": "4.5",
+          "category": "objective",
+          "problem": "The spec states the simplicity default override is appended as a plain-text line `simplicity_default: N` inside the Markdown `constitution.md`. This is structurally ambiguous for a Markdown file and lacks a defined parsing contract for how the master skill extracts this value without a YAML block.",
+          "why_it_matters": "Without a defined parsing mechanism, the master skill may fail to reliably locate or apply the override, breaking the Simplicity Gate automation.",
+          "suggested_fix": "Specify a concrete parsing contract, such as requiring the line to be in a specific fenced YAML block or explicitly defining the regex/string search the master skill uses to find `simplicity_default: N`."
+        },
+        {
+          "section": "6",
+          "category": "needs_clarify",
+          "problem": "The secret detection rule includes a base64/hex blob >= 32 chars, but the spec does not define what constitutes an 'obvious, allowlisted constant' versus a false positive for standard UUIDs or hashes that might naturally appear in document examples.",
+          "why_it_matters": "This is a product/business decision on the strictness of the secret scanner and the friction of the allowlist process."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 10,
+      "scores": {
+        "clarity": 10,
+        "completeness": 10,
+        "edge_case_coverage": 10,
+        "internal_consistency": 10,
+        "testability": 10
+      },
+      "issues": [],
+      "verdict": "pass"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "\u00a76 Authentication / Security \u2014 Secret allowlist mechanism",
+          "category": "objective",
+          "problem": "The allowlist is defined inline in the spec (\u00a76) but executable enforcement lives in tests_milestone_1.md (one of the 13 shipped files). The spec does not specify how the test file will access the allowlist values \u2014 there is no shared config file, environment variable, or import mechanism described. The allowlist is empty by default, but if a token is added later (with PHR), the test must read the updated allowlist.",
+          "why_it_matters": "Without a defined mechanism, the secret-scan test cannot reliably enforce the allowlist, risking false positives/negatives. This is a structural gap in the shipped content.",
+          "suggested_fix": "Add a machine-readable allowlist location (e.g., a YAML file under kit/config/secret-allowlist.yaml referenced by both the spec and the test skill), or specify that the test skill reads the allowlist from a designated section of the spec file itself via a defined parsing rule."
+        },
+        {
+          "section": "\u00a73A The Two Gates \u2014 Simplicity Gate default constant location",
+          "category": "objective",
+          "problem": "The Simplicity Gate default of 3 is described as 'a constant in the master skill' (\u00a73A) and 'lives in the master skill's gate instructions' (\u00a74.5), but the master skill (kit/SKILL.md) frontmatter schema (\u00a74.2) only defines name, description, version. There is no specified field or convention for embedding gate constants in the master skill.",
+          "why_it_matters": "The master skill must programmatically enforce the gate; without a defined location for the constant, implementation is ambiguous and the gate cannot be reliably automated in M2.",
+          "suggested_fix": "Extend the master skill frontmatter schema (or add a dedicated gate-config section in the skill body) to include simplicity_default: 3, and reference that field in the gate instructions."
+        },
+        {
+          "section": "\u00a74.3 providers.yaml schema \u2014 Config versioning",
+          "category": "objective",
+          "problem": "The providers.yaml schema has no version field. As the critic panel evolves (ADR-001 already changed one model), there is no way to distinguish config versions or validate compatibility with the critique engine (M2).",
+          "why_it_matters": "Future M2 automation must know which config schema version it is reading. Missing versioning will cause silent mismatches when the config is updated.",
+          "suggested_fix": "Add a top-level version field to providers.yaml (e.g., version: '1.0.0') and include it in the validation rule."
+        },
+        {
+          "section": "\u00a78 AC-7 Stranger Test \u2014 'Genuinely fresh zero-context session' verification",
+          "category": "needs_clarify",
+          "problem": "The Stranger Test requires handing the five-document set to a 'genuinely fresh zero-context session' with a single instruction. The spec does not define how this is verified in practice \u2014 whether it is a manual human test, an automated fresh-agent invocation, or a CI step.",
+          "why_it_matters": "The verification method affects testability, reproducibility, and whether the Stranger Test can be a gate in automated pipelines. This is a product/process decision not inferable from the spec.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a76 Authentication / Security \u2014 Secret detection pattern completeness",
+          "category": "needs_clarify",
+          "problem": "The four regex patterns for secret detection are declared as 'the current detection set'. The spec does not state whether this set is final for M1 or expected to expand, nor does it define a process for adding patterns (unlike the allowlist, which has a PHR-gated process).",
+          "why_it_matters": "If new secret formats emerge (e.g., a new provider's key format), the shipped kit would miss them unless patterns can be updated. The governance of the pattern set is a product decision.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a74.5 PHR template \u2014 'What was produced' value for no-artifact transitions",
+          "category": "needs_clarify",
+          "problem": "The PHR template says 'What was produced is none for a transition that produced no artifact', but does not specify whether 'none' is the literal string 'none', an empty string, or omitted entirely.",
+          "why_it_matters": "Inconsistent rendering will make PHR parsing and historical analysis fragile. This is a format convention that should be explicit.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a73A Structural Completeness Gate \u2014 Forward-reference check scope",
+          "category": "objective",
+          "problem": "The forward-reference check flags references to targets 'not present in the set or the inherited history'. However, the milestone-builder edge-case rule (\u00a74.5) addresses 'A milestone referencing a future milestone's artifact \u2192 signals wrong order; reorder'. The gate check does not explicitly mention future-milestone references as a distinct violation class, though they would be caught as 'not present in the inherited history'. The distinction matters for error messaging and reordering guidance.",
+          "why_it_matters": "Without explicit handling, a forward reference to a future milestone may produce a generic 'missing reference' error rather than a clear 'milestone order violation' signal, reducing diagnosability.",
+          "suggested_fix": "Add a clause to the Structural Completeness Gate: 'A reference to an artifact declared in a later milestone is a milestone-ordering violation; the gate must emit a distinct 'future-milestone reference' error to trigger reordering per the milestone-builder rule.'"
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 7,
+        "internal_consistency": 9,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-1 \u2014 Master skill orchestration (kit/SKILL.md)",
+          "category": "objective",
+          "problem": "Gate checkpoints G1 and G2 are defined but the spec does not specify what should happen when a gate fails (e.g., logging, blocking, human intervention).",
+          "why_it_matters": "Without a defined failure policy the pipeline could continue with an invalid spec or plan, violating the Simplicity and Real-World Testing principles and causing downstream errors.",
+          "suggested_fix": "Add explicit failure handling steps for each gate: on failure log a PHR, block further progression, and require a human clarification or ADR before resuming."
+        },
+        {
+          "section": "Critic panel description (top of document)",
+          "category": "needs_clarify",
+          "problem": "The bullet list refers to the Ollama provider as \"Ollama Cloud\" while providers.yaml uses the identifier \"ollama-cloud\" (lower\u2011case, hyphenated).",
+          "why_it_matters": "Inconsistent naming can cause confusion when editing the configuration or when documentation is parsed programmatically."
+        },
+        {
+          "section": "FR-1 \u2014 Master skill orchestration",
+          "category": "objective",
+          "problem": "The specification does not require the master skill file `kit/SKILL.md` to include the mandatory YAML frontmatter (`name`, `description`, `version`) that is required for all sub\u2011skill SKILL.md files.",
+          "why_it_matters": "Tooling that expects frontmatter on every skill file would fail on the master skill, breaking the framework's uniform handling of skills.",
+          "suggested_fix": "Add a requirement that `kit/SKILL.md` must contain the three frontmatter fields, matching the contract used for sub\u2011skills."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 8,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "Cumulative History (Cross-reference convention)",
+          "category": "objective",
+          "problem": "The convention reads 'all references with an explicit `PLAN.md` prefix (\u00a72) point at the brief.' The parenthetical '(\u00a72)' is ambiguous \u2014 it could be read as 'this document's \u00a72 (User Scenarios)' or as a stray reference. The convention's own purpose is to disambiguate exactly this kind of thing.",
+          "why_it_matters": "If a reader (or the Stranger) misreads '(\u00a72)' as pointing at \u00a72 of this document, the convention is self-undermining. A cross-reference convention is most useful when its own wording is unambiguous.",
+          "suggested_fix": "Rewrite as 'all references with an explicit `PLAN.md \u00a7N` prefix (e.g. PLAN.md \u00a75.2) point at the brief' or simply remove the parenthetical since the prefix itself carries the meaning."
+        },
+        {
+          "section": "Cumulative History (Retry policy & AC-2)",
+          "category": "objective",
+          "problem": "The same PHR id `milestone_0/003` is cited in the inherited context for the 'retry policy' AND in AC-2 for the 'preflight'. Either the same PHR covers two policies (which the body doesn't make clear) or the doc is conflating two distinct PHRs under one id.",
+          "why_it_matters": "AC-2 is verifiable: 'six models verified on free tiers (the kit's own bootstrap preflight PHR milestone_0/003)'. If a future maintainer looks for the retry policy in `milestone_0/003` and finds a preflight (or vice versa), the acceptance criterion becomes unverifiable.",
+          "suggested_fix": "Either split into two distinct PHR ids (e.g. milestone_0/003 for preflight, milestone_0/004 for retry) or explicitly state that `milestone_0/003` covers both policies in a single combined record."
+        },
+        {
+          "section": "US-3 vs FR-1 step 3",
+          "category": "objective",
+          "problem": "US-3 says a small brief 'correctly stays a single milestone (the CT scan detects this)'. FR-1 step 3 says `milestone-builder` is the sub-skill that 'decide[s] single- vs. multi-milestone'. So the decision is made by `milestone-builder`, not by the CT scan \u2014 the CT scan only *produces input* to that decision.",
+          "why_it_matters": "Attributing the single-vs-multi decision to the CT scan in one place and to `milestone-builder` in another creates a small but real responsibility-attribution inconsistency. A reader building the CT-scan or milestone-builder sub-skill needs to know who owns the decision.",
+          "suggested_fix": "Change US-3 to 'the milestone-builder sub-skill, operating on the CT scan's output, detects this' or 'correctly stays a single milestone (the CT scan output feeds this decision via milestone-builder, per FR-1 step 3)'."
+        },
+        {
+          "section": "\u00a73A \u2014 Gate scope (G1 vs G2)",
+          "category": "objective",
+          "problem": "G1 is described as 'on the spec' while G2 is 'across all five documents together'. The spec is one of the five, so G1 is by definition a *partial* application of the same two gates, not a different pair of gates. The doc doesn't explicitly say that G1 re-runs a *subset* of the G2 checks (e.g., the forward-reference check within the spec and its inherited history only).",
+          "why_it_matters": "A builder implementing the gates needs to know whether G1 simply re-uses the same code path on a single document, or whether G1 has a different, lighter implementation. The current wording leaves it ambiguous.",
+          "suggested_fix": "Add one sentence: 'G1 is the same two gates evaluated against the spec only (and its inherited cumulative history); G2 is the same two gates evaluated against the full five-document set. The check logic is identical; the document set under evaluation differs.'"
+        },
+        {
+          "section": "\u00a74.5 \u2014 Section purpose drift",
+          "category": "objective",
+          "problem": "\u00a74.5 is titled 'Supporting artifacts and formats (used by the process content)' but mixes pure data-format items (Requirement Category Checklist format, PHR/ADR templates, `needs_clarify.md` format, `tier` semantics, back-reference format) with behavioral/process items (sub-skill failure retry semantics, simplicity default and override mechanics, secret allowlist semantics, ADR significance test, AC-7 interpretation). Process behaviors hidden inside a 'Data Model' subsection are easy to miss when a reader is looking for runtime policy.",
+          "why_it_matters": "Several of these (e.g. sub-skill failure retry semantics, simplicity override mechanics) are policy decisions that need to be visible to anyone implementing the master skill or the orchestration. Burying them in \u00a74.5 risks them being treated as documentation-only details rather than enforced behavior.",
+          "suggested_fix": "Split \u00a74.5 into two: \u00a74.5 'Supporting artifacts and formats' (the format/template/structure items) and a new \u00a74.6 'Process invariants' (retry semantics, simplicity default & override, secret allowlist, ADR significance test, AC-7 interpretation). Keep the doc structure but make the policy/behavior split explicit."
+        },
+        {
+          "section": "\u00a74.5 \u2014 Sub-skill failure retry semantics",
+          "category": "objective",
+          "problem": "The retry policy is described twice with overlapping but non-identical wording: FR-2's 'shared sub-skill failure policy' says 'logs a PHR, then retries once; if it fails again, escalation is blocking'. \u00a74.5's 'Sub-skill failure retry semantics' says 'the single retry re-runs the sub-skill with the same input, no backoff; only if it fails again is escalation (blocking) triggered'. The two are consistent in spirit but the PHR logging step's position is implied differently (before vs. during the retry cycle).",
+          "why_it_matters": "A sub-skill implementer reading the table form only (FR-2) will think PHR log happens before the retry; reading \u00a74.5 they might think PHR logs only on final failure. Two slightly different reads of the same policy is an avoidable source of implementation drift.",
+          "suggested_fix": "Pick one canonical wording, place it in the failure policy (FR-2 or its own \u00a73B), and have \u00a74.5 either cross-reference it or remain a terse pointer ('see FR-2 for the full failure policy; the PHR is logged before the retry, escalation is blocking on second failure')."
+        },
+        {
+          "section": "\u00a74.5 \u2014 simplicity_default override format",
+          "category": "needs_clarify",
+          "problem": "The override is described as 'a plain-text line `simplicity_default: N` (a convention line inside the Markdown document, not a YAML file); any override is a constitution change and so requires an ADR'. It is not specified whether this line is expected inside YAML frontmatter of `constitution.md`, as a top-of-file comment, or as a free-floating paragraph. The intent is clear (parse-able, single line) but the canonical location is left to interpretation.",
+          "why_it_matters": "If the override format is ambiguous, two different master-skill implementations (or two contributors editing `constitution.md`) may read the override differently. This is a design choice that affects how the master skill parses `constitution.md`.",
+          "suggested_fix": "Choose a concrete location (YAML frontmatter at the top of `constitution.md` is the most parser-friendly) and document it precisely. The user/orchestrator needs to confirm this as a design call."
+        },
+        {
+          "section": "\u00a76 \u2014 Secret allowlist add-process",
+          "category": "needs_clarify",
+          "problem": "The doc states 'A token may be added only with a written reason (a PHR) stating why it is not a credential; additions are never silent.' This defines the *what* (a PHR-stated reason is required) but not the *who/when* \u2014 specifically, whether additions are made by a human reviewer during kit use, by a sub-skill at install time, or by a maintainer as part of the shipped kit itself. The 'executable enforcement lives in `tests_milestone_1.md`' line shifts this to a downstream document.",
+          "why_it_matters": "Without a clear owner of allowlist additions, the rule 'additions are never silent' is hard to enforce. A builder of `tests_milestone_1.md` needs to know whose action triggers a PHR.",
+          "suggested_fix": "State explicitly: allowlist additions during kit use are made by the human (with a PHR); allowlist entries that ship with the kit are made by the kit maintainer and verified by the bootstrap verifier. Confirm this split with the human."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

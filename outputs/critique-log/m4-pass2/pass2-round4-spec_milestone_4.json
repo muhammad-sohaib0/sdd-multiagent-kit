@@ -1,0 +1,105 @@
+{
+  "document": "spec_milestone_4",
+  "pass": 2,
+  "round": 4,
+  "critics": [
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_4.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements FR-1",
+          "category": "needs_clarify",
+          "problem": "The quickstart command is specified as `npm install -g sdd-multiagent-kit && sdd-setup`, but it is not clear whether `sdd-setup` is run with no arguments or if it accepts optional flags. The spec says 'it takes no arguments or flags' but then says 'running it with zero arguments starts the wizard' \u2014 this is redundant and could be interpreted as allowing flags in some contexts.",
+          "why_it_matters": "Ambiguity in the CLI interface could lead to incorrect documentation in README and GUIDE, and testers might not know whether to test flag handling.",
+          "suggested_fix": "Clarify that `sdd-setup` accepts no arguments or flags whatsoever, and remove the redundant phrasing. State explicitly: 'The `sdd-setup` command takes no arguments or flags; running it with zero arguments starts the interactive wizard.'"
+        },
+        {
+          "section": "Edge Cases & Rules - Non-stub definition",
+          "category": "needs_clarify",
+          "problem": "The non-stub definition requires '\u2265200 words for prose files' but does not specify whether this applies to `CHANGELOG.md` when it is considered a fixed-format file. The spec says fixed-format files are exempt from the word-count threshold, but `CHANGELOG.md` is listed as fixed-format yet also has a requirement for 'versioned entries' \u2014 it is unclear if a CHANGELOG with only one entry (e.g., '0.1.0 - Initial release') would be considered non-stub.",
+          "why_it_matters": "Testers need a clear pass/fail criterion for CHANGELOG.md; ambiguity could lead to inconsistent acceptance decisions.",
+          "suggested_fix": "Explicitly state that CHANGELOG.md must have at least one versioned entry with a description (not just a heading), and that the word-count exemption applies only to LICENSE and .gitignore, not to CHANGELOG.md."
+        },
+        {
+          "section": "Functional Requirements FR-6",
+          "category": "needs_clarify",
+          "problem": "The spec says 'there is no build or test command to document beyond what AGENTS.md already lists' but does not specify what AGENTS.md lists. This creates a circular reference: the spec requires AGENTS.md to document commands, but the spec does not define what those commands are.",
+          "why_it_matters": "Without a clear list of commands, AGENTS.md and CLAUDE.md could omit critical commands or include incorrect ones, and testers cannot verify consistency.",
+          "suggested_fix": "Add a subsection under FR-6 listing the exact commands that AGENTS.md must document (e.g., `npm install`, `node kit/scripts/orchestrate_critique_loop.py`, etc.) or state that AGENTS.md must document the setup wizard invocation and the critique loop script."
+        },
+        {
+          "section": "Acceptance Criteria AC-1",
+          "category": "objective",
+          "problem": "AC-1 says 'All twelve deliverables exist' but lists eleven files plus `.gitignore` \u2014 that is twelve, but the list includes `README`, `CLAUDE`, `AGENTS`, `CONTRIBUTING`, `SECURITY`, `SUPPORT`, `LICENSE`, `CHANGELOG`, `docs/GUIDE`, `docs/ARCHITECTURE`, `docs/BOOTSTRAP` \u2014 that is eleven, plus `.gitignore` makes twelve. However, the spec does not mention `docs/` directory creation as a deliverable, and it is unclear if the `docs/` directory itself must exist even if empty.",
+          "why_it_matters": "Testers need to know whether the `docs/` directory must be present as a directory, and whether any other files (e.g., `package.json`) are required for the milestone.",
+          "suggested_fix": "Clarify that the `docs/` directory must exist and contain the three specified files, and that no other files are required for AC-1."
+        },
+        {
+          "section": "Edge Cases & Rules - .gitignore",
+          "category": "needs_clarify",
+          "problem": "The .gitignore pattern list includes 'temp/transient artifacts (e.g., editor droppings like `.vscode/`/`.idea/` user settings, `__pycache__/`, `*.pyc`)' but does not specify whether `.vscode/` and `.idea/` should be excluded entirely or only user settings. The example says 'user settings' but the pattern `.vscode/` would exclude the entire directory, which might be too broad.",
+          "why_it_matters": "Overly broad .gitignore patterns could accidentally exclude legitimate source files (e.g., if a project has a `.vscode/` directory with shared settings), violating the rule that .gitignore must never exclude legitimate source.",
+          "suggested_fix": "Specify exact patterns, e.g., `.vscode/settings.json`, `.idea/workspace.xml`, or state that `.vscode/` and `.idea/` are acceptable as whole-directory exclusions if they contain only user-specific settings."
+        },
+        {
+          "section": "Functional Requirements FR-8",
+          "category": "needs_clarify",
+          "problem": "The spec says the trigger `/sdd` is 'recognized by Claude Code, Claude Desktop, and OpenCode' but does not specify whether this recognition is automatic or requires configuration. It also says it is 'embedded as an `Invocation:` phrase in the Antigravity master SKILL.md' but does not explain what that means for users of other tools.",
+          "why_it_matters": "Users and testers need to know if the trigger works out-of-the-box or if setup steps are required, and whether the Antigravity integration is part of this milestone or deferred.",
+          "suggested_fix": "Clarify that the trigger is a documented convention, not an automatic integration, and specify whether the Antigravity SKILL.md is part of M4 deliverables or M5."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_4.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 9,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-7 / LICENSE",
+          "category": "needs_clarify",
+          "problem": "The specification does not state which year and copyright holder must appear in the MIT license text.",
+          "why_it_matters": "An MIT license without a proper copyright notice is legally ambiguous and may invalidate the intended open\u2011source licensing.",
+          "suggested_fix": "Add a concrete placeholder (e.g., \"\u00a9 2026 OpenAI\") or require the project maintainer to replace it with the correct year and owner before release."
+        },
+        {
+          "section": "Testability (overall acceptance criteria)",
+          "category": "needs_clarify",
+          "problem": "No explicit test procedures or automated checks are described for verifying the acceptance criteria.",
+          "why_it_matters": "Without a defined test suite, reviewers must manually inspect each deliverable, increasing the risk of missed errors and making regression testing difficult.",
+          "suggested_fix": "Include a brief test plan in `tests_milestone_4.md` that enumerates checks such as file existence, word\u2011count thresholds, required headings, .gitignore mandatory patterns, and consistency of constants."
+        },
+        {
+          "section": ".gitignore requirements",
+          "category": "needs_clarify",
+          "problem": "The spec mentions \u201cadditional patterns (e.g., `dist/`) are permitted\u201d but does not list the mandatory patterns in a single, unambiguous list.",
+          "why_it_matters": "Implementers might omit a required pattern or misinterpret optional ones as required, leading to accidental inclusion of secrets or build artifacts in the repository.",
+          "suggested_fix": "Provide an explicit bullet list of the mandatory entries (e.g., `.env`, `.env.*`, `node_modules/`, `outputs/critique-log/`, `*.log`, `.DS_Store`, `.vscode/`, `.idea/`, `__pycache__/`, `*.pyc`) and state that any other entries are optional."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}

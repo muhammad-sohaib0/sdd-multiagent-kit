@@ -1,0 +1,60 @@
+{
+  "document": "spec_milestone_4",
+  "pass": 2,
+  "round": 8,
+  "critics": [
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_4.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 8,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-6 \u2014 CLAUDE.md + AGENTS.md",
+          "category": "needs_clarify",
+          "problem": "The spec permits CLAUDE.md to \"rely entirely on AGENTS.md\" yet still requires it to be a non\u2011stub prose file (\u2265200 words). It does not explain how to satisfy the word\u2011count without duplicating content, nor does it define a method for measuring unique versus referenced words.",
+          "why_it_matters": "Implementers may either produce a thin wrapper that fails the 200\u2011word rule or duplicate large blocks of AGENTS.md, creating unnecessary maintenance overhead and risking future contradictions.",
+          "suggested_fix": "Add a clarification such as: \"CLAUDE.md must contain at least 200 words of original explanatory text; references to AGENTS.md may be used for exact command listings, but the narrative must be unique. Provide a template or example to illustrate compliance.\""
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 Non\u2011stub definition",
+          "category": "needs_clarify",
+          "problem": "The word\u2011count rule states to \"strip markdown marker characters (`#`, `*`, backticks) before counting; exclude fenced code blocks; a rough threshold, not a lint\". This leaves ambiguity about counting words inside tables, list items, inline code, or footnotes.",
+          "why_it_matters": "Different tooling or reviewers could arrive at divergent word counts, leading to inconsistent pass/fail decisions for the same document.",
+          "suggested_fix": "Specify the exact counting algorithm, e.g., \"Count all visible tokens after rendering markdown to plain text, including table cells and list items, but ignore any text inside fenced code blocks and HTML comments. Inline code counts as a single token per word.\""
+        },
+        {
+          "section": "FR-7 \u2014 .gitignore requirements",
+          "category": "objective",
+          "problem": "The mandatory patterns are listed, but the spec also says \"never excluding legitimate source\" without providing a concrete checklist of what constitutes legitimate source files.",
+          "why_it_matters": "Implementers might inadvertently add overly broad patterns (e.g., `*`) that hide source files, breaking the repository's usability and violating the requirement.",
+          "suggested_fix": "Add an explicit whitelist clause, e.g., \"The .gitignore must not contain patterns that match any of the following directories or file extensions: kit/, installers/, docs/, *.md, package.json, *.json, *.js, *.py, examples/\"."
+        },
+        {
+          "section": "AC-5 \u2014 Presence of .git directory",
+          "category": "needs_clarify",
+          "problem": "The acceptance criterion demands a `.git` directory, yet the document\u2019s status is \"Draft\" and the spec does not describe repository initialization as part of the milestone.",
+          "why_it_matters": "Requiring a `.git` directory may cause false failures in environments where the repo is unpacked without initializing git, or where CI pipelines use shallow clones without a full `.git` folder.",
+          "suggested_fix": "Either remove the `.git` requirement from AC\u20115 or clarify that the test harness should initialize a git repository before validation."
+        },
+        {
+          "section": "FR-1 \u2014 Quickstart command vs. \"no\u2011runtime\u2011dependencies\" note",
+          "category": "objective",
+          "problem": "FR\u20111 specifies a quickstart using `npm install -g sdd-multiagent-kit`, which introduces a runtime dependency on npm/node, while the edge\u2011case rules emphasize a \"no\u2011runtime\u2011dependencies and no\u2011build system\" note.",
+          "why_it_matters": "This creates a direct contradiction: the repository claims to have no runtime dependencies yet the quickstart requires npm, potentially confusing users and violating the consistency rule.",
+          "suggested_fix": "Either revise the quickstart to a pure\u2011script installer that does not rely on npm, or adjust the \"no\u2011runtime\u2011dependencies\" note to acknowledge the npm installer as an acceptable bootstrap mechanism."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 1
+}

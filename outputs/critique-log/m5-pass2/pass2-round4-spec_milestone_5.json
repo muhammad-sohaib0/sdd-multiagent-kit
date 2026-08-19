@@ -1,0 +1,136 @@
+{
+  "document": "spec_milestone_5",
+  "pass": 2,
+  "round": 4,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 9,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "The required heading set for `workflow_milestone_1.md` in FR-2 is written as `## Build States, feature-to-node traceability`, leaving 'feature-to-node traceability' without explicit markdown heading indicators (`##`).",
+          "why_it_matters": "AC-2 explicitly mandates that each generated example document contain 'exactly the FR-2 heading set'. Without explicit `##` formatting on the second workflow element, static analysis or test suites cannot deterministically assert the required heading name (e.g. whether it should be `## Feature-to-Node Traceability` or `## Traceability`).",
+          "suggested_fix": "Explicitly format all required section headings in FR-2 with markdown header syntax, e.g., `workflow \u2192 ## Build States, ## Feature-to-Node Traceability`."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 9,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The edge\u2011case list is incomplete; it omits common filesystem and encoding edge cases such as file\u2011permission restrictions, Unicode filenames, and path\u2011length limits that could affect the example project.",
+          "why_it_matters": "Missing these cases means the example could break on certain platforms, violating the \u201cplatform\u2011agnostic\u201d promise and leaving users without guidance on how to handle such failures.",
+          "suggested_fix": "Add explicit edge\u2011case entries covering file permissions, Unicode characters in filenames, and maximum path length, and state how the example should behave (e.g., fail gracefully with a clear error message)."
+        },
+        {
+          "section": "Functional Requirements \u2013 FR\u20111 & FR\u20112",
+          "category": "needs_clarify",
+          "problem": "The description of the \u201cNon\u2011stub rule\u201d and the exemption for structured files is vague; it does not define how the \u2265200\u2011word count is measured (e.g., markdown syntax, code blocks excluded) nor how to handle tables.",
+          "why_it_matters": "Ambiguity can lead to inconsistent implementations and make automated verification difficult, potentially causing reviewers to disagree on compliance.",
+          "suggested_fix": "Specify the exact counting method (e.g., plain\u2011text words after stripping markdown syntax, include table cell text, exclude code fences) and provide a small example of a compliant and non\u2011compliant file."
+        },
+        {
+          "section": "Functional Requirements \u2013 FR\u20112",
+          "category": "objective",
+          "problem": "The spec does not require verification that the five example documents cross\u2011reference each other correctly (e.g., traceability tables linking spec nodes to tasks).",
+          "why_it_matters": "Cross\u2011reference consistency is a core claim of \u201cinternal consistency\u201d; without a check, the example could appear realistic but contain broken links, confusing users.",
+          "suggested_fix": "Add an acceptance criterion that mandates at least one explicit cross\u2011reference in each document (e.g., a table row in `workflow_milestone_1.md` that maps a spec node to a task) and require a test that validates these links exist."
+        },
+        {
+          "section": "Acceptance Criteria \u2013 AC\u20111",
+          "category": "needs_clarify",
+          "problem": "The testable check for \u201cnon\u2011stub\u201d only says \u201c\u2265200 words per file\u201d but does not define the threshold for what counts as a word in markdown (e.g., headings, list markers).",
+          "why_it_matters": "Automated test suites need a deterministic rule; otherwise, implementations may pass or fail inconsistently.",
+          "suggested_fix": "Define the word\u2011count rule precisely (e.g., count only alphanumeric tokens in paragraph text, ignore headings, list bullets, and code blocks) and reference a utility script that performs the check."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements FR-2",
+          "category": "needs_clarify",
+          "problem": "The heading set for each file is specified, but the exact heading text for workflow and tests is ambiguous. For workflow, it says 'feature-to-node traceability' without naming the exact heading; for tests, it lists '## Node Tests' and '## Acceptance-Criterion Mapping' but does not specify whether additional headings are allowed or prohibited.",
+          "why_it_matters": "Without exact heading names, implementers cannot deterministically verify compliance, and the 'exactly the kit's section headings' requirement is unenforceable.",
+          "suggested_fix": "List the exact heading strings for workflow (e.g., '## Build States', '## Feature-to-Node Traceability') and state explicitly that no other headings are permitted in any file."
+        },
+        {
+          "section": "Edge Cases & Rules - Non-stub",
+          "category": "needs_clarify",
+          "problem": "The word count threshold is '\u2265200 words per file, individually' for prose files, but the counting method is not defined (e.g., does it include headings, code blocks, tables? Are Markdown syntax tokens counted?).",
+          "why_it_matters": "Ambiguity in word counting leads to inconsistent verification and potential disputes over whether a file meets the non-stub rule.",
+          "suggested_fix": "Define word count as the number of whitespace-separated tokens in the file's text content, excluding Markdown syntax (e.g., '##', '**', links) but including code block content. Provide a reference counting script or command."
+        },
+        {
+          "section": "Edge Cases & Rules - Internal consistency",
+          "category": "needs_clarify",
+          "problem": "The rule states 'Any tasks build steps are illustrative and reference files that need not exist in the repo' but does not specify how a reader or automated checker can distinguish illustrative steps from real ones, beyond a note in the file.",
+          "why_it_matters": "Without a clear marker (e.g., a specific prefix or a dedicated section), automated validation cannot verify that all build steps are marked illustrative, and users may be misled.",
+          "suggested_fix": "Require that every illustrative build step in tasks_milestone_1.md be prefixed with '[Illustrative]' or placed under a dedicated '## Illustrative Build Steps' heading, and add an acceptance criterion to verify this."
+        },
+        {
+          "section": "Acceptance Criteria AC-1",
+          "category": "objective",
+          "problem": "AC-1 requires PLAN.md to be 'directly invokable by the kit' but does not specify the exact command or the expected output/exit code for a successful invocation. The testable check only verifies file existence and headings, not actual invokability.",
+          "why_it_matters": "A file could pass the static checks but fail when the kit actually runs (e.g., due to unexpected content or formatting), making the acceptance criterion untestable in practice.",
+          "suggested_fix": "Add a testable step: run the kit command (e.g., `/sdd` or the documented CLI) against a fresh copy of examples/sample-project/ and assert that it exits 0 and produces the expected output structure."
+        },
+        {
+          "section": "Out of Scope",
+          "category": "objective",
+          "problem": "The Out of Scope section says 'No compiled/implemented example artifact ships' but does not clarify whether the example's tasks document may reference files that are not shipped (e.g., source code files). The internal consistency rule allows such references, but this creates a contradiction: the example is supposed to demonstrate the 'build that follows' yet no build artifacts exist.",
+          "why_it_matters": "This ambiguity could lead to a reviewer expecting actual source files or a build script, or conversely, a user being confused about why the referenced files are absent.",
+          "suggested_fix": "Explicitly state that the example ships only the five-document set and PLAN.md, and that any file references in tasks are purely illustrative and clearly marked as such (see the illustrative marker fix)."
+        },
+        {
+          "section": "Cross-Reference",
+          "category": "objective",
+          "problem": "The Cross-Reference table lists paths for the example set but does not include the example's README.md or the example's tasks/workflow/tests files in the same table (it does include them, but the table is missing the example's README.md path).",
+          "why_it_matters": "Incomplete cross-referencing makes it harder for readers to navigate the example and for automated link-checkers to validate the document set.",
+          "suggested_fix": "Add a row for `examples/sample-project/README.md` (if it exists) or explicitly state that no README is required for the example project beyond the examples/README.md."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 3
+}

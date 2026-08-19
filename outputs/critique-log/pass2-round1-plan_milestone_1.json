@@ -1,0 +1,228 @@
+{
+  "document": "plan_milestone_1",
+  "pass": 2,
+  "round": 1,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "plan_milestone_1.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 10,
+      "scores": {
+        "clarity": 10,
+        "completeness": 10,
+        "edge_case_coverage": 10,
+        "internal_consistency": 10,
+        "testability": 10
+      },
+      "issues": [],
+      "verdict": "pass"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "plan_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "2. Architecture",
+          "category": "objective",
+          "problem": "The plan lists ten sub-skills in the directory tree, but the text in Section 2 and Section 6 refers to 'ten sub-skills' while the actual list contains only nine named directories: research-ct-scan, specify, plan-builder, task-breakdown, clarify-interview, milestone-builder, workflow-builder, scenario-tester, stranger-test, history-logger. Wait, counting them yields 10. However, the spec mentions a 'five-document set' (spec/plan/tasks/workflow/tests) and the master orchestrator. The plan misses explicit mapping or handling of the 'structural-completeness gate' (G1) and 'simplicity gate' (G2) as independent verifiable logic steps, blending them vaguely into 'master-skill checkpoints'.",
+          "why_it_matters": "If the gates are not distinctly defined components or logic blocks within the master skill, they cannot be independently tested or verified for structural completeness and simplicity, violating the constitution's testability and the spec's gate requirements.",
+          "suggested_fix": "Explicitly define the G1 and G2 gate logic as discrete sections or sub-routines within the master SKILL.md architecture, detailing their inputs, evaluation rules, and pass/fail outputs, ensuring they are testable entities."
+        },
+        {
+          "section": "3. Data Model (kit content)",
+          "category": "objective",
+          "problem": "The plan states 'YAML is the natural fit... and is dependency-free to parse.' While standard YAML is human-readable, parsing it without a library in a future M2 orchestration script (or even validating it in M1 tests) is non-trivial and error-prone due to YAML's complexity and edge cases (e.g., indentation, typing).",
+          "why_it_matters": "Claiming it is 'dependency-free to parse' might lead to fragile custom parsers in M2 or inadequate validation in M1, risking configuration errors that break the critic panel setup.",
+          "suggested_fix": "Rephrase to 'YAML is human-readable and standard' and add a note that M2 will introduce a standard YAML parsing library (or use built-in Node.js capabilities if available) for robust parsing, rather than implying raw string parsing is trivial."
+        },
+        {
+          "section": "4. Integration Approach",
+          "category": "needs_clarify",
+          "problem": "The plan states 'The actual HTTP calls are M2. M1's contract is that the config carries the six verified-reachable model IDs...'. It is unclear how M1 verifies 'reachability' without making HTTP calls, or if this refers only to static validation of the model IDs against provider documentation.",
+          "why_it_matters": "If 'verified-reachable' implies runtime checks, M1 cannot fulfill this. If it means static validation, the term is misleading and might confuse implementers or testers."
+        },
+        {
+          "section": "6. Rationale for Key Choices (Simplicity Justifications)",
+          "category": "objective",
+          "problem": "The justification for 'Master + ten sub-skills' states: 'Justified beyond the 3-default? No \u2014 this is \u22643 top-level units (master + content set).' This logic is flawed. The architecture introduces 11 distinct components (1 master + 10 sub-skills). Counting 'content set' as one unit to bypass the 3-per-milestone simplicity default is a semantic trick.",
+          "why_it_matters": "This undermines the Simplicity by Default constitution article. If 11 files are needed, they should be justified as necessary for the milestone's scope (which they seem to be), rather than hiding them behind a 'content set' abstraction to claim compliance with a numerical limit.",
+          "suggested_fix": "Rewrite the justification to acknowledge the 11 components explicitly and justify them as the minimal necessary set to fulfill the spec's phase decomposition, rather than trying to fit them into a '\u22643 top-level units' argument."
+        },
+        {
+          "section": "7. Acceptance Mapping",
+          "category": "objective",
+          "problem": "AC-7 (Stranger Test contract parity) is mentioned as satisfied, but the plan does not detail how the 'stranger-test' sub-skill will achieve contract parity or what specific metrics define parity in M1.",
+          "why_it_matters": "Without a clear definition of 'contract parity' in the plan, the implementation of the stranger-test sub-skill might miss the mark, and testers won't know what to verify.",
+          "suggested_fix": "Add a brief definition of 'contract parity' in the context of the Stranger Test (e.g., 'the stranger-test sub-skill must verify that the generated spec/plan/tasks/workflow/tests set is mutually consistent and complete according to the master skill's contracts') to guide implementation and testing."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "plan_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 6,
+        "internal_consistency": 9,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "2. Architecture",
+          "category": "objective",
+          "problem": "Master skill described as 'thin' but assigned pipeline order, G1/G2 checkpoint rules, sub-skill dispatch map, AND standing adjudication/stopping rules \u2014 this exceeds a thin orchestrator and risks becoming a god object violating Simplicity (Article IV) and Standalone-First (Article I).",
+          "why_it_matters": "If the master skill accumulates too much logic, sub-skills lose independence, testing becomes harder, and phase reordering becomes more than a one-file change.",
+          "suggested_fix": "Explicitly scope the master skill to: (a) ordered list of phase names, (b) gate checkpoint predicates (pass/fail functions), (c) dispatch map phase\u2192sub-skill. Move adjudication/stopping rules into a separate 'adjudicator' sub-skill or into the critique-loop (M2) where they belong."
+        },
+        {
+          "section": "3. Data Model",
+          "category": "objective",
+          "problem": "providers.yaml validation rules listed as 'every slot.model exists under its provider's models; no duplicates' \u2014 incomplete. Missing: version compatibility checks, model deprecation handling, tier enforcement (free tier only per ADR-001), and key_env var naming convention validation.",
+          "why_it_matters": "Incomplete validation lets invalid configs pass M1 acceptance but fail at M2 runtime, breaking the 'configuration only' integration promise and violating Observable Interfaces (Article II).",
+          "suggested_fix": "Extend the validation spec in this plan to include: (1) all models must be free-tier eligible per provider, (2) key_env must match regex ^[A-Z_]+$, (3) critic_slots length == 6, (4) no model appears in more than one slot, (5) version field semantic-version parsable."
+        },
+        {
+          "section": "4. Integration Approach",
+          "category": "needs_clarify",
+          "problem": "Bootstrap circularity: 'the master skill orchestrates user projects; for the bootstrap, the process now authors the 13 files, which then become the running kit.' Unclear whether the bootstrap uses the same master skill content being authored, a prior version, or a manual process.",
+          "why_it_matters": "If the kit cannot demonstrably build itself (Stranger Test AC-7), the self-hosting claim is unverified and the process lacks dogfooding credibility.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "6. Rationale for Key Choices",
+          "category": "objective",
+          "problem": "Simplicity justification claims '\u22643 top-level units (master + content set)' but the architecture defines 1 master + 10 sub-skills = 11 SKILL.md files. The counting logic is inconsistent with the actual component count.",
+          "why_it_matters": "Misrepresenting component count undermines the Simplicity gate (Article IV) and the constitution's amendment process \u2014 if the default is 3 per milestone, 11 needs explicit justification, not a hand-wave.",
+          "suggested_fix": "Either: (a) reclassify sub-skills as 'content set' (one logical unit) and justify why 10 sub-skills \u2260 10 components, or (b) acknowledge 11 components and add a Simplicity gate exception with rationale (e.g., 'CT decomposition produced 10 irreducible phases; merging loses standalone testability')."
+        },
+        {
+          "section": "2. Architecture",
+          "category": "objective",
+          "problem": "Gates described as 'master-skill checkpoints' but no mechanics specified: how does G1 validate the spec? How does G2 validate all five documents? What is the pass/fail signal? No contract for gate predicates.",
+          "why_it_matters": "Without gate contracts, M2 cannot implement the critique-loop automation that depends on G1/G2 outputs, and the structural-completeness gate becomes untestable in M1.",
+          "suggested_fix": "Add a 'Gate Contracts' subsection defining: G1(input: spec.md) \u2192 {pass: bool, errors: string[]}, G2(input: [spec, plan, tasks, workflow, tests]) \u2192 {pass: bool, errors: string[]}. Specify that errors are machine-parseable (e.g., JSON lines) for M2 consumption."
+        },
+        {
+          "section": "5. Security",
+          "category": "objective",
+          "problem": "Secret-detection described as 'a verification step (tests), not a runtime feature' but no scope: what patterns are scanned? (env var refs, base64, high-entropy strings?) Which files? (all 13? providers.yaml only?)",
+          "why_it_matters": "Vague verification lets secrets slip through; the test document cannot implement a precise check without a defined rule set, violating Tests Before Implementation (Article III).",
+          "suggested_fix": "Define the secret-detection rule set in this plan: (1) scan all 13 files, (2) flag any string matching regex for AWS/GCP/Azure/OpenAI/Anthropic key prefixes, (3) flag base64 blobs > 20 chars, (4) flag high-entropy strings > 32 chars, (5) allowlist: env var references like ${OPENAI_API_KEY} are permitted."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "plan_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "2. Architecture",
+          "category": "needs_clarify",
+          "problem": "The master skill is described as 'thin' and only orchestrates/gates, but the plan does not specify how the master skill handles a sub-skill failure or a gate failure (e.g., G1 fails on the spec). Does the master skill stop the pipeline, request a re-run of a specific sub-skill, or invoke a Clarify sub-skill?",
+          "why_it_matters": "Without a defined failure-handling contract, the master skill's behavior is ambiguous, which affects the workflow and tests for M1 and could lead to inconsistent behavior across the four target tools.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "3. Data Model (kit content)",
+          "category": "objective",
+          "problem": "The plan states that each sub-skill SKILL.md has 'edge-case rule(s) per the spec's FR-2 table', but it does not list or summarize those edge-case rules in the plan. The plan only references the spec, making the plan incomplete as a standalone 'how' document.",
+          "why_it_matters": "The plan is supposed to be the technical blueprint; without enumerating the edge-case rules, the tasks and tests documents cannot be derived reliably, and the plan fails the Standalone-First principle.",
+          "suggested_fix": "Add a subsection under 'Data Model' that lists each sub-skill's input, output, and the specific edge-case rules (or at least a summary table) that the SKILL.md must implement, referencing the spec FR-2 table but also restating them for completeness."
+        },
+        {
+          "section": "5. Security",
+          "category": "objective",
+          "problem": "The plan says 'Secret-detection is a verification step (tests), not a runtime feature, in M1.' but does not specify what the verification step actually checks (e.g., scanning for env-var patterns, ensuring no key values in files) or how it is triggered (manual vs. automated).",
+          "why_it_matters": "Without a concrete verification definition, the tests document cannot implement AC-3 (no secrets) reliably, and the security guarantee is unverifiable.",
+          "suggested_fix": "Define the secret-detection verification as a test that scans all 13 files for patterns like 'sk-', 'key=', or known provider key formats, and assert that no such values exist; specify that this test is part of tests_milestone_1.md."
+        },
+        {
+          "section": "7. Acceptance Mapping",
+          "category": "needs_clarify",
+          "problem": "AC-7 (Stranger Test contract parity) is mentioned but the plan does not define what 'contract parity' means concretely for M1. Does it mean the 13 files must be installable into all four tools with identical behavior, or just that the content format matches the Agent-Skills standard?",
+          "why_it_matters": "The Stranger Test is a key acceptance criterion; ambiguity in its definition could lead to under-testing or over-testing in M1, and the tests document cannot be written precisely.",
+          "suggested_fix": ""
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "plan_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 4,
+        "internal_consistency": 8,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "2. Architecture",
+          "category": "objective",
+          "problem": "The master skill is said to define the pipeline phase order, but the exact ordered list of sub\u2011skills is not provided.",
+          "why_it_matters": "Implementers cannot construct the orchestrator without knowing the precise sequence, risking mis\u2011ordered execution and failing the G1/G2 gates.",
+          "suggested_fix": "Add an explicit ordered list (e.g., `pipeline: [research-ct-scan, specify, plan-builder, \u2026]`) in the master SKILL.md frontmatter or a dedicated section."
+        },
+        {
+          "section": "3. Data Model",
+          "category": "objective",
+          "problem": "The schema for `kit/config/providers.yaml` is described only in prose; required fields, types, and validation rules are not formally defined.",
+          "why_it_matters": "Without a concrete schema, downstream validation tests cannot be written, and contributors may create malformed configs that break the critique engine.",
+          "suggested_fix": "Include a full YAML/JSON schema (or a markdown table) enumerating each field (`id`, `key_env`, `tier`, `models`) with type, required/optional status, and any constraints (e.g., unique `id`)."
+        },
+        {
+          "section": "4. Integration Approach",
+          "category": "needs_clarify",
+          "problem": "The plan states that \"the process now authors the 13 files\" but does not explain how this authoring occurs (manual, script, template rendering, etc.).",
+          "why_it_matters": "Clarification is needed to understand what tooling, if any, must be provided in later milestones and to ensure the process is reproducible."
+        },
+        {
+          "section": "5. Security",
+          "category": "needs_clarify",
+          "problem": "The claim \"No secrets anywhere\" conflicts with storing environment variable *names* in `providers.yaml`; it is unclear whether those names are considered sensitive.",
+          "why_it_matters": "If env\u2011var names are deemed secret, the current approach would violate the security article of the constitution and require redaction or alternative handling."
+        },
+        {
+          "section": "3. Data Model / Sub\u2011skill contracts",
+          "category": "needs_clarify",
+          "problem": "Edge\u2011case rules are mentioned but not enumerated for each sub\u2011skill; the plan does not list the specific edge cases that each skill must handle.",
+          "why_it_matters": "Explicit edge\u2011case definitions are required for standalone testing (Article I) and to ensure the gates can validate completeness."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

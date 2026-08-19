@@ -1,0 +1,140 @@
+{
+  "document": "spec_milestone_3",
+  "pass": 2,
+  "round": 2,
+  "critics": [
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The wizard collects keys via readline prompts, but it is unclear how the keys are written to the user's environment/tool config. The spec says 'written only to the user's own environment/tool config as env-var names' but does not specify the mechanism (e.g., writing to shell profile, using tool-specific config files, or just exporting in the current session).",
+          "why_it_matters": "Without a clear mechanism, implementers may choose different approaches, leading to inconsistent behavior and potential security issues (e.g., writing keys to plaintext config files).",
+          "suggested_fix": "Specify the exact mechanism for persisting keys: e.g., append to ~/.bashrc or ~/.zshrc, or use tool-specific config files (like .env in the tool's config directory). Also clarify whether the wizard should detect existing env vars and skip prompts if already set."
+        },
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "The adapter interface defines `install(paths)` but does not specify the exact structure of `paths`. It says 'the kit's skill content to copy' but does not define whether it's a directory path, a list of files, or a mapping of source-to-destination.",
+          "why_it_matters": "Ambiguity in the `paths` parameter can lead to incompatible adapter implementations and make testing difficult.",
+          "suggested_fix": "Define `paths` as an object mapping source paths (relative to kit/) to destination paths (relative to the tool's config directory), or as a single source directory that is copied recursively. Provide a concrete example in the spec."
+        },
+        {
+          "section": "FR-3",
+          "category": "objective",
+          "problem": "The spec states that OpenCode 'reads .claude/skills/ directly' and shares the Claude Code location, but this is an assumption about OpenCode's behavior that is not verified. If OpenCode does not actually read that directory, the installer will fail silently.",
+          "why_it_matters": "The spec must be grounded in verified facts; otherwise, the implementation may be incorrect and the acceptance criteria (AC-4) cannot be met.",
+          "suggested_fix": "Verify OpenCode's actual skill directory by checking its documentation or source. If uncertain, specify that the OpenCode adapter must detect the correct location dynamically (e.g., by checking multiple candidate paths) and fail with a clear error if none are found."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The edge case 'Keys provided again' says the user may skip a key to keep the existing env value, but it does not specify how the wizard knows whether an env value exists. Does it check the current environment? Does it read from the tool config?",
+          "why_it_matters": "Without a clear definition, the wizard may incorrectly warn users or overwrite existing keys.",
+          "suggested_fix": "Specify that the wizard checks the current process environment for each key; if present, it shows a prompt with the existing value masked and allows skipping. If not present, it requires a non-empty input."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "AC-1 defines 'non-stub' as 'empty, placeholder, or TODO-only with no real implementation', but this is subjective. A file with a minimal implementation that does nothing useful could pass this criterion.",
+          "why_it_matters": "The acceptance criteria must be objectively testable to ensure the milestone is truly complete.",
+          "suggested_fix": "Add concrete checks: e.g., each adapter's `detect()` must return an object with `installed` and `location`; `install()` must create the target directory and copy at least one file; `confirmEnabled()` must return a boolean. Provide a test script that exercises these functions with mock paths."
+        },
+        {
+          "section": "FR-5",
+          "category": "objective",
+          "problem": "The spec says 'no runtime dependencies' but does not specify whether devDependencies are allowed. Also, it does not specify the exact package name and version, which could lead to conflicts.",
+          "why_it_matters": "Ambiguity in package.json requirements can cause build or publish issues.",
+          "suggested_fix": "Clarify that devDependencies are allowed for testing, but the published package must have zero runtime dependencies. Specify the exact package name and initial version (e.g., 0.1.0)."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The edge case 'Re-runs' says 'overwrites the kit files in place' but does not specify what happens to user modifications to those files. If the user has edited a skill file, will it be overwritten?",
+          "why_it_matters": "Users may lose customizations, leading to frustration and data loss.",
+          "suggested_fix": "Specify that the installer only overwrites files that are part of the shipped kit (e.g., by checking a manifest), and leaves user-modified files untouched. Alternatively, back up existing files before overwriting."
+        },
+        {
+          "section": "FR-4",
+          "category": "needs_clarify",
+          "problem": "The spec says the folder name yields `/sdd` for the three native tools, but it does not specify how the wizard confirms the trigger is active. Does it check for a specific file or registry entry?",
+          "why_it_matters": "Without a clear confirmation mechanism, `confirmEnabled()` may be implemented inconsistently across adapters.",
+          "suggested_fix": "Define a concrete check: e.g., for Claude Code, verify that the skill folder exists and contains a SKILL.md with a valid frontmatter; for Antigravity, check that the description contains the exact phrase '/sdd'."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 8,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-2 \u2014 Adapter interface",
+          "category": "needs_clarify",
+          "problem": "`detect()` is specified to return `{ installed: bool, location: string }` but the expected format and semantics of the `location` string are never defined (absolute path? relative? platform\u2011specific separators?).",
+          "why_it_matters": "Implementers cannot reliably write detection logic or later use the returned path for copying files, leading to platform\u2011specific bugs or mismatched expectations between adapters.",
+          "suggested_fix": "Define `location` as an absolute, normalized filesystem path (e.g., using `path.resolve`) and document the exact string format, including examples for each supported OS."
+        },
+        {
+          "section": "FR-3 \u2014 Per-tool install locations",
+          "category": "needs_clarify",
+          "problem": "The description for OpenCode says it \"shares the Claude Code location and needs **no separate copy**\" yet also requires the adapter's `install()` to \"verify/confirms the shared folder is populated (a no\u2011op copy)\". It is unclear whether `install()` should perform any file operations at all.",
+          "why_it_matters": "Ambiguity may cause developers to either duplicate files unnecessarily or skip required validation, breaking the guarantee that the skill is present for OpenCode.",
+          "suggested_fix": "State explicitly that `install()` for OpenCode must only check that the target directory exists and contains the expected files, performing no copy operation. Provide a pseudocode snippet."
+        },
+        {
+          "section": "FR-1 \u2014 Pakistani\u2011user NVIDIA guide slot",
+          "category": "needs_clarify",
+          "problem": "The spec mentions a \"Learn more\" option that prints a link to the reserved guide's docs location, but the exact placeholder (e.g., `https://example.com/guide/pakistani-nvidia`) is not provided, nor is the mechanism for inserting the real link later.",
+          "why_it_matters": "Without a concrete placeholder, the implementation may either hard\u2011code a dead URL or omit the option entirely, violating the user scenario US\u20112.",
+          "suggested_fix": "Add a clearly marked placeholder token such as `{{PAKISTANI_NVIDIA_GUIDE_URL}}` and document that the maintainer must replace it during release."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The spec does not address user\u2011initiated aborts (Ctrl\u2011C) or invalid selections when choosing which tools to install into.",
+          "why_it_matters": "A real\u2011world CLI must handle abrupt termination gracefully and validate user input to avoid crashes or unintended installations.",
+          "suggested_fix": "Add a rule: on SIGINT the wizard should cleanly exit with code 2 and display a short cancellation message; validate numeric or comma\u2011separated selections and reprompt on invalid input."
+        },
+        {
+          "section": "AC-1 \u2014 Non\u2011stub requirement",
+          "category": "needs_clarify",
+          "problem": "The term \"non\u2011stub\" is defined as \"empty, placeholder, or TODO\u2011only with no real implementation\", but the spec does not specify how to programmatically verify this (e.g., function body length, presence of `throw new Error('TODO')`).",
+          "why_it_matters": "Automated CI checks may need a concrete criterion to enforce the acceptance criterion, otherwise a minimal stub could mistakenly pass.",
+          "suggested_fix": "Specify that each exported function must contain at least one operational statement (e.g., a filesystem check, a copy operation, or a return statement) and must not contain the literal string `TODO`."
+        },
+        {
+          "section": "Exit codes",
+          "category": "needs_clarify",
+          "problem": "Exit codes 0, 1, and 2 are defined, but the mapping between specific failure modes (e.g., detection failure vs. install failure) and these codes is not fully described.",
+          "why_it_matters": "Consumers of the CLI (scripts, CI pipelines) need deterministic exit semantics to react appropriately.",
+          "suggested_fix": "Provide a decision table: 0 = all chosen tools installed & confirmed; 1 = at least one chosen tool installed but failed or not confirmed; 2 = pre\u2011install error (invalid arguments, missing required key without skip, or user abort)."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}

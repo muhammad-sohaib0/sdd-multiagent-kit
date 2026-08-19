@@ -1,0 +1,323 @@
+{
+  "document": "spec_milestone_1",
+  "pass": 1,
+  "round": 1,
+  "critics": [
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-1 / FR-2",
+          "category": "objective",
+          "problem": "FR-1 pipeline lists 'gates' as explicit steps (after research-ct-scan and after workflow-builder) but FR-2's ten sub-skills do not include gate sub-skills. The constitution mentions Structural Completeness Gate and Simplicity Gate (project brief) but they are not represented as invokable sub-skills in the M1 content set.",
+          "why_it_matters": "The master skill's orchestration description references steps that have no corresponding sub-skill implementation in this milestone, creating a gap between the declared pipeline and the deliverable inventory.",
+          "suggested_fix": "Either add gate sub-skills to the FR-2 list (e.g., `structural-completeness-gate`, `simplicity-gate`) or rewrite FR-1's pipeline to describe gates as inline checks within existing sub-skills (e.g., `specify` emits a checklist that `plan-builder` validates)."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The master skill pipeline includes 'Pass 1 critique loop' and 'Pass 2 critique loop' as steps, but the `critique-loop` sub-skill is explicitly deferred to M2 (Out of Scope \u00a77). The master skill cannot dispatch to a sub-skill that does not exist in M1.",
+          "why_it_matters": "The master skill's instruction content will name a sub-skill that is not present in the installed kit, causing runtime failures or confusion when the skill is executed before M2 lands.",
+          "suggested_fix": "Change the master skill's pipeline description to reference the critique phase as a documented invariant (six models, two passes, stopping conditions) and note that automation arrives in M2, without naming a `critique-loop` sub-skill dispatch. Keep the phase ordering but mark the step as 'awaiting M2 automation'."
+        },
+        {
+          "section": "FR-2",
+          "category": "objective",
+          "problem": "Each sub-skill is required to have 'a defined input, output, and a fail/edge-case rule (see workflow)' but the workflow document (`workflow_milestone_1.md`) is a companion artifact not yet produced. This creates a circular dependency: the spec requires the workflow to define edge-case rules, but the workflow is generated from this spec.",
+          "why_it_matters": "Without concrete edge-case rules in the spec itself, the sub-skill SKILL.md files cannot be written to satisfy AC-4 ('at least one edge-case rule') until the workflow exists, blocking structural completeness.",
+          "suggested_fix": "Inline a minimal edge-case rule per sub-skill directly in this spec (e.g., a bullet table in FR-2) so the SKILL.md files can be authored independently. The workflow document can later elaborate, but the spec must carry the baseline."
+        },
+        {
+          "section": "\u00a74.2 providers.yaml schema",
+          "category": "objective",
+          "problem": "The schema shows models as arrays under each provider, but FR-4 requires 'the six model IDs... and the environment variable each provider reads'. The schema satisfies this, but it does not encode model-level metadata (e.g., which model is the 'primary' for a given role, or per-model rate limits) that the M2 critique engine will need.",
+          "why_it_matters": "M2's orchestration script will need to know how to select models for each critic slot; if the config is only provider-level arrays, M2 will have to hard-code the mapping, violating the 'data-only change' principle.",
+          "suggested_fix": "Extend the schema to include a `critic_slots` mapping (e.g., `critic_1: nvidia/nemotron-3-ultra-550b-a55b`, etc.) or add per-model attributes (role, priority) so the panel composition is fully data-driven."
+        },
+        {
+          "section": "AC-7 (Stranger Test)",
+          "category": "needs_clarify",
+          "problem": "The Stranger Test requires a fresh session to reproduce the 13-file kit content 'given only the M1 five-document set'. The five documents are the spec, plan, tasks, workflow, and tests *for milestone 1 itself*. It is unclear whether the test expects the stranger to regenerate the kit content from the milestone's own documentation (circular) or from the project brief alone.",
+          "why_it_matters": "If the test is circular, it validates nothing. If it expects the brief, the brief is not part of the five-document set. The acceptance criterion is ambiguous and cannot be objectively verified until clarified.",
+          "suggested_fix": null
+        },
+        {
+          "section": "FR-3 / AC-6",
+          "category": "needs_clarify",
+          "problem": "The constitution template must 'render the seven articles verbatim from PLAN.md \u00a76', but PLAN.md is not included in this document set. The drafter cannot verify verbatim inclusion without access to that source.",
+          "why_it_matters": "AC-6 cannot be objectively checked by a critic who does not have PLAN.md. The spec either needs to inline the seven articles or accept that verification requires external context.",
+          "suggested_fix": null
+        },
+        {
+          "section": "FR-1 (installed-skill awareness)",
+          "category": "needs_clarify",
+          "problem": "FR-1 references 'installed-skill awareness per PLAN.md \u00a75.2' for the `research-ct-scan` sub-skill. The meaning of 'installed-skill awareness' is not defined in this spec, and PLAN.md is not provided.",
+          "why_it_matters": "The sub-skill's behavior depends on an undefined concept, making it impossible to write a complete SKILL.md or test it against AC-4.",
+          "suggested_fix": null
+        },
+        {
+          "section": "Cumulative History / Retry policy",
+          "category": "needs_clarify",
+          "problem": "The retry policy states '3 consecutive-round failures \u2192 non-cooperative flag' but does not specify the consequence of that flag (e.g., abort milestone, escalate to human, substitute model). This is a policy decision for the critique engine (M2) but is mentioned in M1's cumulative history as binding.",
+          "why_it_matters": "If M1's content treats this as a fixed rule, M2 must implement it exactly; if it's a placeholder, M1 should not present it as immutable.",
+          "suggested_fix": null
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 6,
+        "internal_consistency": 9,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The term 'gates' is used in the master skill pipeline description without defining what gates are or linking to their definitions.",
+          "why_it_matters": "Implementers may be uncertain which gates to apply and where, leading to inconsistent enforcement of the structural completeness and simplicity gates.",
+          "suggested_fix": "Add a brief definition of the gates (e.g., structural completeness gate, simplicity gate) or reference the section in the constitution where they are defined."
+        },
+        {
+          "section": "US-4",
+          "category": "needs_clarify",
+          "problem": "It is stated that adding a new critic model should be a data-only change to providers.yaml, but it is unclear if any other parts of the kit (e.g., documentation, skill contracts) reference model IDs and would need updates.",
+          "why_it_matters": "If hidden references exist, the extensibility promise could be broken, requiring additional changes beyond providers.yaml."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-1 / \u00a77 Out of Scope",
+          "category": "needs_clarify",
+          "problem": "The master skill (FR-1) names the critique-loop step and phase ordering as an invariant, but the critique-loop sub-skill and its automation are deferred to M2. It is unclear whether the M1 master skill should include a placeholder reference to the critique-loop sub-skill (e.g., a stub SKILL.md) or simply describe the invariant in prose without a physical sub-skill folder.",
+          "why_it_matters": "AC-4 requires each of the ten sub-skills to be reachable from the master skill's pipeline description, but the critique-loop is not among the ten. If the master skill references a non-existent sub-skill, the Stranger Test (AC-7) may fail or the content may be internally inconsistent.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "US-3 / \u00a74 Data Model",
+          "category": "objective",
+          "problem": "US-3 states that for a single-milestone project, the five documents land at the root of the output set instead of under a milestone subfolder, but the Data Model section (\u00a74) only specifies file naming as `spec|plan|tasks|workflow|tests_milestone_N.md` and does not describe the root-level naming convention (e.g., `spec.md` vs `spec_milestone_1.md`).",
+          "why_it_matters": "Without a defined root-level naming scheme, the Stranger Test (AC-7) and the milestone-builder sub-skill cannot deterministically produce or locate the output files, risking inconsistency between the spec and the tasks/workflow documents.",
+          "suggested_fix": "Add a sentence to \u00a74 Data Model specifying that for single-milestone projects, files are named `spec.md`, `plan.md`, `tasks.md`, `workflow.md`, `tests.md` at the output root, and that the `_milestone_N` suffix is used only for multi-milestone projects."
+        },
+        {
+          "section": "FR-2 / AC-4",
+          "category": "objective",
+          "problem": "FR-2 lists ten sub-skills and requires each to have a defined input, output, and at least one edge-case rule, but the spec does not enumerate those inputs/outputs/edge-case rules for each sub-skill; it only gives a one-line description. AC-4 repeats the requirement without specifying the content.",
+          "why_it_matters": "The tasks and workflow documents will need to derive concrete contracts for each sub-skill. Without a normative list in the spec, the drafter of the companion documents may produce inconsistent or incomplete sub-skill contracts, undermining testability (AC-4) and the Stranger Test (AC-7).",
+          "suggested_fix": "Add a subsection under FR-2 (or a new Data Model subsection) that, for each of the ten sub-skills, lists its input, output, and at least one edge-case rule (e.g., 'research-ct-scan: input = project brief; output = Requirement Category Checklist; edge case = empty brief \u2192 return error and ask for clarification')."
+        },
+        {
+          "section": "\u00a75 API / Integration",
+          "category": "needs_clarify",
+          "problem": "The spec says the integration must be 'free-tier-compatible by construction' and that the six models are 'verified reachable on the free tiers (preflight, PHR 003)'. It is not specified whether the M1 content must include a preflight verification script or whether the verification is only a documented claim. Since M1 excludes automation scripts, it is ambiguous whether a preflight check is part of M1 deliverables.",
+          "why_it_matters": "If the preflight verification is expected as a deliverable, it would conflict with the Out of Scope deferral of automation scripts. If it is only a claim, the acceptance criteria (AC-2) may be untestable without a script.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a77 Out of Scope / \u00a78 AC-7",
+          "category": "objective",
+          "problem": "AC-7 requires that a fresh zero-context session can reproduce the intended 13-file kit content structure and key contracts from the M1 five-document set. However, the spec's Cross-Reference (\u00a79) lists only the four companion documents (plan, tasks, workflow, tests) and does not mention the spec itself as part of the set, nor does it specify the exact location of the five-document set for a single-milestone project (root vs milestone subfolder).",
+          "why_it_matters": "The Stranger Test depends on the complete five-document set being present and locatable. If the spec is not included in the set or the root-level path is undefined, the test cannot be executed reliably.",
+          "suggested_fix": "Update \u00a79 to include the spec document itself in the companion table (e.g., `outputs/milestones/milestone_1/spec_milestone_1.md` or root-level `spec.md` for single-milestone), and add a note clarifying that the five-document set is the input to the Stranger Test."
+        },
+        {
+          "section": "\u00a74 Data Model / FR-4",
+          "category": "objective",
+          "problem": "The providers.yaml schema in \u00a74.2 lists models under each provider, but the spec does not specify whether the `models` list is ordered (e.g., priority order) or whether the critique engine will use all models in a fixed sequence. This affects the 'single source of truth' claim and the M2 implementation.",
+          "why_it_matters": "If the order matters for the critique loop (e.g., six-model panel order), the schema must document it; otherwise M2 may interpret the list as unordered, causing inconsistency with the documented panel order in the Cumulative History.",
+          "suggested_fix": "Add a comment or field in the schema (e.g., `order: [1..6]` or a note that the list order is the critique order) and state in FR-4 that the list order is significant and must be preserved."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The master skill orchestration pipeline lists `clarify-interview` after Pass 1 critique and before `plan-builder`. However, the project brief states the process order is 'Clarify' followed by the 'five-document sets (spec/plan/tasks/workflow/tests)'. Placing Clarify after the spec but before the plan creates ambiguity about whether Clarify applies to the whole five-document set or just the spec.",
+          "why_it_matters": "If Clarify only applies to the spec, the plan/tasks/workflow/tests documents bypass the Clarify step, potentially missing critical business clarifications. If it applies to all five, the ordering in FR-1 is misleading.",
+          "suggested_fix": "Clarify in FR-1 whether Clarify is intended to run once after the spec or iteratively across the five documents, and align the step order with the project brief's 'Clarify' phase definition."
+        },
+        {
+          "section": "FR-2",
+          "category": "objective",
+          "problem": "The `clarify-interview` sub-skill description says it folds the compiled `needs_clarify` list into questions, but the spec does not define where or how the `needs_clarify` list is compiled and stored prior to this step.",
+          "why_it_matters": "Without a defined source for the `needs_clarify` list, the input contract for `clarify-interview` is incomplete, making it difficult to test or implement deterministically.",
+          "suggested_fix": "Add a brief note in FR-2 or the Data Model section specifying that the `needs_clarify` list is an output of the `research-ct-scan` or `specify` step and is passed as input to `clarify-interview`."
+        },
+        {
+          "section": "AC-1",
+          "category": "objective",
+          "problem": "AC-1 states all 13 files must exist at exact paths in `tasks_milestone_1.md`, but this spec document does not enumerate the exact paths for the 13 files, deferring entirely to the tasks document.",
+          "why_it_matters": "The spec should define the expected file structure to ensure the tasks document can be verified against it. Relying solely on the tasks document for path definitions creates a circular dependency for structural completeness checks.",
+          "suggested_fix": "Include a table or list in the Data Model or Acceptance Criteria section enumerating the 13 expected file paths (e.g., `kit/SKILL.md`, `kit/constitution.template.md`, `kit/config/providers.yaml`, `kit/skills/<name>/SKILL.md` for the ten sub-skills)."
+        },
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "The `history-logger` sub-skill is described as suggesting ADRs but never writing them silently. The spec does not define who approves the ADR or how the suggestion is surfaced to the user/agent.",
+          "why_it_matters": "This is a workflow interaction design decision that affects how the agent pauses or proceeds. An AI cannot infer whether ADR approval is a blocking step or an async notification."
+        },
+        {
+          "section": "AC-7",
+          "category": "needs_clarify",
+          "problem": "The Stranger Test acceptance criterion requires a fresh zero-context session to reproduce the 13-file kit content structure, but the threshold for 'reproduce' is not defined (e.g., exact file names, content similarity percentage, or just the high-level structure).",
+          "why_it_matters": "Without a measurable threshold, the Stranger Test is subjective and cannot be objectively verified by the six-critic panel or automated gates."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 10,
+      "scores": {
+        "clarity": 10,
+        "completeness": 10,
+        "edge_case_coverage": 9,
+        "internal_consistency": 10,
+        "testability": 10
+      },
+      "issues": [],
+      "verdict": "pass"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 6,
+        "internal_consistency": 8,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-1 (master skill pipeline step 4)",
+          "category": "needs_clarify",
+          "problem": "The pipeline uses 'gates' twice \u2014 once after `specify` (unspecified) and again after `scenario-tester` labeled 'gates (all five together)'. The five gates are never enumerated, and the difference between the first-gates subset and the all-five second-gates is not stated.",
+          "why_it_matters": "The Acceptance Criteria (AC-5) and the Stranger Test (AC-7) cannot be objectively verified until it is concrete which gates run where. The whole 'gate before Pass 1' vs 'gate before Pass 2' timing is part of the kit's process contract.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "FR-2 (clarify-interview)",
+          "category": "needs_clarify",
+          "problem": "The sub-skill's contract says it must 'fold answers back in without breaking consistency elsewhere' but does not specify whether the answers update the spec, the plan, both, or only the next-to-be-authored document. There is also no rule for re-running the structural/simplicity gates after answers are folded in.",
+          "why_it_matters": "This determines whether the spec is considered 'frozen' before plan-builder runs, which in turn drives whether Pass 2 critique re-reviews a changed spec or a stable one. A real implementation will diverge based on this answer.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a74 (PHR/ADR record format paths)",
+          "category": "objective",
+          "problem": "\u00a74 gives the formats as `history/prompts/milestone_N/NNN-phase-name.md` and `history/adr/NNN-decision-title.md`, but the inherited Cumulative History section fixes the deliverable locations as `outputs/history/prompts/` and `outputs/history/adr/`. The \u00a74 examples are missing the `outputs/` prefix and are therefore inconsistent with the locked paths.",
+          "why_it_matters": "A reader of just \u00a74 will create files at the wrong path. The kit's M2 orchestration scripts will look in `outputs/history/...` and miss PHRs/ADRs that landed under `history/...`.",
+          "suggested_fix": "Change the PHR/ADR path templates in \u00a74 to `outputs/history/prompts/milestone_N/NNN-phase-name.md` and `outputs/history/adr/NNN-decision-title.md` to match the locked deliverable locations in Cumulative History."
+        },
+        {
+          "section": "FR-1 (Sub-skill count)",
+          "category": "objective",
+          "problem": "FR-2 enumerates 10 sub-skills and FR-1 references `critique-loop` as a step in the pipeline, but the explicit, named `critique-loop` sub-skill is not in the 10-list. The forward-reference note in FR-1 calls this out as an M2 deferral, yet the pipeline references it by name as if it is a discrete dispatchable skill alongside the ten \u2014 which is technically true post-M2, but during M1 the name is dangling.",
+          "why_it_matters": "AC-4 says 'each of the ten sub-skills has a defined input/output and at least one edge-case rule, and is reachable from the master skill's pipeline description.' A reviewer running the Structural Completeness Gate will ask: is `critique-loop` the 11th sub-skill (out of scope of AC-4 because it lands in M2), or is it intentionally omitted from the 10-count? The spec should make this explicit.",
+          "suggested_fix": "Add a one-sentence clarification in FR-1's forward-reference note that the 10-sub-skill list in FR-2 is the M1 scope; `critique-loop` is the 11th sub-skill, owned by M2, and is referenced in the master pipeline only as a placeholder phase name until M2 lands."
+        },
+        {
+          "section": "AC-3 (secret-detection acceptance criterion)",
+          "category": "objective",
+          "problem": "AC-3 says 'no secret value appears anywhere in the milestone's files (grep-check passes)' but does not specify the grep pattern, the test runner, or what counts as a 'secret value' (e.g. an `sk-` prefix, a 32+ char base64, an env-var-looking string).",
+          "why_it_matters": "A test (in tests_milestone_1.md) will be derived from this AC; without a concrete pattern, the test is non-binding and AC-3 cannot be objectively verified.",
+          "suggested_fix": "Add the concrete grep pattern (e.g. an explicit regex such as `grep -RInE 'sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{35}|Bearer [A-Za-z0-9._-]{20,}' kit/` and a list of forbidden token shapes) and a one-line rule for what counts as a secret."
+        },
+        {
+          "section": "\u00a74 (PHR numbering scheme)",
+          "category": "needs_clarify",
+          "problem": "The PHR path template `NNN-phase-name.md` does not state whether the NNN counter is global (across all milestones of the project) or per-milestone (resets at 001 for each new milestone).",
+          "why_it_matters": "Both schemes are reasonable; the kit's history-logger and any chronological navigation tool need a single scheme. If global, milestone-1 phase 1 is `001-...`; if per-milestone, it is also `001-...` \u2014 but milestone-2 phase 1 would either be `004-...` (global) or `001-...` (per-milestone). Mismatched schemes across PHRs will make the history hard to read.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a72 US-3 (single-milestone layout)",
+          "category": "needs_clarify",
+          "problem": "US-3 says the five documents 'land at the root of the output set instead of under a milestone subfolder' but does not define 'root' precisely. Is it `outputs/` directly, `outputs/milestones/`, or `outputs/single-milestone/`? And does a single-milestone project still create the `outputs/history/prompts/` tree?",
+          "why_it_matters": "The installer's behavior, the kit's file-discovery logic, and the AC-7 Stranger Test all depend on the exact layout for single-milestone projects. Without it, the test cannot be authored.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "FR-2 (sub-skill failure behavior)",
+          "category": "needs_clarify",
+          "problem": "Each sub-skill is required to have a 'fail/edge-case rule', but no shared policy is given for what failure looks like, who is notified, whether the master skill halts, retries, or asks the user. Sub-skill failure is the most common runtime edge case in this kind of pipeline.",
+          "why_it_matters": "This is a process contract that affects how every sub-skill is authored and how the master skill orchestrates recovery. Leaving it entirely to the workflow document means each sub-skill may invent its own policy.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a79 (this spec's own path)",
+          "category": "objective",
+          "problem": "\u00a79 Cross-Reference lists the four companion documents (plan/tasks/workflow/tests) but does not state where this spec itself is stored. \u00a74 implies `outputs/milestones/milestone_1/spec_milestone_1.md` by the file-naming rule, but the path is never written down.",
+          "why_it_matters": "Every other M1 file in the 13-file kit has an explicit location; the spec should not be the exception. A reader needs to know where the controlling document lives in order to find it.",
+          "suggested_fix": "Add a row to the \u00a79 table for the spec itself: `outputs/milestones/milestone_1/spec_milestone_1.md` (or whichever path the milestone-folder convention dictates), or add a sentence under \u00a79 stating it."
+        },
+        {
+          "section": "US-1 (forward reference to /sdd)",
+          "category": "objective",
+          "problem": "US-1 says the user 'invokes /sdd', but per Cumulative History the trigger command and the installer are explicitly Milestone 3. US-1 implies the trigger exists at M1.",
+          "why_it_matters": "A user-scenario written for a milestone that does not yet ship the trigger will mislead reviewers and the Stranger Test. US-1 should describe the user experience as it is deliverable from M1's content (i.e., the master skill is installable; the trigger command arrives in M3).",
+          "suggested_fix": "Re-phrase US-1 to say something like: 'Given a target CLI tool with the M1 content installed (via the M3 installer or manually), the user invokes the entry point... and the kit runs the pipeline.' Decouple US-1 from the literal `/sdd` invocation until M3 lands."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 6
+}

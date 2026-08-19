@@ -1,0 +1,126 @@
+{
+  "document": "spec_milestone_5",
+  "pass": 2,
+  "round": 6,
+  "critics": [
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 5
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements \u2013 FR\u20112",
+          "category": "needs_clarify",
+          "problem": "The required heading for the workflow document is listed as \"## 3. Feature-to-Node Traceability\" which includes a leading numeral that is not present in the other heading specifications.",
+          "why_it_matters": "The kit\u2019s validation logic expects exact heading strings; the extra numeral could cause automated checks to fail, breaking the \u201cexact headings\u201d rule.",
+          "suggested_fix": "Rename the heading to \"## Feature-to-Node Traceability\" (remove the leading \"3.\") so it matches the pattern used for all other required headings."
+        },
+        {
+          "section": "Edge Cases & Rules \u2013 Non\u2011stub rule",
+          "category": "needs_clarify",
+          "problem": "The token\u2011count threshold is described as \"\u2265200 whitespace\u2011delimited tokens per file, individually; markdown markers and headings count as tokens; this is a rough threshold, not a lint\".",
+          "why_it_matters": "The wording is contradictory: a \u201crough threshold\u201d is not precise enough for automated testing, yet the acceptance criteria require a measurable non\u2011stub property. Implementers may interpret the rule differently, leading to inconsistent compliance.",
+          "suggested_fix": "Define a deterministic counting method (e.g., split on whitespace after stripping markdown syntax) and optionally provide a reference script so the rule can be reliably verified."
+        },
+        {
+          "section": "Acceptance Criteria \u2013 AC\u20111",
+          "category": "needs_clarify",
+          "problem": "The brief\u2019s required headings are enumerated in AC\u20111 (`## Brief`, `## Requirements`, `## Non\u2011negotiable`, `## Out of scope`, `## Success criteria`) but earlier in FR\u20111 the spec refers to the \u201cAC\u20111 heading set\u201d without listing them, creating a potential mismatch for readers.",
+          "why_it_matters": "Authors of the example brief might include the wrong headings or omit required ones, causing the kit\u2019s scan to reject the brief.",
+          "suggested_fix": "Explicitly list the required headings in FR\u20111 (or reference the AC\u20111 list directly) to eliminate any ambiguity."
+        },
+        {
+          "section": "Cross\u2011reference consistency",
+          "category": "needs_clarify",
+          "problem": "The spec mandates that the workflow\u2019s feature\u2011to\u2011node traceability and the tests\u2019 acceptance\u2011criterion mapping line up with the spec\u2019s FRs and ACs, but provides no concrete format or verification method for these cross\u2011references.",
+          "why_it_matters": "Without a defined schema, reviewers cannot reliably assess whether the five example documents are internally consistent, undermining the internal\u2011consistency and testability dimensions.",
+          "suggested_fix": "Specify a minimal table format (e.g., FR ID \u2194 Node ID \u2194 Test ID) and include an example snippet so that consistency can be programmatically checked."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements / FR-1",
+          "category": "needs_clarify",
+          "problem": "FR-1 states the brief must carry the AC-1 heading set, but AC-1 lists the headings as `## Brief`, `## Requirements`, `## Non-negotiable`, `## Out of scope`, `## Success criteria`. The spec does not define what 'AC-1 heading set' means elsewhere, and the term is ambiguous because AC-1 is an acceptance criterion, not a heading set definition.",
+          "why_it_matters": "Implementers may not know which exact headings are required, leading to a brief that fails the kit's scan or does not match the acceptance test.",
+          "suggested_fix": "Replace 'AC-1 heading set' with the explicit list of headings, or add a definition in a glossary/terminology section."
+        },
+        {
+          "section": "Edge Cases & Rules / Non-stub",
+          "category": "objective",
+          "problem": "The non-stub rule requires \u2265200 whitespace-delimited tokens per file individually for prose files, but the rule also says 'markdown markers and headings count as tokens'. This is contradictory: markdown markers (like `#`, `##`, `**`) are not whitespace-delimited tokens in the usual sense, and counting them as tokens inflates the count artificially.",
+          "why_it_matters": "The threshold becomes ambiguous and non-reproducible; a file with many headings but little content could pass the token count, undermining the intent of the rule.",
+          "suggested_fix": "Clarify that only actual words (alphanumeric sequences) count as tokens, or define a precise counting method (e.g., split on whitespace and count non-empty strings, excluding pure punctuation)."
+        },
+        {
+          "section": "Edge Cases & Rules / Simplicity rule",
+          "category": "needs_clarify",
+          "problem": "The simplicity rule says 'no new dependencies, frameworks, or servers without strong reason' and then states 'the kit itself is not counted as a dependency'. However, the example project is a Python CLI that uses only stdlib, but the kit is invoked against it. It is unclear whether the kit's own runtime dependencies (e.g., Python version, any libraries the kit uses) are considered dependencies of the example.",
+          "why_it_matters": "If the kit requires Python 3.10+ or specific packages, the example might inadvertently violate the simplicity rule or the 'external dependencies' AC-4.",
+          "suggested_fix": "Explicitly state that the kit's runtime environment is out of scope for the example's dependency check, and that the example itself must not add any third-party packages beyond stdlib."
+        },
+        {
+          "section": "Edge Cases & Rules / Platform-agnostic",
+          "category": "objective",
+          "problem": "The rule prohibits platform-specific steps like `chmod +x` and OS-specific paths, but does not address other platform-specific concerns such as environment variables, shell-specific syntax (e.g., `export` vs `set`), or path separators in examples. The example is a CLI tool, so it may need to show how to run it on Windows vs Unix.",
+          "why_it_matters": "Without explicit guidance, the example tasks document might inadvertently include platform-specific commands that violate the rule, or the implementer might over-restrict and omit necessary cross-platform instructions.",
+          "suggested_fix": "Add a note that all commands must be cross-platform (e.g., use `python3` consistently, avoid shell-specific syntax, use relative paths) and that any platform-specific instructions are prohibited unless clearly marked as optional."
+        },
+        {
+          "section": "Acceptance Criteria / AC-1",
+          "category": "objective",
+          "problem": "AC-1 says the brief must be 'directly invokable by the kit' and that invocation is `/sdd` run against the folder containing the brief. However, the spec does not define what `/sdd` does exactly (e.g., does it require a specific working directory, does it overwrite existing outputs, does it need a specific file structure?). The user scenario US-1 warns to run in a fresh copy to avoid overwriting, but AC-1 does not specify how to test 'directly invokable' without side effects.",
+          "why_it_matters": "Testability is compromised: a tester cannot verify AC-1 without risking overwriting the shipped example or without knowing the exact invocation semantics.",
+          "suggested_fix": "Define a testable invocation procedure, e.g., 'run `/sdd` in a temporary copy of `examples/sample-project/` and verify it produces a new milestone set without errors'."
+        },
+        {
+          "section": "Acceptance Criteria / AC-2",
+          "category": "objective",
+          "problem": "AC-2 requires the workflow/tests traceability to be 'consistent with the spec's FRs and ACs', but the spec does not define what 'consistent' means operationally. For example, does every FR need a corresponding workflow node? Does every AC need a test row? The spec mentions 'cross-reference tables' but does not specify the required mapping cardinality.",
+          "why_it_matters": "Without a precise definition, the acceptance test is subjective and cannot be automated or objectively verified.",
+          "suggested_fix": "Add explicit consistency rules, e.g., 'every FR in the spec must appear in the workflow's feature-to-node traceability, and every AC must have at least one corresponding test row in the tests document'."
+        },
+        {
+          "section": "Cross-Reference / Example deliverables",
+          "category": "objective",
+          "problem": "The cross-reference table lists the example set files under `examples/sample-project/outputs/milestones/milestone_1/`, but the spec does not specify whether these files must be committed to the repository or generated at build time. The user scenario US-1 says the shipped example set is hand-crafted, but the spec does not state whether the example set is part of the repo's version control or a build artifact.",
+          "why_it_matters": "If the files are not committed, the acceptance criteria cannot be tested in a fresh clone; if they are committed, they might be accidentally overwritten by running the kit.",
+          "suggested_fix": "Explicitly state that the example set is committed to the repository and is read-only (e.g., add a note in the README or a `.gitignore` rule to prevent overwriting)."
+        },
+        {
+          "section": "Out of Scope",
+          "category": "needs_clarify",
+          "problem": "The out-of-scope section says 'No compiled/implemented example artifact ships', but the example project is a Python CLI tool. It is unclear whether the example's source code (e.g., a `quote.py` file) is considered a 'compiled artifact' or if it is allowed to ship as part of the example. The spec only mentions the five-document set and the brief, but not any source code files.",
+          "why_it_matters": "If the example is meant to be runnable, it may need source code; if not, the spec should explicitly state that no source code is included, to avoid ambiguity.",
+          "suggested_fix": "Clarify whether the example includes any source code files (e.g., a minimal `quote.py`) or if it is purely documentation. If source code is included, specify its location and that it is illustrative only."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}

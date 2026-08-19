@@ -1,0 +1,126 @@
+{
+  "document": "spec_milestone_5",
+  "pass": 2,
+  "round": 11,
+  "critics": [
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-2 \u2014 Example milestone set.",
+          "category": "needs_clarify",
+          "problem": "The spec mentions that a blockquote note must appear at the top of `tasks_milestone_1.md`, but this requirement is not listed among the required headings or otherwise formalised.",
+          "why_it_matters": "Implementers may omit the blockquote, causing the example to fail the hidden \u201ccontent requirement\u201d check and breaking the intended non\u2011stub rule.",
+          "suggested_fix": "Add an explicit bullet to the required content list for `tasks_milestone_1.md`, e.g., \u201cA blockquote before the ## Build Order heading describing that the steps are illustrative.\u201d"
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The word\u2011count rule is described as \u201c\u2265200 words per file, counting whitespace\u2011delimited tokens with markdown marker characters and code blocks excluded \u2014 a rough threshold, not a lint\u201d, which leaves the exact counting method ambiguous.",
+          "why_it_matters": "Different reviewers may apply different tokenisation rules, leading to inconsistent pass/fail decisions for the non\u2011stub requirement.",
+          "suggested_fix": "Provide a concrete algorithm or reference an existing tool (e.g., a script) that defines how to compute the token count, and state whether the 200\u2011word threshold is inclusive or exclusive."
+        },
+        {
+          "section": "Cross-Reference",
+          "category": "objective",
+          "problem": "The table lists the milestone\u20115 own five\u2011document set, but the specification never states that these files must be created as part of this milestone.",
+          "why_it_matters": "Without an explicit acceptance criterion, contributors might skip producing those documents, resulting in an incomplete deliverable set.",
+          "suggested_fix": "Add an acceptance criterion (e.g., AC\u20115) that requires the five milestone\u20115 documents to exist at the paths shown in the Cross\u2011Reference table."
+        },
+        {
+          "section": "FR-1 \u2014 `examples/sample-project/PLAN.md`",
+          "category": "needs_clarify",
+          "problem": "The brief may include optional front\u2011matter metadata, yet the acceptance criteria only verify the presence of required headings and do not mention how optional metadata should be handled.",
+          "why_it_matters": "Implementers could add front\u2011matter that interferes with the kit\u2019s scanner if the format is not explicitly supported, causing false negatives during invocation.",
+          "suggested_fix": "Clarify in the acceptance criteria whether front\u2011matter is ignored, required to follow a specific schema, or must be omitted entirely."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements / FR-2",
+          "category": "needs_clarify",
+          "problem": "The definition of 'faithful to the kit's shape' requires each file to contain 'at least' the required headings in 'relative order', but the spec does not define what 'relative order' means when additional headings are interleaved. It says 'required headings appear in the listed order; additional headings may be interleaved anywhere' \u2014 this is contradictory. If additional headings can be interleaved anywhere, then 'relative order' of required headings is trivially satisfied by any ordering, making the constraint meaningless.",
+          "why_it_matters": "Without a precise definition of 'relative order', the acceptance criterion AC-2 is untestable. A reviewer cannot determine whether a file with headings in a different order (e.g., `## Acceptance Criteria` before `## Goal`) violates the requirement, leading to inconsistent evaluation.",
+          "suggested_fix": "Clarify that 'relative order' means the required headings must appear in the exact sequence listed (e.g., Goal before Functional Requirements before Edge Cases before Acceptance Criteria), and that additional headings may be inserted between them but not reorder the required ones. Alternatively, remove the 'relative order' constraint entirely and rely only on presence."
+        },
+        {
+          "section": "Edge Cases & Rules / Non-stub",
+          "category": "needs_clarify",
+          "problem": "The word-count threshold is defined as '\u2265200 words per file, individually, counting whitespace-delimited tokens with markdown marker characters and code blocks excluded \u2014 a rough threshold, not a lint'. The phrase 'rough threshold, not a lint' is ambiguous: does it mean the threshold is advisory (a file with 199 words passes) or mandatory (a file with 199 words fails)? The spec does not specify the tolerance or how to handle borderline cases.",
+          "why_it_matters": "AC-1 and AC-2 require files to be 'non-stub', which depends on this threshold. If the threshold is advisory, the acceptance criteria are not objectively testable; if mandatory, the 'rough' qualifier creates confusion about enforcement.",
+          "suggested_fix": "State explicitly whether the 200-word threshold is a hard minimum or a guideline. If hard, remove 'rough threshold, not a lint'. If advisory, define what constitutes a 'stub' independently (e.g., presence of placeholder text or empty sections) and make the word count a secondary signal."
+        },
+        {
+          "section": "Edge Cases & Rules / Platform-agnostic",
+          "category": "needs_clarify",
+          "problem": "The rule prohibits 'shell keywords like `export`/`set`' and 'shell expansion like `$VAR` in command examples', but permits 'generic env-var assignment notation (e.g., `QUOTE_DATA_DIR=<path>`)'. The distinction between a shell keyword and a generic assignment is not defined. For example, is `QUOTE_DATA_DIR=<path>` in a command example considered shell expansion or generic notation? The spec does not provide a clear boundary.",
+          "why_it_matters": "Without a clear boundary, the tasks document author cannot reliably determine whether a given command example violates the rule, leading to inconsistent compliance and potential rejection of the example set.",
+          "suggested_fix": "Define 'generic env-var assignment notation' explicitly: e.g., it must appear in prose or as a standalone line without a command prefix, and must not include shell metacharacters like `$`, `;`, `&&`, or redirection. Provide concrete examples of allowed and disallowed forms."
+        },
+        {
+          "section": "Acceptance Criteria / AC-1",
+          "category": "objective",
+          "problem": "AC-1 states the brief is 'directly invokable by the kit' and that invocation is `/sdd` run against the folder containing the brief. However, the spec does not define what 'directly invokable' means in terms of the kit's behavior. Does the kit require any specific file structure beyond `PLAN.md`? Does it require the brief to be in a specific location relative to the kit's installation? The spec references `docs/GUIDE.md` \u00a72 but does not summarize the requirements.",
+          "why_it_matters": "Without a clear definition of 'directly invokable', the acceptance criterion cannot be tested. A user might follow the instructions and still fail if the kit has hidden prerequisites not mentioned in this spec.",
+          "suggested_fix": "Add a brief summary of the kit's invocation requirements (e.g., 'the kit is invoked via `/sdd` from any directory containing a `PLAN.md`; no other files are required') or explicitly state that the kit's behavior is defined in `AGENTS.md` and `kit/skills/research-ct-scan/SKILL.md`, and that AC-1 relies on those definitions."
+        },
+        {
+          "section": "Functional Requirements / FR-2",
+          "category": "objective",
+          "problem": "The cross-reference consistency requirement states 'every FR has a corresponding workflow node, and every AC has a test row' and that identifiers are exactly `FR-<n>` and `AC-<n>`. However, the spec does not specify whether the workflow node must be in the format `FR-<n>\u2192C<n>` or if any format containing `FR-<n>` is acceptable. Similarly, for test rows, it says 'e.g., `NT1`' but does not define whether the test row must contain the AC identifier or just the test identifier.",
+          "why_it_matters": "The string-match verification is central to AC-2. If the format is not precisely defined, the verification could pass or fail incorrectly, making the acceptance criterion unreliable.",
+          "suggested_fix": "Define the exact format for workflow nodes (e.g., `FR-<n>\u2192C<m>` where `<m>` is a node identifier) and test rows (e.g., a row in the Node Tests table that includes the AC identifier in a specific column). Provide examples of valid and invalid matches."
+        },
+        {
+          "section": "Edge Cases & Rules / Internal consistency",
+          "category": "needs_clarify",
+          "problem": "The rule states 'the five example documents must read as if generated by the kit' and 'their task/build steps are consistent with the brief'. However, the spec does not define what 'consistent with the brief' means operationally. For example, if the brief specifies a CLI contract with exit codes, must the tasks document reference those exact exit codes? The spec does not provide a checklist for consistency.",
+          "why_it_matters": "Without a concrete definition, the internal consistency requirement is subjective and cannot be objectively verified, weakening the acceptance criteria.",
+          "suggested_fix": "Add a non-exhaustive list of consistency checks, such as: every FR in the spec must be traceable to a task step or workflow node; every AC must have a corresponding test; the tasks document must not introduce new requirements not in the brief; and the plan's tech stack must match the brief's constraints."
+        },
+        {
+          "section": "Out of Scope",
+          "category": "objective",
+          "problem": "The Out of Scope section says 'A freshly kit-generated build for the example, and any example source code (e.g., `quote.py`)' are out of scope. However, FR-1 states the brief is 'sufficient to implement the tool without any shipped source'. This creates a tension: the brief must be sufficient for implementation, but the example set must not include source code. The spec does not clarify whether the tasks document may reference source files (it says 'may reference source filenames illustratively'), but the boundary between 'illustrative reference' and 'shipped source' is not defined.",
+          "why_it_matters": "A reviewer might interpret the tasks document's reference to `quote.py` as implying the file should exist, conflicting with the Out of Scope. This ambiguity could lead to incorrect rejection or acceptance of the example set.",
+          "suggested_fix": "Explicitly state that references to source files in the tasks document are purely illustrative and do not imply the files exist in the repository, and that the example set is a documentation artifact, not a runnable project."
+        },
+        {
+          "section": "Acceptance Criteria / AC-4",
+          "category": "objective",
+          "problem": "AC-4 states the example contains 'no external dependencies beyond the kit'. However, the spec does not define what counts as an 'external dependency' in the context of the example set. It says Python's standard library is permitted, but does not clarify whether the kit itself is considered an external dependency for the example project (the Simplicity rule says it is not). The AC-4 wording 'beyond the kit' is ambiguous: does it mean the example can depend on the kit, or that the kit is the only allowed dependency?",
+          "why_it_matters": "The acceptance criterion is not testable without a clear definition of 'external dependency'. A reviewer might flag a reference to a standard library module as an external dependency, or miss a real third-party reference.",
+          "suggested_fix": "Define 'external dependency' explicitly: any third-party package or library not part of Python's standard library, and clarify that the kit is not counted as a dependency for the example project (as stated in the Simplicity rule)."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}

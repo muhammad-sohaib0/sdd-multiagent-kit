@@ -1,0 +1,222 @@
+{
+  "document": "spec_milestone_1",
+  "pass": 1,
+  "round": 11,
+  "critics": [
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 9,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "3A. The Two Gates",
+          "category": "needs_clarify",
+          "problem": "The Simplicity Gate defines a default limit of 3 standalone components per milestone, but does not specify whether this limit counts the total number of components introduced across the entire milestone, or the number of *new* components introduced relative to previous milestones.",
+          "why_it_matters": "In a multi-milestone project, a milestone might rely on standalone components built in an earlier milestone. Whether these inherited components count against the current milestone's limit of 3 affects how the gate evaluates the plan and whether a written justification is triggered."
+        },
+        {
+          "section": "3. Functional Requirements / FR-2",
+          "category": "needs_clarify",
+          "problem": "The `clarify-interview` sub-skill edge-case rule states that if the human declines or gives an invalid answer, the master records the refusal in the PHR and notes it in the milestone's Assumptions/Out of Scope. It is unclear where exactly this is noted, as the five-document set does not explicitly define an 'Assumptions/Out of Scope' section within the standard `spec.md` anatomy.",
+          "why_it_matters": "If the location for recording declined Clarify answers is not standardized, the structural completeness gate or downstream consumers might not know where to find this context, leading to potential ambiguity or perceived missing requirements."
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 10,
+        "completeness": 9,
+        "edge_case_coverage": 10,
+        "internal_consistency": 9,
+        "testability": 10
+      },
+      "issues": [
+        {
+          "section": "4.5 Supporting artifacts and formats",
+          "category": "objective",
+          "problem": "\u00a74.5 specifies the runtime location of `needs_clarify.md` as `outputs/milestones/milestone_N/needs_clarify.md`, but does not explicitly state the location for single-milestone projects (`outputs/needs_clarify.md`), whereas US-3 and \u00a74.2 establish that single-milestone artifacts reside directly under `outputs/` without a `milestone_N` subdirectory.",
+          "why_it_matters": "When `clarify-interview` runs on a single-milestone brief, it requires a defined target path for `needs_clarify.md` to avoid referencing or creating a non-existent `milestone_N` folder.",
+          "suggested_fix": "Update \u00a74.5 and the FR-2 `clarify-interview` row to state: `outputs/milestones/milestone_N/needs_clarify.md` (or `outputs/needs_clarify.md` for single-milestone projects)."
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "\u00a74.5 (Milestone-zero phase folder + Enumerated phase transitions)",
+          "category": "objective",
+          "problem": "The milestone_0 folder description lists \"open-decision Clarify\" as one of the pre-milestone PHRs it holds, and the cumulative history confirms PHR milestone_0/003 covers a real \"bootstrap Clarify\" \u2014 but the Enumerated phase transitions list for the master skill (also in \u00a74.5) contains no such transition. It enumerates \"after the CT scan; after constitution adoption; after milestone breakdown\" and then jumps straight to per-milestone transitions; the pre-milestone Clarify round is invisible to the master pipeline.",
+          "why_it_matters": "If the master skill does not log a PHR at this transition, the bootstrap Clarify (a significant decision point \u2014 the panel lock + provider preflight + retry policy were resolved there) will not be recorded through the master pipeline path; the PHR's existence becomes an ad-hoc artifact rather than a pipeline product.",
+          "suggested_fix": "Add an explicit transition to the Enumerated phase transitions list, e.g. \"after the bootstrap (milestone-zero) Clarify\" between \"after milestone breakdown\" and the per-milestone block, and state that this is a one-time transition that only fires for the milestone_0 folder (not single-milestone projects). Cross-reference it from the milestone_0 folder description."
+        },
+        {
+          "section": "\u00a73A (Simplicity Gate) and FR-1 step 4b",
+          "category": "objective",
+          "problem": "The Simplicity Gate is described as operating on the spec alone at G1, acknowledged as \"a deliberately partial application\", but no enumeration is given of which sub-checks actually run at G1 vs. which require the plan. The Simplicity Justifications subsection lives in plan.md (\u00a73A), which does not yet exist at G1 \u2014 so the \"each component beyond the limit requires a written justification\" check is structurally impossible at G1, and the doc does not say what G1 substitutes for it (e.g., presence/absence of a standalone-component claim in the spec, deferral of the count check to G2).",
+          "why_it_matters": "A reviewer or implementer cannot tell which Simplicity findings are valid to raise at G1 vs. only at G2. A master-skill implementer could either over-check (G1 blocks on something only G2 can verify) or under-check (G1 silently lets through components that should have been flagged earlier).",
+          "suggested_fix": "In \u00a73A, after the G1 line, list the Simplicity Gate sub-checks that are feasible at G1 (e.g., \"spec mentions N independently-installable units \u2192 flag if N > 3\") and the sub-checks deferred to G2 (e.g., \"justification present in plan.md's Simplicity Justifications subsection\"). Mirror the Structural Completeness Gate's G1/G2 division."
+        },
+        {
+          "section": "\u00a74.5 (Simplicity default (3) and override)",
+          "category": "objective",
+          "problem": "Two sources of truth for the standalone-component default: the master skill's gate instructions (constant 3) and the adopted constitution.md (`simplicity_default: N` convention line). The doc states the override is \"appending a plain-text line\" and that overrides \"require an ADR (Article VII)\", but does not state the precedence rule \u2014 specifically, whether the master skill's hardcoded 3 is the always-default and the constitution value is an in-effect override, or whether the constitution value silently replaces the master skill's value. As written, a drafter could read the master skill as authoritative (so an override that sets `simplicity_default: 5` does not take effect) or as overridden by the constitution (so the master skill's 3 is moot once a constitution exists).",
+          "why_it_matters": "The Simplicity Gate is an orchestration checkpoint; if its threshold is ambiguous, gate outcomes are non-deterministic. This also bears on the constitution's role as a project override vs. just a template (Article II).",
+          "suggested_fix": "State the precedence explicitly, e.g. \"The master skill's default is 3. If the adopted constitution.md contains a `simplicity_default: N` line, N supersedes the master skill's default for every milestone of that project.\" Also note whether the convention line is read at project start only or re-read per milestone."
+        },
+        {
+          "section": "\u00a73A (Simplicity Gate, \"overridable project-wide once\")",
+          "category": "needs_clarify",
+          "problem": "\"Overridable project-wide once\" is ambiguous. It could mean (a) the default can be changed exactly one time over the project's life (a hard cap on amendments to this value), or (b) emphasis for \"a single project-wide setting\" with the implicit understanding that the constitution can be amended again (each with its own ADR) just like any other article. The first reading imposes a stricter cap than Article VII's Amendment Process; the second reading is what the rest of the constitution implies.",
+          "why_it_matters": "This is a substantive product decision about how rigid the Simplicity default is vs. how freely the constitution can be amended. It cannot be inferred from the document alone.",
+          "suggested_fix": "Ask the human in Clarify: does \"once\" mean a hard one-time cap on changing the default, or is it a phrasing convention and the default can be amended any number of times (each with its own ADR per Article VII)?"
+        },
+        {
+          "section": "\u00a75 (Free-tier preflight) and AC-2",
+          "category": "needs_clarify",
+          "problem": "AC-2 states the six models are \"verified reachable on the free tiers (the kit's own bootstrap preflight PHR milestone_0/003)\". The doc explicitly says the preflight is \"a documented claim + acceptance-criterion check, not a shipped M1 script (scripts are M2)\". But the failure path is not specified: if PHR milestone_0/003 is absent, partial, or its model-reachability entries have since changed, AC-2 has no defined outcome. Should the milestone fail AC-2, or is the AC satisfied by the PHR's mere existence?",
+          "why_it_matters": "A later session (e.g., M2 or M3) doing a Stranger Test or re-running AC-2 has no defined verdict if the preflight evidence is missing. This is also a real risk in the kit's own bootstrap, where the preflight PHR is being relied on as ground truth for AC-2 across revs.",
+          "suggested_fix": "Ask the human in Clarify: should AC-2 require the preflight PHR to be present and its model-reachability claims to match the current providers.yaml (data-only reconciliation), or is the PHR's existence at a known path sufficient? If reconciliation is required, state the reconciliation rule in \u00a75 or AC-2."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "4.2 Patterns and naming",
+          "category": "objective",
+          "problem": "File naming pattern for milestone documents omits the `_milestone_N` suffix for spec, plan, tasks, and workflow files, causing inconsistency with the rest of the document.",
+          "why_it_matters": "Implementation scripts will generate incorrectly named files, breaking downstream references and the Stranger Test expectations.",
+          "suggested_fix": "Update the pattern description to `spec_milestone_N.md`, `plan_milestone_N.md`, `tasks_milestone_N.md`, `workflow_milestone_N.md`, and `tests_milestone_N.md` for multi\u2011milestone projects."
+        },
+        {
+          "section": "4.3 providers.yaml schema",
+          "category": "objective",
+          "problem": "No validation rule is defined to prevent duplicate model IDs or duplicate entries in `critic_slots`.",
+          "why_it_matters": "Duplicate models could cause ambiguous critique order or runtime errors in the critique loop.",
+          "suggested_fix": "Add a validation rule stating that each `model` ID must be unique across all `critic_slots` and that no two slots reference the same model."
+        },
+        {
+          "section": "FR-2 \u2013 clarify-interview",
+          "category": "needs_clarify",
+          "problem": "The exact file format for `needs_clarify.md` is described as a Markdown list of tuples, but it is unclear whether a structured format (YAML/JSON) is required for downstream processing.",
+          "why_it_matters": "Ambiguity may lead to incompatible parsers in the master skill, causing failures in the Clarify phase."
+        },
+        {
+          "section": "FR-4 \u2013 Constitution override",
+          "category": "needs_clarify",
+          "problem": "The mechanism for overriding the default simplicity limit via a line `simplicity_default: N` inside the adopted `constitution.md` is not specified (parsing rules, placement, validation).",
+          "why_it_matters": "Without a clear parsing rule, implementations may miss the override or misinterpret it, leading to incorrect gate behavior."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "\u00a74.3 providers.yaml schema",
+          "category": "objective",
+          "problem": "The validation rule states 'every slot.model must exist under providers[<slot.provider>].models' but the providers array uses 'id' as the key field, not 'provider'. The notation providers[<slot.provider>] suggests array indexing by provider field, but providers is an array of objects with 'id' fields. This creates ambiguity in the validation logic.",
+          "why_it_matters": "Implementers of the critique engine (M2) may misinterpret the validation rule and write incorrect lookup logic, causing false validation failures or missed config defects.",
+          "suggested_fix": "Clarify the validation rule to: 'every slot.model must exist under the models array of the provider object whose id equals the slot.provider value.'"
+        },
+        {
+          "section": "\u00a76 Authentication / Security \u2014 concrete detection rule",
+          "category": "objective",
+          "problem": "The detection rule for 'base64/hex blob \u2265 32 chars' is described in prose but not given as an explicit regex pattern, unlike the other three patterns which are explicitly written.",
+          "why_it_matters": "The secret scan implementation (in tests_milestone_1.md per \u00a76) needs an exact regex to achieve zero-match pass criterion (AC-3). Prose description leaves room for implementation variance.",
+          "suggested_fix": "Add an explicit regex pattern for the base64/hex blob rule, e.g., '(?:[A-Za-z0-9+/]{32,}={0,2}|[0-9a-fA-F]{32,})' with a note that it matches base64 or hex strings of 32+ chars."
+        },
+        {
+          "section": "FR-1 step 4e",
+          "category": "objective",
+          "problem": "The text states 'the FR-2 table is an inventory of the ten sub-skills, not a pipeline sequence' but then immediately defines 'the canonical document-generation sequence' as plan-builder \u2192 task-breakdown \u2192 workflow-builder \u2192 scenario-tester, which is a pipeline sequence.",
+          "why_it_matters": "Contradictory statements create confusion about whether the order in 4e is mandatory or illustrative. The master skill implementation must know if this order is enforced.",
+          "suggested_fix": "Rephrase to: 'The FR-2 table is an inventory; the canonical document-generation sequence (which the master skill enforces) is: plan-builder \u2192 task-breakdown \u2192 workflow-builder \u2192 scenario-tester.'"
+        },
+        {
+          "section": "\u00a74.5 Simplicity default (3) and override",
+          "category": "needs_clarify",
+          "problem": "The simplicity default of 3 standalone components per milestone is described as 'not a scientifically-derived constant' and overridable via constitution.md. However, the override mechanism ('append a plain-text line simplicity_default: N') is a convention inside a Markdown file, not a structured format. It's unclear how the master skill parses this reliably.",
+          "why_it_matters": "If the override parsing is fragile, projects may think they've changed the limit when they haven't, leading to gate failures or silent acceptance of unjustified complexity.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "AC-7 Stranger Test",
+          "category": "needs_clarify",
+          "problem": "The Stranger Test hands the five-document set to a fresh session with 'implement this, ask no questions.' However, the five documents (including this spec) contain numerous references to PLAN.md (e.g., 'PLAN.md \u00a75.2', 'PLAN.md \u00a76', 'PLAN.md \u00a78.2'). AC-7 states 'the stranger needs no external PLAN.md' but the documents themselves reference it as an authority.",
+          "why_it_matters": "The stranger cannot verify 'verbatim rendering against PLAN.md \u00a76' (AC-6) or apply the ADR significance test (PLAN.md \u00a78.2) without access to PLAN.md. This undermines the 'no external PLAN.md' claim.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a74.5 ADR significance test",
+          "category": "needs_clarify",
+          "problem": "The ADR significance test is summarized as 'real alternatives existed, the choice is hard to reverse, or it affects more than one milestone' but the full test from PLAN.md \u00a78.2 is not reproduced. The master skill and history-logger sub-skill need the complete test to evaluate decisions correctly.",
+          "why_it_matters": "Incomplete test criteria in the spec means the history-logger sub-skill (FR-2) cannot faithfully implement 'ADR suggestion when the significance test is met' without external reference.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "FR-1 \u2014 Retry policy reference",
+          "category": "needs_clarify",
+          "problem": "The retry policy references 'PLAN.md \u00a74.3\u2013\u00a74.4' for non-cooperative flag and loop continuation rules, but PLAN.md is the project brief, not this spec. The spec should either inline the critical rules or confirm they are fully captured in the PHR milestone_0/003 mentioned in Cumulative History.",
+          "why_it_matters": "The master skill's critique phase orchestration (even as a stated invariant) needs to know the exact failure thresholds without requiring the brief at runtime.",
+          "suggested_fix": ""
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

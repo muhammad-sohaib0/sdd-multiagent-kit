@@ -1,0 +1,292 @@
+{
+  "document": "spec_milestone_1",
+  "pass": 1,
+  "round": 2,
+  "critics": [
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_1.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 7,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "Cross-reference section numbers (\u00a73.1, \u00a74.2, \u00a74.3, \u00a74.4) do not match this document's section numbering. They appear to reference PLAN.md or another external document, creating ambiguity about where gate definitions, critique schema, and stopping conditions are actually specified.",
+          "why_it_matters": "Implementers reading this spec in isolation cannot locate the referenced material, leading to inconsistent interpretations of gate logic, critique validity rules, and stopping conditions.",
+          "suggested_fix": "Replace external section references with either (a) inline descriptions in this spec, or (b) explicit cross-references to the correct document and section (e.g., 'PLAN.md \u00a74.4' or 'the critique schema defined in M2's critique-loop sub-skill')."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "Master skill step 4i 'Build the milestone from the finished documents' is vague \u2014 no concrete output or action is defined (e.g., create milestone folder, copy files, update index).",
+          "why_it_matters": "Without a precise definition, the milestone-builder sub-skill and master skill cannot be implemented or tested deterministically.",
+          "suggested_fix": "Define 'build the milestone' as: create `outputs/milestones/milestone_N/` (or `outputs/` for single-milestone), copy the five accepted documents there with the correct naming convention, and record a PHR for the milestone-completion transition."
+        },
+        {
+          "section": "4.3 providers.yaml schema",
+          "category": "objective",
+          "problem": "The `critic_slots` array lists model IDs but does not explicitly bind each slot to its provider. The engine must infer provider by searching the `providers[].models` lists, which is fragile if model IDs are not globally unique across providers.",
+          "why_it_matters": "M2's critique engine may misroute requests or fail to locate credentials if the provider-model mapping is ambiguous.",
+          "suggested_fix": "Add a `provider` field to each `critic_slots` entry (e.g., `{ model: 'nvidia/nemotron-3-ultra-550b-a55b', provider: 'nvidia-nim' }`), or guarantee in a comment that model IDs are globally unique and the engine must resolve by scanning all providers."
+        },
+        {
+          "section": "FR-2 (sub-skill table)",
+          "category": "needs_clarify",
+          "problem": "The `research-ct-scan` input mentions 'installed-skill awareness' but the spec does not define what this means \u2014 e.g., awareness of which skills are already present in the target CLI tool, or something else.",
+          "why_it_matters": "The checklist output may vary based on this awareness, affecting downstream milestone splitting and spec generation. The behavior needs a product decision.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "FR-2 (shared sub-skill failure policy)",
+          "category": "needs_clarify",
+          "problem": "The policy says 'if a sub-skill fails, the master skill logs a PHR noting the failure, retries once; if it fails again, escalation is blocking'. What constitutes a 'failure' is not defined (timeout, invalid output format, gate rejection, etc.).",
+          "why_it_matters": "Different failure types may warrant different retry/escalation strategies. The current wording leaves this to implementation discretion, risking inconsistent behavior.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "AC-7 (Stranger Test)",
+          "category": "needs_clarify",
+          "problem": "'Contract parity, not byte parity' is used but not formally defined for the 13-file inventory. AC-7 lists some criteria (all sub-skills present, providers.yaml has six models and ordered critic_slots, constitution renders seven articles) but 'contract parity' could include additional constraints (e.g., frontmatter fields, YAML structure, Markdown validity).",
+          "why_it_matters": "The Stranger Test is the ultimate validation gate for M1. Ambiguity in 'contract parity' makes pass/fail subjective and unrepeatable.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "FR-1 (critique phase description)",
+          "category": "needs_clarify",
+          "problem": "The critique phase is described as a 'fixed invariant' with 'six models, two passes, the \u00a74.3 schema and validity rule, the \u00a74.4 stopping conditions' \u2014 but the schema and stopping conditions are not in this document (they belong to M2's critique-loop). The master skill must express the invariant without referencing M2's internal schema.",
+          "why_it_matters": "M1's master skill must be implementable without M2 existing. Referencing M2's future schema creates a circular dependency in the spec.",
+          "suggested_fix": ""
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 6,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1 / Master skill pipeline description",
+          "category": "objective",
+          "problem": "References to sections \u00a73.1, \u00a75.2, \u00a74.2, and \u00a78.2 are made but those sections do not exist in the document.",
+          "why_it_matters": "Readers and downstream tools cannot locate the detailed definitions of the gates, checklist integration, critique schema, and ADR significance test, breaking traceability and risking mis\u2011implementation.",
+          "suggested_fix": "Add the missing sections (or renumber existing ones) that define: \u00a73.1 Structural Completeness & Simplicity gates, \u00a74.2 Critique schema and validity rule, \u00a75.2 Installed\u2011skill awareness in the CT scan, and \u00a78.2 ADR significance test criteria."
+        },
+        {
+          "section": "FR-2 / Sub\u2011skill contract and inventory table",
+          "category": "objective",
+          "problem": "References to \u00a75.4, \u00a77.5, and \u00a77.6 appear in edge\u2011case rules and acceptance criteria but those sections are absent.",
+          "why_it_matters": "Edge\u2011case handling and acceptance testing rely on these referenced specifications; without them reviewers cannot verify compliance.",
+          "suggested_fix": "Create sections \u00a75.4 (e.g., Scenario justification rule), \u00a77.5 (Milestone ordering constraints), and \u00a77.6 (Stranger Test detailed procedure) or adjust the references to existing sections."
+        },
+        {
+          "section": "Clarify\u2011interview sub\u2011skill",
+          "category": "needs_clarify",
+          "problem": "The exact data format and schema for the compiled \"needs_clarify\" list are not specified.",
+          "why_it_matters": "Implementers need a concrete representation to generate the list, ask questions, and fold answers back into the spec consistently."
+        },
+        {
+          "section": "Master skill pipeline timing",
+          "category": "needs_clarify",
+          "problem": "It is unclear whether the \"clarify-interview\" step occurs once per milestone or once per spec revision, and how failures in that step affect gating.",
+          "why_it_matters": "Ambiguity may lead to divergent implementations that either over\u2011run the loop or miss required clarification passes."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_1.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 7,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-2",
+          "category": "objective",
+          "problem": "AC-4 references '\u00a74.5 table' for the sub-skill edge-case rules, but the table is actually located in \u00a7FR-2 (\u00a73). There is no \u00a74.5 in the document.",
+          "why_it_matters": "Broken cross-references cause ambiguity and make the acceptance criteria difficult to verify during the structural completeness gate.",
+          "suggested_fix": "Update AC-4 to reference '\u00a7FR-2' or '\u00a73' instead of '\u00a74.5'."
+        },
+        {
+          "section": "AC-7",
+          "category": "objective",
+          "problem": "AC-7 references '\u00a77.6' for the Stranger Test definition, but the Stranger Test is defined in AC-7 itself. Section 7 is the 'Out of Scope' section and contains no \u00a77.6.",
+          "why_it_matters": "Invalid section references undermine the testability of the acceptance criteria and break the internal consistency of the document.",
+          "suggested_fix": "Remove the reference to '\u00a77.6' in AC-7 or point it to the correct location in the project brief/constitution where the Stranger Test is originally defined."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "FR-1 step 4.i states 'Build the milestone from the finished documents' but the M1 scope explicitly excludes building/installing the kit. It is unclear if 'Build the milestone' refers to generating the output files for the target project or building the kit itself.",
+          "why_it_matters": "Ambiguity around the word 'Build' blurs the boundary between M1 (content generation) and M3 (installer/setup), risking scope creep during implementation.",
+          "suggested_fix": "Clarify step 4.i to explicitly state 'Generate the target project's milestone output files (spec, plan, tasks, workflow, tests) into the outputs/ directory' to distinguish it from kit installation."
+        },
+        {
+          "section": "US-3",
+          "category": "needs_clarify",
+          "problem": "US-3 specifies that single-milestone projects output files directly to `outputs/` without the `_milestone_N` suffix, while multi-milestone projects use `outputs/milestones/milestone_N/`. This requires the `history-logger` and other sub-skills to dynamically switch pathing logic based on project size.",
+          "why_it_matters": "This dual-path structure adds branching complexity to the M1 sub-skills. It is a product design decision whether this complexity is desired for M1 or if a unified `outputs/milestones/milestone_1/` path should be used for all projects to simplify the initial build."
+        },
+        {
+          "section": "6",
+          "category": "needs_clarify",
+          "problem": "The secret detection rule in \u00a76 defines specific regex patterns (e.g., `sk-[A-Za-z0-9]{20,}`) and a generic base64/hex blob check. However, it does not specify how the test should handle obvious non-secret constants that might match the regex (e.g., a 32-char hash in a comment).",
+          "why_it_matters": "Without a clear definition of 'obvious non-secret constant', the AC-3 test might produce false positives, blocking the build on benign strings. This is a subjective boundary that needs human definition."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 6,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "3. Functional Requirements & 8. Acceptance Criteria",
+          "category": "objective",
+          "problem": "Multiple invalid internal section cross-references exist throughout the document, including \u00a73.1 (referenced in FR-1 for gates), \u00a74.2 (referenced in FR-1 for critique process), \u00a78.2 (referenced in FR-1 for ADR significance test), \u00a74.3 and \u00a74.5 (referenced in FR-2 and AC-4 for sub-skill table), \u00a77.5 (referenced in FR-2 table), \u00a75.4 (referenced in FR-2 table), and \u00a77.6 (referenced in AC-7). None of these subsections exist in spec_milestone_1.md.",
+          "why_it_matters": "Broken internal links create confusion for implementers and automated validators verifying specification consistency.",
+          "suggested_fix": "Fix or remove all incorrect internal section cross-references so that they refer to actual headers/tables within this document."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_1.md (rev 2)",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 5,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-1 (step 4b, 4f) \u2014 \u00a73.1 cross-reference",
+          "category": "objective",
+          "problem": "FR-1 references '\u00a73.1' for the Structural Completeness + Simplicity gate definitions, but Section 3 contains only FR-1 through FR-4 and has no \u00a73.1 subsection.",
+          "why_it_matters": "The master skill's gate checkpoint behavior (G1, G2) is load-bearing for the entire pipeline and for AC-1 and AC-5; a missing section leaves the gate definition unanchored in the spec.",
+          "suggested_fix": "Either add a \u00a73.1 (e.g., '3.1 Gates \u2014 G1/G2 definitions and pass criteria') or rephrase the references to point to FR-1 step 4 inline."
+        },
+        {
+          "section": "FR-1 (step 4d) \u2014 '\u00a74.2 of the process' cross-reference",
+          "category": "objective",
+          "problem": "FR-1 step 4d says 'clarify-interview \u2192 fold the compiled needs_clarify list into questions, ask only what an AI could not infer (empty list per \u00a74.2)'. \u00a74.2 in this spec is 'iterating structures and naming', not a section about the clarify process; \u00a74.2 of the process is not defined.",
+          "why_it_matters": "The empty-list behavior of clarify-interview is a stated invariant and is also re-cited in AC-5; a wrong section pointer makes that rule appear unsupported.",
+          "suggested_fix": "Repoint to the correct location (the clarify-interview row of the FR-2 sub-skill table, which already states the empty-list rule), or introduce a labeled section/anchor for the process contract."
+        },
+        {
+          "section": "FR-1 (M1's exact scope callout) \u2014 \u00a74.3 and \u00a74.4 cross-references",
+          "category": "objective",
+          "problem": "The callout references 'the \u00a74.3 schema and validity rule, the \u00a74.4 stopping conditions' for the critique invariant. \u00a74.3 in this spec is the providers.yaml schema, and \u00a74.4 is PHR/ADR records. The critique-JSON schema and stopping conditions are not present anywhere in the spec.",
+          "why_it_matters": "M1 explicitly defers critique automation to M2, but it claims to encode a 'fixed invariant' (schema, validity rule, stopping conditions) that has no on-page definition. Downstream implementers cannot verify the invariant is preserved.",
+          "suggested_fix": "Either add the critique schema and stopping conditions as a \u00a74.5 (or new section) with at least a summary, or rephrase the callout to explicitly say these are inherited from PLAN.md \u00a7X with a clear cross-doc reference."
+        },
+        {
+          "section": "FR-2 (intro) and AC-4 \u2014 \u00a74.3 vs \u00a74.5 table reference",
+          "category": "objective",
+          "problem": "FR-2 intro says 'per the table in \u00a74.3', but the sub-skill table is part of FR-2 itself, and \u00a74.3 is the providers.yaml schema. AC-4 says 'per \u00a74.5 table', but \u00a74.5 does not exist in this spec.",
+          "why_it_matters": "Two contradictory pointers to the same table within a few paragraphs is a strong internal-consistency signal and undermines confidence in the acceptance criterion that audits the table.",
+          "suggested_fix": "Replace both with a single self-consistent label such as 'the FR-2 sub-skill table' or 'the table in \u00a73.2' after introducing a \u00a73.2 (Sub-skill contract) anchor."
+        },
+        {
+          "section": "FR-2 (workflow-builder row) \u2014 \u00a75.4 cross-reference",
+          "category": "objective",
+          "problem": "The workflow-builder edge case says 'send back (\u00a75.4)'. \u00a75 in this spec is 'API / Integration' with no \u00a75.4.",
+          "why_it_matters": "An implementer reading the sub-skill contract cannot resolve \u00a75.4; the cross-reference either points to the wrong document or to a section that should exist in this spec.",
+          "suggested_fix": "Replace with an in-table reference to the responsible sub-skill (workflow-builder sends back to plan-builder) or to PLAN.md with the explicit prefix used in cumulative history."
+        },
+        {
+          "section": "FR-2 (milestone-builder row) \u2014 \u00a77.5 cross-reference",
+          "category": "objective",
+          "problem": "The milestone-builder edge case says 'must reorder, per \u00a77.5'. \u00a77 is 'Out of Scope' with no \u00a77.5.",
+          "why_it_matters": "The reordering rule for forward references is a milestone-correctness invariant; an unresolvable reference leaves the rule unenforced.",
+          "suggested_fix": "Add a \u00a77.x 'Reordering rule' (e.g., 7.1) or rephrase the table to state the rule inline without the cross-reference."
+        },
+        {
+          "section": "AC-7 and \u00a79 \u2014 \u00a77.6 cross-reference",
+          "category": "objective",
+          "problem": "AC-7 and \u00a79 both reference '\u00a77.6' for the five-document set, but \u00a77 ('Out of Scope') has no \u00a77.6.",
+          "why_it_matters": "The Stranger Test input is the central contract for AC-7; the cross-reference failing makes the test's input boundary untraceable from the spec alone.",
+          "suggested_fix": "Add a \u00a77.x 'Stranger Test input definition' (or re-label the Cross-Reference \u00a79 as the canonical anchor) and update both pointers to match."
+        },
+        {
+          "section": "FR-1 (step 5) and history-logger row \u2014 \u00a78.2 cross-reference",
+          "category": "objective",
+          "problem": "FR-1 step 5 and the history-logger edge case both reference '\u00a78.2' for the ADR significance test. \u00a78 is 'Acceptance Criteria' (AC-1..AC-7) and has no \u00a78.2.",
+          "why_it_matters": "The ADR significance test gates when an ADR is suggested; this is also marked as a blocking step. An unresolvable reference makes the gating rule unenforceable and ambiguous between this spec and PLAN.md.",
+          "suggested_fix": "Define the ADR significance test inline in this spec (a short paragraph in \u00a76 or a new \u00a78.x), or restate the cross-reference as 'PLAN.md \u00a78.2' matching the cumulative-history convention."
+        },
+        {
+          "section": "Cumulative History vs spec body \u2014 cross-reference convention",
+          "category": "objective",
+          "problem": "The cumulative history uses the explicit prefix 'PLAN.md \u00a7X' (e.g., 'PLAN.md \u00a74.4', 'PLAN.md \u00a76', 'PLAN.md \u00a711.3', 'PLAN.md \u00a75.2'), but the spec body uses bare '\u00a7X.Y' throughout (\u00a73.1, \u00a74.2, \u00a74.3, \u00a74.4, \u00a74.5, \u00a75.4, \u00a77.5, \u00a77.6, \u00a78.2). It is therefore ambiguous which references are self-referential and which point into PLAN.md.",
+          "why_it_matters": "Inconsistent citation style is the root cause of the eight broken/ambiguous references above; any fix that does not also normalize the convention will leave the spec fragile.",
+          "suggested_fix": "Pick one convention (e.g., 'spec \u00a7X.Y' for self-references, 'PLAN.md \u00a7X.Y' for external) and apply it to every reference in the spec body. Add a one-line note in Cumulative History restating the convention."
+        },
+        {
+          "section": "\u00a74.2 header typo",
+          "category": "objective",
+          "problem": "Section 4.2 header reads 'iterating structures and naming'. 'iterating' is not a standard English noun/adj in this context; it should be 'iteration' or 'iterative'.",
+          "why_it_matters": "Header typos in a Spec document signal carelessness and complicate search/anchor-based tooling.",
+          "suggested_fix": "Change to 'Iteration structures and naming' (or 'Iterative structures and naming')."
+        },
+        {
+          "section": "Section 5 / \u00a74.2 \u2014 single-milestone vs multi-milestone file naming clarity",
+          "category": "needs_clarify",
+          "problem": "\u00a74.2 gives the multi-milestone pattern as 'spec|plan|tasks|workflow|tests_milestone_N.md' (using the | shorthand) while US-3, the FR-2 sub-skill table, and the \u00a79 Cross-Reference table enumerate the actual filenames. The shorthand risks misreading as a literal pipe-separated regex.",
+          "why_it_matters": "Naming precision matters because downstream tools (e.g., the M2 scripts that will scan `outputs/`) must match the exact filenames. Any ambiguity in the spec propagates into tooling.",
+          "suggested_fix": "Either enumerate the five filenames explicitly (e.g., 'spec_milestone_N.md, plan_milestone_N.md, tasks_milestone_N.md, workflow_milestone_N.md, tests_milestone_N.md') in \u00a74.2, or confirm with the human that the | shorthand is acceptable as a presentation choice only and not a tooling contract."
+        },
+        {
+          "section": "AC-5 \u2014 'Clarify timing' wording",
+          "category": "needs_clarify",
+          "problem": "AC-5 asserts the Clarify timing is 'once per milestone, after spec Pass 1'. The master-skill pipeline in FR-1 step 4 runs Clarify after spec Pass 1 but before plan-builder/task-breakdown/workflow-builder/scenario-tester and before Pass 2. Whether the workflow/scenario sub-skills can introduce new 'needs_clarify' items that bypass Clarify is not explicitly stated.",
+          "why_it_matters": "If downstream sub-skills generate new needs_clarify items, the 'once per milestone' guarantee may be silently violated; if they don't, the spec should say so explicitly.",
+          "suggested_fix": "Add a sentence clarifying whether sub-skills after Clarify are allowed to raise new needs_clarify items (and how they re-enter the loop), or confirm with the human that the 'once per milestone' rule is strict."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

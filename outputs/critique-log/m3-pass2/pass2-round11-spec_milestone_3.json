@@ -1,0 +1,307 @@
+{
+  "document": "spec_milestone_3",
+  "pass": 2,
+  "round": 11,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 9,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "API key entry is collected in memory but never persisted to disk, shell profiles, or `.env`, leaving entered keys discarded on process exit.",
+          "why_it_matters": "Users who enter API keys during the interactive setup wizard will expect their environment to be configured. Because Node.js cannot mutate the parent shell's environment, discarded in-memory key entry causes runtime failures when `/sdd` is invoked later. Additionally, the spec does not clarify whether the final reminder status check reflects `process.env` as inherited at startup or mutated in-memory by key input.",
+          "suggested_fix": "Clarify that key entry updates `process.env` in-memory for the duration of the wizard process (so the final reminder reflects entered keys as set for that session summary), and add explicit guidance in the prompt text instructing the user to persist the key to their shell profile or `.env` file."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The constant `GUIDE_SLOT` is described informally as `docs/GUIDE.md`'s `#guide-for-pakistani-users` section without specifying the exact string literal value.",
+          "why_it_matters": "Automated unit tests and output assertions cannot reliably check `GUIDE_SLOT` or the exact printed link string without a precise literal definition.",
+          "suggested_fix": "Explicitly define the exact string literal for `GUIDE_SLOT` (e.g., `const GUIDE_SLOT = 'docs/GUIDE.md#guide-for-pakistani-users';`) and state the exact output format when the user selects `y`."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 7,
+        "completeness": 6,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 5
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The spec says the wizard should print a link to the \"reserved guide location\" when the user selects the Pakistani\u2011guide option, but it never defines what that link looks like (URL, relative path, markdown syntax, etc.).",
+          "why_it_matters": "Implementers cannot know what exact output to produce, leading to inconsistent CLI behaviour and potential broken documentation links.",
+          "suggested_fix": "Add a concrete example, e.g. `print('See docs/GUIDE.md#guide-for-pakistani-users')`, and state that the output must be a plain\u2011text URL or relative path as defined in the repository."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The handling of non\u2011TTY stdin for key prompts is described twice with slightly different wording, creating ambiguity about whether the Pakistani\u2011guide prompt is skipped before or after the reminder is printed.",
+          "why_it_matters": "A contradictory description can cause implementations to either show the guide prompt in non\u2011interactive mode or omit the final reminder, both of which violate the user\u2011experience guarantees.",
+          "suggested_fix": "Consolidate the description: \"On non\u2011TTY stdin, all key prompts *and* the Pakistani\u2011guide prompt are skipped; the wizard immediately prints the final reminder and exits without any interactive prompts.\""
+        },
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "Adapter discovery rules do not specify how to handle a module that throws during `require()` (e.g., syntax error) or exports asynchronous functions.",
+          "why_it_matters": "A faulty adapter could crash the wizard at startup, violating the guarantee that configuration errors result in a clean exit\u2011code 2 with a clear message.",
+          "suggested_fix": "State that any error while requiring an adapter must be caught, logged as a warning, and cause the wizard to exit with code\u202f2, mentioning the offending file. Also require that `detect`, `install`, and `confirmEnabled` be synchronous functions returning the specified shapes."
+        },
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "The spec mentions duplicate `name` values cause a configuration error, but does not define the exact error message format or whether the duplicate files are listed in any particular order.",
+          "why_it_matters": "Test suites need deterministic output to verify the error case; ambiguous messaging makes automated validation flaky.",
+          "suggested_fix": "Specify the error message template, e.g., `Error: Duplicate adapter name \"Claude Code\" found in files: installers/claude-code.js, installers/claude-desktop.js`."
+        },
+        {
+          "section": "FR-3",
+          "category": "needs_clarify",
+          "problem": "PATH scanning for the OpenCode executable is described as using only the Node stdlib `fs`, but the spec does not explain how to resolve the system PATH variable or handle platform\u2011specific extensions.",
+          "why_it_matters": "Implementers may incorrectly use `child_process.exec('which opencode')` or ignore Windows executable extensions, leading to false negatives in detection.",
+          "suggested_fix": "Add a precise algorithm: split `process.env.PATH` on the platform separator, iterate each directory, and check for a file named `opencode` (POSIX) or `opencode.exe|.cmd|.bat` (Windows) using `fs.statSync`. Treat any access error as non\u2011existent."
+        },
+        {
+          "section": "FR-3",
+          "category": "needs_clarify",
+          "problem": "The definition of a \"populated\" OpenCode skill folder is vague \u2013 it says \"contains at least one entry, in practice SKILL.md\".",
+          "why_it_matters": "A folder containing unrelated files could be mistakenly considered populated, causing the OpenCode adapter to skip a needed copy.",
+          "suggested_fix": "Require that the folder contains a file named `SKILL.md` whose YAML front\u2011matter includes `name: sdd-multiagent-kit`. Only then is the folder considered populated."
+        },
+        {
+          "section": "FR-4",
+          "category": "needs_clarify",
+          "problem": "The trigger verification for Antigravity checks for the line `Invocation: /sdd` but does not state whether the check is case\u2011sensitive, whitespace\u2011tolerant, or must match the whole line.",
+          "why_it_matters": "Inconsistent parsing could cause false negatives, making the wizard report \"not confirmed\" even when the trigger is correctly present.",
+          "suggested_fix": "Define the check as a case\u2011exact match of a line that starts with `Invocation:` followed by optional whitespace and `/sdd`, ignoring surrounding whitespace."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The spec claims the wizard aborts cleanly without writing partial config, yet acknowledges that an `install()` may leave a partially\u2011copied destination folder.",
+          "why_it_matters": "Users may be left with corrupted installations; the guarantee of a clean abort is misleading.",
+          "suggested_fix": "Clarify that the wizard itself does not write any files until an adapter's `install()` is invoked, and that adapters must implement atomic copy (e.g., copy to a temporary directory then rename) or document that re\u2011runs will repair partial copies."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "AC\u20111 requires adapters to be \"non\u2011stub\" but provides no measurable test to verify this (e.g., unit tests, integration checks).",
+          "why_it_matters": "Without a concrete test, reviewers cannot objectively confirm compliance, leading to subjective judgments.",
+          "suggested_fix": "Add a test case that imports each adapter and asserts that `typeof detect === 'function'`, `typeof install === 'function'`, `typeof confirmEnabled === 'function'`, and that calling `detect()` returns an object with `installed` (boolean) and `location` (string|null)."
+        },
+        {
+          "section": "FR-5 / package.json",
+          "category": "needs_clarify",
+          "problem": "The spec states the package has \"no dependencies \u2014 neither runtime nor development\", yet the wizard uses raw\u2011mode stdin which may require the `readline` module's `Interface` with `input.setRawMode`. This is fine, but the spec does not mention the need for the `readline` module to be imported, nor does it clarify that the `#!/usr/bin/env node` shebang must be accompanied by the `chmod +x` permission in the published package.",
+          "why_it_matters": "If the build pipeline does not set the executable bit, the `sdd-setup` command may not be runnable after install, violating AC\u20116.",
+          "suggested_fix": "Explicitly state that `bin/setup-wizard.js` must have the executable bit set in the repository (e.g., via `git update-index --chmod=+x`) and that the script may only import Node core modules (`fs`, `path`, `os`, `readline`)."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "mistralai/mistral-nemotron",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The key handling logic is overly complex and could be simplified. The distinction between 'skip' and 'whitespace-only' is subtle and may confuse users.",
+          "why_it_matters": "Complex key handling increases the risk of user errors and support requests. Simplifying the logic would improve usability.",
+          "suggested_fix": "Consider merging the 'skip' and 'whitespace-only' cases into a single 'empty input' case. This would make the behavior more intuitive."
+        },
+        {
+          "section": "FR-3",
+          "category": "objective",
+          "problem": "The OpenCode adapter's no-op behavior on re-runs is inconsistent with the other adapters. This could lead to confusion if users expect the same behavior across all tools.",
+          "why_it_matters": "Inconsistent behavior across adapters can lead to user confusion and support issues. Consistency improves the overall user experience.",
+          "suggested_fix": "Document the OpenCode adapter's no-op behavior more prominently and consider adding a warning or confirmation message when this behavior occurs."
+        },
+        {
+          "section": "Out of Scope",
+          "category": "objective",
+          "problem": "The 'Concurrent sdd-setup runs' limitation is documented but not addressed. This could lead to race conditions and data corruption if users are not aware of the limitation.",
+          "why_it_matters": "Race conditions can lead to data corruption and other issues. Addressing this limitation would improve the robustness of the system.",
+          "suggested_fix": "Consider adding a lock file mechanism to prevent concurrent runs. Alternatively, document the limitation more prominently and provide guidance on how to avoid concurrent runs."
+        },
+        {
+          "section": "Testability",
+          "category": "objective",
+          "problem": "The specification lacks detailed test cases for edge cases, such as partial installs, interrupted runs, and invalid tool selections.",
+          "why_it_matters": "Detailed test cases are essential for ensuring the robustness and reliability of the system. Without them, it is difficult to verify that the system behaves correctly in all scenarios.",
+          "suggested_fix": "Add detailed test cases for edge cases, including partial installs, interrupted runs, and invalid tool selections. These test cases should be included in the 'Tests' document referenced in the Cross-Reference section."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_3.md",
+      "round": 3,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 6,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 5,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1 (Key collection & Pakistani guide slot)",
+          "category": "internal_consistency",
+          "problem": "The Pakistani guide prompt is described as appearing 'directly beneath the NVIDIA key prompt (immediately after the NVIDIA key is entered, before the next key prompt)' but also 'offered every interactive run (regardless of whether the key is already set in env)'. If the user skips the NVIDIA key because it's already in env, the guide prompt's placement becomes ambiguous \u2014 does it still appear between the (skipped) NVIDIA prompt and the Google prompt?",
+          "why_it_matters": "Implementation will diverge: some will show the guide prompt only when the NVIDIA key is actually entered, others will show it unconditionally after the NVIDIA step. The spec must define the exact control flow.",
+          "suggested_fix": "Define a deterministic sequence: (1) print NVIDIA prompt with hint if env has value; (2) read input (skip/enter); (3) if TTY, print guide prompt; (4) read guide response; (5) proceed to Google prompt. Do this regardless of whether step 2 was a skip."
+        },
+        {
+          "section": "FR-1 (Key handling) / FR-2 (Adapter interface)",
+          "category": "internal_consistency",
+          "problem": "FR-1 states keys are 'held in memory for the session and are never written to disk, echoed back, transmitted, or used by the wizard \u2014 the kit reads them from the process environment at runtime'. But the wizard collects keys and does nothing with them. The user must manually add them to their shell profile/.env. The spec never explains how the collected keys reach the process environment for the kit's runtime use.",
+          "why_it_matters": "The core value proposition \u2014 'collects the three API keys once' \u2014 is broken if the wizard doesn't persist them. Either the wizard must write them to a config file the kit reads, or the spec must explicitly state the wizard only validates format and the user must copy-paste them into their environment manually.",
+          "suggested_fix": "Choose one: (A) Wizard writes keys to a user-config file (e.g., ~/.config/sdd-multiagent-kit/env) that the kit's runtime loads, or (B) Remove key collection from the wizard entirely and document that the user must set env vars before running sdd-setup. The current half-measure is misleading."
+        },
+        {
+          "section": "FR-2 (Adapter detect() return shape)",
+          "category": "internal_consistency",
+          "problem": "FR-2 says detect() returns location as 'the absolute path of the folder where the kit is installed (or will be installed) for that tool' but immediately contradicts: 'location is null whenever the kit is not yet installed even if the tool is present'. If the tool is present, the path where the kit *will be* installed is knowable (e.g., ~/.claude/skills/sdd-multiagent-kit/) and should be returned, not null.",
+          "why_it_matters": "The wizard needs the destination path before install() to display it or for confirmEnabled() to know where to check. Returning null for 'not yet installed' forces the wizard to recompute the path, duplicating logic that belongs in the adapter.",
+          "suggested_fix": "Change detect() contract: location is always the absolute destination path for that tool (computed per FR-3), regardless of whether the kit is currently installed. installed: true only when the kit is actually present at that location. This matches FR-3's per-tool paths and eliminates the contradiction."
+        },
+        {
+          "section": "FR-3 (OpenCode adapter detect/install)",
+          "category": "internal_consistency",
+          "problem": "OpenCode's detect() returns location as 'the shared .claude/skills/sdd-multiagent-kit/ path when populated, else null', contradicting the corrected detect() contract above. Its install() is a no-op 'only when the shared folder is populated with the kit (its SKILL.md carries name: sdd-multiagent-kit)'. But 'populated' is vaguely defined as 'folder exists and is non-empty (contains at least one entry, in practice SKILL.md)'. A folder with a stray file would be 'populated' but not kit-marked, causing install() to no-op incorrectly.",
+          "why_it_matters": "The no-op guard must check for the kit marker (SKILL.md with name: sdd-multiagent-kit), not mere non-emptiness. The current text says both but the 'in practice' hedge creates ambiguity.",
+          "suggested_fix": "Define 'populated with the kit' precisely: the destination folder exists, contains SKILL.md, and that file's YAML frontmatter has name: sdd-multiagent-kit. Any other state (missing folder, missing SKILL.md, wrong name) triggers a full copy."
+        },
+        {
+          "section": "FR-2 (Adapter confirmEnabled())",
+          "category": "completeness",
+          "problem": "confirmEnabled() 'takes no arguments (it re-checks the filesystem at the tool's own location internally)' but the adapter has no persistent state between detect()/install() and confirmEnabled(). How does it know which location to check? The wizard calls confirmEnabled() only after a successful install(), but the adapter instance may be recreated or the location may differ from detect()'s return.",
+          "why_it_matters": "Without a location argument or guaranteed instance persistence, confirmEnabled() cannot reliably find the installed kit. The spec assumes implicit state that Node's module system doesn't provide.",
+          "suggested_fix": "Pass the installed location to confirmEnabled(location) so the adapter doesn't need internal state. Or require adapters to be stateful singletons (exported instance) and document that the wizard reuses the same module instance."
+        },
+        {
+          "section": "FR-1 (Masked key entry via stdlib raw-mode)",
+          "category": "testability",
+          "problem": "The spec mandates 'masked entry, no echo, stdlib raw-mode input' for key prompts. Node's readline/promises does not support raw-mode masked input out of the box; it requires manual stdin.setRawMode(true) and custom character handling (backspace, Ctrl-C, paste detection). This is a significant implementation burden not acknowledged in the spec.",
+          "why_it_matters": "Implementers will either use a dependency (violating 'no dependencies') or write fragile raw-mode code. The spec should either provide a reference implementation snippet or relax the requirement to 'best-effort masking (e.g., readline with * echo) with a warning that keys may appear in scrollback on some terminals'.",
+          "suggested_fix": "Add a note: 'A minimal raw-mode masked reader implementation is provided in kit/scripts/read-masked.js (stdlib only) \u2014 adapters must use it.' Or accept that readline's default echo is acceptable for this milestone and defer true masking to a later milestone."
+        },
+        {
+          "section": "FR-1 (Key format validation)",
+          "category": "completeness",
+          "problem": "Keys with 'internal whitespace (any Unicode whitespace, including tabs) or control characters' are rejected and re-prompted. No maximum retry count is specified. A user pasting a key with a trailing newline (common) will hit this loop indefinitely.",
+          "why_it_matters": "Infinite re-prompt on common paste errors is a UX failure. The spec must bound retries or auto-trim trailing newlines (which are not 'internal' whitespace).",
+          "suggested_fix": "Define 'internal whitespace' as whitespace not at the start/end of the trimmed string. Auto-trim the input before validation. Allow up to 3 retries, then treat as skip with a warning."
+        },
+        {
+          "section": "FR-2 (kitPath discovery)",
+          "category": "edge_case_coverage",
+          "problem": "The wizard walks parent directories from its own location to find package.json with name: sdd-multiagent-kit and a sibling kit/ containing SKILL.md. In a monorepo with multiple packages named sdd-multiagent-kit (e.g., apps/ and packages/), the 'nearest matching ancestor wins' rule may pick the wrong one if the wizard is run from a nested location.",
+          "why_it_matters": "The kit source could be resolved incorrectly, causing install() to copy the wrong content or fail. The spec should require a unique marker (e.g., a .sdd-kit-root file) or use the package.json's own directory as the root when the wizard is installed via npm (where __dirname is known).",
+          "suggested_fix": "Since the wizard is installed via npm's bin link, use require.resolve('sdd-multiagent-kit/package.json') to find the package root reliably, then append 'kit/'. Fall back to the walk only for local development."
+        },
+        {
+          "section": "FR-3 (Claude Desktop detection paths)",
+          "category": "edge_case_coverage",
+          "problem": "Claude Desktop detection checks per-platform config directories but FR-2 says 'Any filesystem error during detection (EACCES, ENOTDIR, ELOOP, EMFILE) is caught, logged as a warning, and treated as installed: false'. ENOENT (directory does not exist) is not listed but is the expected case when the tool isn't installed. It must be explicitly included or the catch-all must be 'any error'.",
+          "why_it_matters": "If ENOENT throws and isn't caught, detection crashes the wizard. The list of caught codes is incomplete.",
+          "suggested_fix": "Change to 'any filesystem error (any errno) is caught, logged as a warning, and treated as installed: false'."
+        },
+        {
+          "section": "FR-3 (Antigravity confirmEnabled)",
+          "category": "internal_consistency",
+          "problem": "Antigravity's confirmEnabled() 'checks the copied SKILL.md description carries the invocation phrase Invocation: /sdd'. But the adapter's install() 'writes the canonical phrase, replacing any stale invocation line, so re-runs converge to it'. This injection is 'adapter-owned content layered on the kit-owned copy, not part of the shipped kit/ tree'. However, install() copies the entire kit/ tree (per FR-2: 'copies the entire kit/ directory tree'). When does the injection happen \u2014 after the copy? The spec doesn't sequence this.",
+          "why_it_matters": "If install() copies kit/ then injects, confirmEnabled() will see the injected line. But if the injection is part of the copy (e.g., a transform), the spec must say so. The current text implies two passes but doesn't specify order or atomicity.",
+          "suggested_fix": "Specify: install() copies kit/ tree verbatim, then appends/updates the 'Invocation: /sdd' line in the destination SKILL.md. confirmEnabled() reads that destination file and verifies the line exists."
+        },
+        {
+          "section": "AC-1 (Acceptance criteria)",
+          "category": "testability",
+          "problem": "AC-1 requires adapters to be 'non-stub (a stub = empty, placeholder, or TODO-only with no real implementation)' but provides no objective test for 'real implementation'. An adapter that returns {installed: false} for detect() and throws 'not implemented' for install() passes the export check but fails the spirit.",
+          "why_it_matters": "The acceptance criteria must be mechanically verifiable. 'Non-stub' is subjective.",
+          "suggested_fix": "Replace with: 'Each adapter's detect() returns a valid result for the current machine (no throws), install() copies at least SKILL.md to the correct destination when given a valid kitPath, and confirmEnabled() returns installed: true after a successful install().'"
+        },
+        {
+          "section": "FR-5 (package.json files list)",
+          "category": "clarity",
+          "problem": "The files list includes 'LICENSE and README.md (npm always includes package.json and the README regardless of the list; the list governs the rest)'. This is inaccurate: npm includes LICENSE, README, CHANGELOG, and package.json by default regardless of the files field. The files field only controls *additional* files.",
+          "why_it_matters": "Minor but indicates misunderstanding of npm packaging. The list should simply be the exhaustive set of directories/files to include beyond npm's defaults.",
+          "suggested_fix": "State: 'files: [\"kit/\", \"bin/\", \"installers/\"] \u2014 npm automatically includes package.json, README.md, LICENSE, CHANGELOG.md if present.'"
+        },
+        {
+          "section": "FR-1 (Exit codes)",
+          "category": "completeness",
+          "problem": "Exit code 1 is 'completed but one or more tools failed/not confirmed (partial success)'. But if the user selects 3 tools, 1 installs successfully, 1 fails install(), 1 fails confirmEnabled(), the wizard exits 1. There's no distinction between 'install failed' and 'confirm failed' in the exit code, and no summary of which tools succeeded.",
+          "why_it_matters": "Automation (CI, scripts) cannot differentiate failure modes. The spec should require a machine-readable summary (JSON to stdout) or distinct exit codes.",
+          "suggested_fix": "Add: 'On exit 1, the wizard prints a JSON summary to stdout: {\"installed\": [\"tool-name\"], \"failed_install\": [\"tool-name\"], \"failed_confirm\": [\"tool-name\"]}.'"
+        },
+        {
+          "section": "FR-1 (Non-TTY stdin behavior)",
+          "category": "internal_consistency",
+          "problem": "On non-TTY stdin, 'the key prompts and the Pakistani-guide prompt are skipped (all key-step prompts are TTY-only), and the reminder is printed instead'. But the tool selection prompt 'reads lines via readline (the raw-mode masked reader is TTY-only); piped input (e.g. echo all | sdd-setup) works for selection'. This means the wizard is partially interactive: it skips key prompts but still prompts for tool selection on a pipe. The spec doesn't say what happens if stdin is a pipe but no input is provided for selection (EOF).",
+          "why_it_matters": "EOF on selection prompt after keys were skipped: is that exit 130 (abort) or exit 0 (nothing selected)? The spec says 'EOF after a complete selection proceeds normally' but keys were skipped, not selected.",
+          "suggested_fix": "Define a --non-interactive flag (deferred per Out of Scope) or specify: on non-TTY, if no tools are detected, exit 0; if tools are detected but no selection input arrives within 5s, exit 130. Better: require --tool=all|tool1,tool2 for non-TTY use."
+        },
+        {
+          "section": "FR-3 (OpenCode PATH scanning)",
+          "category": "edge_case_coverage",
+          "problem": "PATH scanning 'checking each PATH entry for an opencode file \u2014 on Windows also matching opencode.exe/opencode.cmd/opencode.bat'. It doesn't say whether the file must be executable (Unix) or how to handle directories in PATH that don't exist or aren't readable. fs.stat on a non-existent directory throws ENOENT.",
+          "why_it_matters": "Scanning a malformed PATH (common in user environments) could crash detection with an unhandled ENOENT.",
+          "suggested_fix": "Wrap each PATH entry check in try/catch; ignore ENOENT, EACCES, ENOTDIR. Only treat a successful stat with executable bit (or Windows extension match) as a positive signal."
+        },
+        {
+          "section": "FR-1 (Key reminder status text)",
+          "category": "clarity",
+          "problem": "The final reminder prints status like 'NVIDIA_NIM_API_KEY (set in env)' or 'NVIDIA_NIM_API_KEY (not set \u2014 add it to your shell profile or .env)' and 'marks the ones the user skipped this run'. But if the user skips a key that *is* already in env, what does the reminder show? 'set in env (skipped)'? The spec doesn't define the combined state.",
+          "why_it_matters": "Inconsistent reminder text confuses users. The three states (env-set, env-not-set, skipped-this-run) can overlap.",
+          "suggested_fix": "Define four distinct status lines: (1) set in env, not skipped; (2) set in env, skipped (kept existing); (3) not in env, entered this run; (4) not in env, skipped (missing)."
+        },
+        {
+          "section": "FR-2 (Adapter error message prefix convention)",
+          "category": "testability",
+          "problem": "Adapters are 'expected to prefix their error message with the tool id (e.g. claude-code: permission denied <path>) as a readability convention \u2014 the wizard does not verify or enforce the prefix'. This makes it impossible to test error formatting reliably.",
+          "why_it_matters": "If the wizard prints the message verbatim, tests cannot assert on the prefix. Either enforce it (wizard adds prefix) or make it a hard requirement with a test hook.",
+          "suggested_fix": "Have the wizard catch the error, prepend the adapter's name (from the module's name export), and print. Adapters throw raw messages."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 4
+}

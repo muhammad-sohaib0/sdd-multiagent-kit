@@ -1,0 +1,296 @@
+{
+  "document": "spec_milestone_1",
+  "pass": 1,
+  "round": 7,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 10,
+      "scores": {
+        "clarity": 10,
+        "completeness": 10,
+        "edge_case_coverage": 10,
+        "internal_consistency": 10,
+        "testability": 10
+      },
+      "issues": [],
+      "verdict": "pass"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 9,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "3A",
+          "category": "needs_clarify",
+          "problem": "The Simplicity Gate defines a default limit of 3 standalone components per milestone, but does not define what constitutes a 'standalone component' (e.g., a separate npm package, a microservice, a distinct CLI binary, or a sub-module).",
+          "why_it_matters": "Without a clear definition, the gate cannot be objectively evaluated by the critique loop or the master skill, leading to inconsistent enforcement of the Simplicity by Default constitution.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "6",
+          "category": "needs_clarify",
+          "problem": "The secret detection rule includes a pattern for base64/hex blobs >= 32 chars, but does not specify how to handle common non-secret strings of that length (e.g., long SHA hashes in lock files, or standard UUIDs) other than the inline allowlist.",
+          "why_it_matters": "If the 13 shipped files naturally contain long hashes or IDs, they would trigger false positives unless explicitly added to the allowlist, potentially blocking the build unnecessarily.",
+          "suggested_fix": ""
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "\u00a74.5 (phase-transition enumeration)",
+          "category": "objective",
+          "problem": "The phrase 'That is the complete, non-exhaustive list the master skill walks' is internally contradictory at first read \u2014 a single list cannot be both 'complete' and 'non-exhaustive' without further qualification.",
+          "why_it_matters": "A critic (or human reader) scanning the document for the definitive list of PHR-logged transitions will be unsure whether to rely on the enumeration as exhaustive or to expect more entries; downstream tasks/workflow docs may omit transitions under the wrong assumption.",
+          "suggested_fix": "Replace with one of: (a) 'That is the complete enumeration of the master skill's phase transitions' (if exhaustive is intended), or (b) 'That is a representative, non-exhaustive enumeration of the master skill's phase transitions \u2014 additional transitions may be added as the pipeline evolves' (if non-exhaustive is intended)."
+        },
+        {
+          "section": "\u00a74.5 (AC-7 meta-definition)",
+          "category": "objective",
+          "problem": "The definition of what AC-7's 'consistent with its FR-2 contract' clause means is buried in \u00a74.5 (Data Model / patterns) instead of in \u00a78 (Acceptance Criteria) where AC-7 itself is stated.",
+          "why_it_matters": "A reviewer or implementer checking AC-7 has to cross-reference \u00a74.5 to find the contract-check semantics, which weakens traceability between the acceptance criterion and its definition. The Doc is otherwise very disciplined about co-locating each AC with its supporting definition (see AC-1 through AC-6, which are self-contained).",
+          "suggested_fix": "Move the 'AC-7 \"consistent with its FR-2 contract\"' sentence out of \u00a74.5 and append it as a bullet under AC-7 in \u00a78 (or as a footnote immediately after AC-7). Keep the reference to FR-2 in \u00a74.5 only if needed elsewhere."
+        },
+        {
+          "section": "\u00a73 (About the critique phase and gates \u2014 M1's exact scope)",
+          "category": "objective",
+          "problem": "This paragraph is approximately 200 words long, mixes four distinct sub-claims (critique invariant, M2 deferral, sub-skill count, gate-not-a-skill assertion), and re-states content that already appears in \u00a73A and the FR-1 step list.",
+          "why_it_matters": "Redundancy in a spec creates two sources of truth that can drift. The bolded 'The gates are master-skill orchestration checkpoints, not sub-skills' appears in both this paragraph and \u00a73A \u2014 if one is updated and the other isn't, the spec contradicts itself.",
+          "suggested_fix": "Trim the paragraph to a single sentence stating only the deferral: 'M1 ships the ten sub-skills in \u00a7FR-2; the 11th sub-skill `critique-loop` and its orchestration/validation scripts are owned by M2 (see \u00a77). Gates are master-skill orchestration checkpoints, not sub-skills \u2014 see \u00a73A.' Keep the rest of the content where it already lives (FR-1 step list, \u00a73A)."
+        },
+        {
+          "section": "\u00a74.5 (Back-reference format for single-milestone case)",
+          "category": "needs_clarify",
+          "problem": "\u00a74.5 specifies the back-reference format only as `> Companion to: outputs/milestones/milestone_1/spec_milestone_1.md`. The single-milestone path is `outputs/spec.md` (per \u00a74.2) but the back-reference string for that case is not given, and US-3 (small single-milestone project) inherits the same back-reference requirement implicitly.",
+          "why_it_matters": "A user with a single-milestone project will have companions in `outputs/` directly and needs a stable back-reference string. Whether `> Companion to: outputs/spec.md` (the analog) is intended, or whether back-references are only required in multi-milestone mode, is not stated.",
+          "suggested_fix": null
+        },
+        {
+          "section": "\u00a76 (secret detection \u2014 'obvious, allowlisted constant')",
+          "category": "needs_clarify",
+          "problem": "The exception clause 'a base64/hex blob \u2265 32 chars that is not an obvious, allowlisted constant' uses the word 'obvious' without defining the threshold for obviousness.",
+          "why_it_matters": "At scan time, the implementation (M2 scripts) needs a deterministic test for 'obvious.' A reviewer/tester cannot verify AC-3 (no secret appears) without an operational definition. This is a real product decision \u2014 which non-credential, non-allowlisted long strings are obviously safe?",
+          "suggested_fix": null
+        },
+        {
+          "section": "\u00a73A (Simplicity default per-milestone vs. per-project override)",
+          "category": "needs_clarify",
+          "problem": "\u00a73A says the default of 3 is 'per milestone' and 'overridable once per project in constitution.md.' \u00a74.5 reiterates 'the default of 3 standalone components is a per-milestone heuristic' but then describes the override as once-per-project (constitution). The two statements are technically compatible (default per-milestone, override set once and applied per-milestone) but the relationship is not stated explicitly.",
+          "why_it_matters": "A reviewer could reasonably ask: if I override to 5 in the constitution, does that mean 5 across the whole project, or 5 per milestone? Given that the constitution is set once per project and milestones are evaluated independently, the natural reading is '5 per milestone,' but this should be stated, not inferred.",
+          "suggested_fix": null
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "\u00a73 FR-1 step 4d",
+          "category": "needs_clarify",
+          "problem": "The spec states Clarify runs once per milestone after Pass 1, but the Clarify step is described as folding answers into the spec. It is unclear whether the human answers can also affect the plan/tasks/workflow/tests documents directly, or if they only flow through the spec (which then drives the plan). The text says 'the plan is drafted afterwards, so it reflects the answers by construction', implying indirect flow, but this is not explicit for tasks/workflow/tests.",
+          "why_it_matters": "If the human answers contain constraints that should directly alter tasks or workflow (e.g., a specific deployment target), the pipeline must know whether to propagate them only via the spec or to allow direct edits to companion documents. Ambiguity could lead to inconsistent implementation.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a73A Simplicity Gate",
+          "category": "needs_clarify",
+          "problem": "The Simplicity Gate default of 3 standalone components per milestone is stated as a constant in the master skill, overridable once per project via constitution.md. However, it is not clear whether the override applies to all milestones or only to the milestone in which the constitution is edited. The text says 'overridable once per project' but also says the default is 'per-milestone heuristic'.",
+          "why_it_matters": "If the override is meant to be global, a single edit should affect all future milestones; if per-milestone, the wording is contradictory. This affects how the master skill implements the gate and how the constitution amendment is interpreted.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a74.5 PHR numbering",
+          "category": "objective",
+          "problem": "The spec says PHR numbering resets per milestone within each milestone's folder (001, 002, \u2026), but also mentions 'milestone_0' folder for pre-milestone PHRs. It is not explicitly stated whether milestone_0 PHRs also reset (they likely do, but it's not stated). Also, the example path 'outputs/history/prompts/milestone_N/NNN-milestone-breakdown.md' uses NNN as a placeholder, but the actual numbering scheme (001, 002) is not shown in the example.",
+          "why_it_matters": "Ambiguity in numbering could cause confusion when implementing the history-logger sub-skill and when validating PHR file names in tests.",
+          "suggested_fix": "Explicitly state that milestone_0 PHRs also reset to 001, and update the example path to use a concrete number like '001-milestone-breakdown.md'."
+        },
+        {
+          "section": "\u00a74.5 Secret allowlist",
+          "category": "objective",
+          "problem": "The secret allowlist is defined as an empty list by default, but the spec does not specify the exact file path where this allowlist lives. It appears inline in \u00a76 and \u00a74.5, but it is not clear whether it is a separate file (e.g., kit/config/allowlist.yaml) or a constant in the master skill. The \u00a74.1 inventory does not include an allowlist file.",
+          "why_it_matters": "If the allowlist is meant to be a configurable file, it must be part of the shipped content or the master skill must reference it. If it's just a constant, the detection rule must know where to read it. Without a defined location, the secret scan cannot be implemented consistently.",
+          "suggested_fix": "Define the allowlist as a constant in the master skill (or a dedicated config file) and add it to the \u00a74.1 inventory if it is a file, or explicitly state it is a constant in SKILL.md."
+        },
+        {
+          "section": "\u00a78 AC-7",
+          "category": "objective",
+          "problem": "AC-7 states the Stranger Test input is the five-document set, and the three checks are 'necessary and sufficient'. However, check (3) says 'each sub-skill's SKILL.md is consistent with its FR-2 input/output/edge-case' \u2014 but the FR-2 table is in the spec, which is part of the five-document set. The stranger is given the five documents, so it can read the FR-2 table. This is fine, but the spec also says 'fully specified within this five-document set, so the stranger needs no external PLAN.md'. The FR-2 table references PLAN.md \u00a75.2 and \u00a74.3 for some edge-case rules (e.g., installed-skill awareness, needs_clarify schema). This creates a dependency on PLAN.md that contradicts the 'no external PLAN.md' claim.",
+          "why_it_matters": "If the stranger cannot access PLAN.md, it cannot fully interpret the FR-2 edge-case rules that reference PLAN.md sections. This could cause the stranger to produce inconsistent SKILL.md files, failing the Stranger Test.",
+          "suggested_fix": "Either inline the relevant PLAN.md content into the spec (e.g., the installed-skill awareness definition and the needs_clarify tuple schema) or adjust AC-7 to allow the stranger to consult PLAN.md for those specific references."
+        },
+        {
+          "section": "\u00a74.3 providers.yaml schema",
+          "category": "objective",
+          "problem": "The schema shows a 'tier' field for each provider, but the spec says 'tier' is metadata for logging/expectations, not behavior. However, the validation rule in FR-4 does not mention tier. It is unclear whether the validation should also check that all providers have a valid tier (e.g., 'free' or 'paid') or if tier is optional. The schema example always includes 'tier: free', but the spec does not state whether it is required.",
+          "why_it_matters": "If tier is required, the validation script (M2) must enforce it; if optional, the schema should say so. Ambiguity could lead to config errors that are not caught.",
+          "suggested_fix": "Explicitly state whether 'tier' is required and what values are allowed (e.g., 'free' or 'paid'), and add a validation rule for it if required."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 6,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "\u00a74.5 / \u00a76",
+          "category": "objective",
+          "problem": "Secret allowlist location is unspecified. \u00a74.5 states 'an explicit, enumerated list in \u00a76' and \u00a76 shows `allowlist: []` but does not specify which file or configuration this list lives in (providers.yaml? master skill? separate config?). The detection rule operates on the 13 shipped files but the allowlist itself has no defined home.",
+          "why_it_matters": "Implementers cannot know where to place or read the allowlist, making the secret detection rule unimplementable as specified.",
+          "suggested_fix": "Specify the exact file and key where the allowlist resides (e.g., `kit/config/secret-allowlist.yaml` or a top-level key in `providers.yaml`)."
+        },
+        {
+          "section": "FR-3 / \u00a74.1 #2",
+          "category": "objective",
+          "problem": "Constitution template is required to ship the seven articles 'verbatim from PLAN.md \u00a76' but the actual article text is not included in this spec. For the kit to be standalone (Standalone-First principle), the template file must contain the actual articles, not a reference to an external document.",
+          "why_it_matters": "The shipped `kit/constitution.template.md` would be incomplete without the article content, violating AC-1 (no stubs/placeholders) and the Standalone-First constitution article.",
+          "suggested_fix": "Include the full text of the seven constitution articles in this spec (or in a referenced appendix) so the template file can be generated verbatim."
+        },
+        {
+          "section": "FR-2 research-ct-scan",
+          "category": "objective",
+          "problem": "Installed-skill awareness requires 'inspect the target tool's installed skills/plugins' but M1 explicitly excludes tool adapters and the installer (M3). No mechanism is defined for how a generic sub-skill can inspect tool-specific skill directories across four different CLI tools.",
+          "why_it_matters": "The sub-skill cannot be implemented in M1 without tool-specific logic that belongs in M3, creating a circular dependency or unimplementable requirement.",
+          "suggested_fix": "Either (a) define a tool-agnostic interface for skill discovery that M3 adapters implement, deferring the concrete inspection to M3, or (b) move installed-skill awareness to M3 and have M1's research-ct-scan use only generic conditional categories."
+        },
+        {
+          "section": "AC-7 / \u00a73",
+          "category": "objective",
+          "problem": "Stranger Test claims the five-document set is 'fully specified within this five-document set, so the stranger needs no external PLAN.md', but this spec (part of the five-document set) contains 12 explicit references to PLAN.md sections (e.g., PLAN.md \u00a75.2, \u00a79, \u00a74.2, \u00a74.3, \u00a74.4, \u00a74.5, \u00a75.3, \u00a77.5, \u00a75.4, \u00a76, \u00a77.6, \u00a78.2). A stranger with only the five documents would see unresolved external references.",
+          "why_it_matters": "Violates the Stranger Test's own contract parity requirement (AC-7) and the claim of self-containment. The stranger cannot verify PLAN.md references without PLAN.md.",
+          "suggested_fix": "Either (a) inline all referenced PLAN.md content into the five-document set, (b) remove PLAN.md references from the five documents and keep them only in cumulative history, or (c) explicitly include PLAN.md as part of the Stranger Test input bundle."
+        },
+        {
+          "section": "\u00a74.5 / FR-1 step 4i",
+          "category": "objective",
+          "problem": "Back-reference format is specified only for multi-milestone (`outputs/milestones/milestone_1/spec_milestone_1.md`). Single-milestone projects place files directly under `outputs/` (per US-3), but no back-reference format is given for that case.",
+          "why_it_matters": "Inconsistent companion file headers for single-milestone projects, failing AC-1 completeness.",
+          "suggested_fix": "Add a single-milestone back-reference format (e.g., `> Companion to: outputs/spec.md`)."
+        },
+        {
+          "section": "FR-1 step 4i / \u00a73",
+          "category": "objective",
+          "problem": "'Build the milestone' is defined as 'execute the milestone's ordered tasks to materialize that milestone's artifacts' with tasks.md defining exact paths and dependency order. However, M1 does not include a task execution engine \u2014 the master skill has no mechanism to run commands, write files, or execute the tasks. This is deferred to M2/M3 but the master skill pipeline includes 'build' as a step.",
+          "why_it_matters": "The master skill pipeline includes an unimplementable step in M1, making the pipeline description inaccurate for M1 scope.",
+          "suggested_fix": "Clarify that in M1, 'build' for the kit's own bootstrap means 'the 13 files are the output of the milestone' (i.e., the milestone *is* the content production), and for generic projects the build step is a placeholder noting 'execution engine arrives in M2/M3'."
+        },
+        {
+          "section": "AC-7 check (3)",
+          "category": "objective",
+          "problem": "AC-7 criterion (3) states 'each sub-skill's SKILL.md is consistent with its FR-2 input/output/edge-case (exact prose need not match)'. 'Consistent with' is subjective and not objectively measurable, yet AC-7 is part of the Stranger Test which must be fully objective.",
+          "why_it_matters": "A stranger implementing from the five documents cannot objectively verify 'consistency' without a precise definition, undermining the Stranger Test's contract-parity guarantee.",
+          "suggested_fix": "Replace with objective checks: (a) SKILL.md frontmatter has name/description/version; (b) SKILL.md body explicitly names the input, output, and at least one edge-case rule matching the FR-2 table row (string match or structured annotation)."
+        },
+        {
+          "section": "\u00a74.3 providers.yaml",
+          "category": "needs_clarify",
+          "problem": "Model 'openai/gpt-oss-120b' is listed under provider 'nvidia-nim'. While NVIDIA NIM can host third-party models, the naming suggests an OpenAI model. The spec does not clarify whether model IDs must be provider-native or can be any model the provider serves.",
+          "why_it_matters": "Affects provider configuration validity, model resolution logic, and future maintainability when models move between providers.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "\u00a73A / \u00a74.5",
+          "category": "needs_clarify",
+          "problem": "Simplicity Gate default of 3 is described as a 'per-milestone heuristic' (\u00a74.5) but 'overridable once per project' (\u00a74.5). If it's per-milestone, why can it only be overridden once globally? This appears contradictory.",
+          "why_it_matters": "Determines whether projects can adjust the limit per milestone or only once at project start, affecting governance and ADR requirements.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "FR-1 / PLAN.md \u00a78.2",
+          "category": "needs_clarify",
+          "problem": "ADR significance test is referenced (PLAN.md \u00a78.2) but not defined in this document. The master skill must apply this test at every phase transition to decide whether to propose an ADR.",
+          "why_it_matters": "Without the test criteria, the history-logger sub-skill and master skill cannot correctly implement ADR suggestion blocking behavior.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "AC-2 / \u00a75",
+          "category": "needs_clarify",
+          "problem": "Free-tier verification of six models is claimed via 'the kit's own bootstrap preflight PHR milestone_0/003' but no automated verification mechanism is specified. AC-2 treats this as an acceptance criterion.",
+          "why_it_matters": "If free-tier access changes (rate limits, model deprecation), the kit may fail silently. No CI/CD check is defined to catch this.",
+          "suggested_fix": ""
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-2 \u2014 Sub-skill contract (research-ct-scan edge-case rule)",
+          "category": "needs_clarify",
+          "problem": "The edge\u2011case rule references \"PLAN.md \u00a75.2\" for the definition of \"installed\u2011skill awareness\", but the referenced section is not present in the provided PLAN.md or its location is ambiguous.",
+          "why_it_matters": "Critics need a concrete, unambiguous definition to validate the rule; without it, implementations may diverge, breaking the reproducibility guarantee of the kit."
+        },
+        {
+          "section": "FR-2 \u2014 Sub-skill contract (clarify-interview input format)",
+          "category": "needs_clarify",
+          "problem": "The specification mentions that the compiled list is a set of `{section, problem, why_it_matters}` tuples persisted at `outputs/milestones/milestone_N/needs_clarify.md`, but the exact markdown schema (e.g., list syntax, required fields ordering) is not fully defined.",
+          "why_it_matters": "A precise schema is required for downstream sub\u2011skills and for the critique loop to reliably parse and act on the data."
+        }
+      ],
+      "verdict": "pass"
+    }
+  ],
+  "n_valid": 6
+}

@@ -1,0 +1,126 @@
+{
+  "document": "spec_milestone_4",
+  "pass": 2,
+  "round": 3,
+  "critics": [
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_4.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "The phrase \u201cunderstandable cold by a human contributor or an unfamiliar AI tool\u201d is vague and uses non\u2011standard terminology.",
+          "why_it_matters": "Readers may interpret \u201ccold\u201d differently (e.g., as \u201cwithout any prior context\u201d vs. \u201cwithout building the project\u201d), leading to confusion about the documentation\u2019s purpose.",
+          "suggested_fix": "Replace the phrase with something like \u201cunderstandable without prior knowledge of the repository\u201d and remove the word \u201ccold\u201d."
+        },
+        {
+          "section": "Edge Cases & Rules \u2013 .gitignore",
+          "category": "needs_clarify",
+          "problem": "The rule \u201cmust include \u2026 and temp/transient artifacts\u201d does not enumerate what those artifacts are.",
+          "why_it_matters": "Implementers may omit common temporary files (e.g., `npm-debug.log`, `yarn.lock` backups, editor swap files) or over\u2011exclude legitimate source files, causing build or lint failures.",
+          "suggested_fix": "Add an explicit list, e.g., `npm-debug.log`, `yarn.lock.bak`, `*.swp`, `*.swo`, `coverage/`, `dist/` (if generated), etc., or reference a canonical .gitignore template."
+        },
+        {
+          "section": "FR-6 \u2013 Conflict definition",
+          "category": "needs_clarify",
+          "problem": "The definition of a \u201cconflict\u201d only mentions \u201cdirect contradiction on the same fact or command\u201d but does not address nuanced cases such as differing phrasing, ordering, or optional details.",
+          "why_it_matters": "Automated checks could flag non\u2011conflicting variations as errors or miss subtle contradictions, reducing reliability of the documentation validation process.",
+          "suggested_fix": "Provide concrete examples of both conflicting and non\u2011conflicting differences and state that only semantic contradictions count as conflicts, while additive details are allowed."
+        },
+        {
+          "section": "FR-8 \u2013 Pakistani\u2011guide placeholder",
+          "category": "needs_clarify",
+          "problem": "The spec says the section is a \u201creserved `## Guide for Pakistani users` section (slot only \u2014 the content is supplied separately, never fabricated)\u201d, but does not define the exact placeholder format.",
+          "why_it_matters": "Without a clear placeholder syntax, tools that enforce the non\u2011stub rule may treat the empty heading as a stub and reject the document, or conversely may consider any filler text as violating the \u201cnever fabricated\u201d rule.",
+          "suggested_fix": "Specify the placeholder format, e.g., include the heading followed by an HTML comment `<!-- Content provided in PLAN.md \u00a712 -->` or a markdown blockquote stating \u201cContent to be added later\u201d."
+        },
+        {
+          "section": "AC-1 \u2013 File count wording",
+          "category": "objective",
+          "problem": "The acceptance criterion says \u201cAll eleven files exist \u2026 plus .gitignore\u201d, which can be misread as eleven files total including .gitignore.",
+          "why_it_matters": "Ambiguity may cause reviewers to count the wrong number of required files, leading to false failures or passes.",
+          "suggested_fix": "Rephrase to \u201cAll eleven documentation files listed above exist, and a `.gitignore` file is present at the repository root.\u201d"
+        },
+        {
+          "section": "Non\u2011stub definition",
+          "category": "needs_clarify",
+          "problem": "The definition of a non\u2011stub (\u2265200 words, no placeholders) is stated but not explicitly linked to the prose files in `docs/` (GUIDE, ARCHITECTURE, BOOTSTRAP).",
+          "why_it_matters": "Implementers might assume the word\u2011count requirement applies only to top\u2011level files, leaving `docs/` files under\u2011populated and failing the completeness gate.",
+          "suggested_fix": "Clarify that the \u2265200\u2011word requirement applies to *all* prose documentation files, including those under `docs/`."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_4.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements FR-1",
+          "category": "needs_clarify",
+          "problem": "The quickstart command `npm install -g sdd-multiagent-kit && sdd-setup` is specified, but the spec does not clarify whether `sdd-setup` requires any arguments or flags, or if it is purely interactive. The phrase 'interactive with no required arguments' is ambiguous: does it mean the command can be run with zero arguments, or that it must be run with zero arguments?",
+          "why_it_matters": "Ambiguity here could lead to inconsistent documentation in README and GUIDE, and could confuse users or automated tests that verify the command syntax.",
+          "suggested_fix": "Explicitly state: 'The `sdd-setup` command accepts no required arguments and runs interactively; any optional flags are documented in GUIDE.'"
+        },
+        {
+          "section": "Edge Cases & Rules - Non-stub definition",
+          "category": "needs_clarify",
+          "problem": "The non-stub definition exempts fixed-format files (LICENSE, .gitignore, CHANGELOG.md) from the word-count threshold, but does not specify what 'correct' means for these files. For example, does CHANGELOG.md need to follow a specific format (e.g., Keep a Changelog)? Does .gitignore need to include exactly the listed patterns or at least those patterns?",
+          "why_it_matters": "Without a clear definition of 'correct', testers cannot objectively verify AC-1 and AC-5, and implementers may produce files that are present but not compliant.",
+          "suggested_fix": "Define 'correct' for each fixed-format file: LICENSE must be the exact MIT text (reference a canonical source), .gitignore must include at least the listed patterns and must not exclude legitimate source, CHANGELOG must follow a standard format (e.g., Keep a Changelog) and start with 0.1.0."
+        },
+        {
+          "section": "Edge Cases & Rules - .gitignore",
+          "category": "needs_clarify",
+          "problem": "The .gitignore rule says it must 'never exclude legitimate source' and lists specific real files that must not be excluded, but does not clarify whether additional patterns (e.g., `dist/`, `build/`) are allowed or forbidden. It also does not specify whether the .gitignore should be at the repo root only or if nested .gitignore files are permitted.",
+          "why_it_matters": "Ambiguity could lead to over-restrictive .gitignore that accidentally excludes source files, or under-restrictive that fails to protect secrets. Testers need a clear pass/fail criterion.",
+          "suggested_fix": "State that the .gitignore must include the listed patterns, must not exclude any of the listed real files, and may include additional patterns for build artifacts as long as they do not exclude source. Also specify that only the root .gitignore is required; nested ones are optional."
+        },
+        {
+          "section": "Functional Requirements FR-6",
+          "category": "needs_clarify",
+          "problem": "The spec says CLAUDE.md and AGENTS.md 'must not conflict' and defines conflict as 'direct contradiction on the same fact or command', but does not specify which file takes precedence if a conflict is found. It says AGENTS.md is the 'precedence base', but does not clarify whether that means AGENTS.md wins in a conflict or whether it is just the base for shared instructions.",
+          "why_it_matters": "Without a clear precedence rule, an agent reading both files may be confused about which instruction to follow, and testers cannot determine if a conflict is resolved correctly.",
+          "suggested_fix": "Explicitly state: 'In case of a direct contradiction, AGENTS.md takes precedence over CLAUDE.md. CLAUDE.md may add detail but must not contradict AGENTS.md.'"
+        },
+        {
+          "section": "Acceptance Criteria AC-1",
+          "category": "objective",
+          "problem": "AC-1 lists 'All eleven files exist' but then enumerates README, CLAUDE, AGENTS, CONTRIBUTING, SECURITY, SUPPORT, LICENSE, CHANGELOG, docs/GUIDE, docs/ARCHITECTURE, docs/BOOTSTRAP \u2014 that is 11 files. However, the Goal section also mentions `.gitignore` as a deliverable, and AC-1 says 'plus .gitignore at the repo root'. The count is inconsistent: the spec says 'eleven files' but actually there are 12 deliverables (11 + .gitignore).",
+          "why_it_matters": "This inconsistency could cause testers to miss the .gitignore or count incorrectly, leading to false pass/fail results.",
+          "suggested_fix": "Change AC-1 to 'All twelve deliverables exist: the eleven listed files plus .gitignore at the repo root' or rephrase to avoid the count."
+        },
+        {
+          "section": "Cross-Reference",
+          "category": "objective",
+          "problem": "The Cross-Reference table lists companion documents (plan, tasks, workflow, tests) but does not specify whether these documents are required to be present in the same milestone output or if they are just references. It also does not list the M1-M3 specs that are inherited.",
+          "why_it_matters": "Without clarity, testers may not verify that the companion documents exist and are consistent, or may not check that the inherited specs are still valid.",
+          "suggested_fix": "Add a note that the companion documents are part of the milestone output and must be present, and optionally list the inherited specs (M1-M3) as references for consistency checks."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}

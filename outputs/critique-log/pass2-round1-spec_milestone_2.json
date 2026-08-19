@@ -1,0 +1,323 @@
+{
+  "document": "spec_milestone_2",
+  "pass": 2,
+  "round": 1,
+  "critics": [
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 7,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "The Goal section states the loop enforces the critique response schema, but the specific schema definition is only referenced as 'PLAN.md \u00a74.3' rather than being explicitly defined or summarized in this spec.",
+          "why_it_matters": "Relying on an external document for the core data contract creates ambiguity during implementation and testing, risking schema drift if PLAN.md changes.",
+          "suggested_fix": "Include a brief inline definition of the expected JSON schema (required keys: model, document, round, pass, overall_score, scores, verdict, issues) within FR-2 or a new Schema section."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "FR-1 specifies 'calls all six models concurrently' but does not define the concurrency implementation (e.g., asyncio, threading) or the exact timeout duration per model call.",
+          "why_it_matters": "Without a specified timeout value or mechanism, the 'slow model must not block the round' edge case cannot be reliably tested or enforced.",
+          "suggested_fix": "Add a specific per-model timeout duration (e.g., 60 seconds) and note the concurrency mechanism to be used in FR-1."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The spec states that a non-cooperative critic is 'excluded from the count' for the session, but does not clarify if this affects the stopping condition logic which requires 'every currently-valid critic scores perfect'.",
+          "why_it_matters": "If a critic becomes non-cooperative, the definition of 'perfect score across all valid critics' changes. It is unclear if the loop can exit early if only the remaining cooperative critics achieve perfect scores."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "AC-1 requires the scripts and skill to be 'non-stub', which is a subjective term that is hard to verify objectively.",
+          "why_it_matters": "Subjective acceptance criteria lead to disputes during the structural-completeness gate and testing phases.",
+          "suggested_fix": "Replace 'non-stub' with a measurable requirement, such as 'implements all functional requirements listed in FR-1, FR-2, and FR-3' or 'contains the core logic for retry, validation, and orchestration'."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "FR-1 mentions 'Pass-1 light or Pass-2 full, per the rubric in PLAN.md \u00a74.3' but does not summarize the difference between the two passes in this document.",
+          "why_it_matters": "The distinction between Pass 1 and Pass 2 is critical for the two-pass six-model critique loop, and omitting it here makes the spec incomplete as a standalone document.",
+          "suggested_fix": "Add a brief description of the distinction between Pass 1 (light/initial) and Pass 2 (full/rigorous) in FR-1 or the Goal section."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 9,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "The differentiation between \"Pass-1 light\" and \"Pass-2 full\" is deferred entirely to PLAN.md \u00a74.3, but the spec is the source of truth and US-1/US-2 rely on this distinction. Without summarizing what changes between passes (prompt length, focus areas, who reads output, etc.) the spec is not self-contained.",
+          "why_it_matters": "A reader of the spec cannot tell whether Pass 1 omits edge cases, omits consistency checks, or just compresses context. The wrong assumption here changes how the orchestration script and the skill are built.",
+          "suggested_fix": null
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The output filename pattern `pass{1|2}-round{N}-{document}.json` produces awkward double-extension names (e.g. `pass1-round1-spec_milestone_2.md.json`) and does not specify what `{document}` is \u2014 basename? full path with slashes replaced? slugified name?",
+          "why_it_matters": "Downstream tooling and tests will need a deterministic naming convention; a vague `{document}` token risks inconsistent files that break log readers and `validate_critique.py` consumers.",
+          "suggested_fix": "Define `{document}` as the basename without extension, and either drop the `.md` before `.json` (e.g. `pass1-round1-spec_milestone_2.json`) or use an explicit token like `{docname}` separated from the format."
+        },
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "objective",
+          "problem": "No behavior is specified when the input document path does not exist, is unreadable, is empty, or when `providers.yaml` is missing, malformed, or contains a critic_slots entry with no resolvable model.",
+          "why_it_matters": "The loop is invoked from an agent that may pass a wrong path; silent failure violates Observable Interfaces and Tests Before Implementation. AC-2 requires the panel come from config, so a config error must be a first-class outcome.",
+          "suggested_fix": "Add explicit failure modes: missing/unreadable document \u2192 exit non-zero with structured error JSON; missing/malformed providers.yaml \u2192 exit non-zero before any provider call; empty critic_slots \u2192 exit non-zero; provider entry missing required fields \u2192 that slot skipped with a logged warning before the round starts."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "\"Same critic invalid 3 rounds running \u2192 flagged non-cooperative for the session\" \u2014 \"session\" is undefined. Does the flag persist to disk? Is it re-read on next invocation? What happens if the critic recovers on round 4?",
+          "why_it_matters": "The non-cooperative flag is the central robustness claim of M2 (US-3). Without a defined session boundary and reset semantics, two consecutive CLI invocations could either over-flag or under-flag the same critic.",
+          "suggested_fix": "Define \"session\" as one invocation of `orchestrate_critique_loop.py` and state that the non-cooperative flag is per-invocation in-memory only (it does not persist to disk), and explicitly say nothing prevents a critic from being re-tried in a fresh invocation."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "Round cap default of 25, backoff defaults of 10s/8s/8s, and retry-count limits (\u22641, \u22643) are stated but no configuration surface is defined. Are they CLI flags, env vars, or a YAML keys?",
+          "why_it_matters": "Tests need to drive the loop into the non-cooperative path and the round-cap path deterministically. Without a documented config surface, the implementation will pick one and tests will be coupled to it.",
+          "suggested_fix": "Add a short table mapping each tunable (round_cap, backoff_429_ms, backoff_5xx_ms, backoff_timeout_ms, max_unparseable_retries, max_transport_tries, non_cooperative_threshold) to its configuration source (CLI flag and/or env var), and require the defaults to be overridable from both."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "No behavior is defined when ALL six critics fail or are excluded in a single round. The doc says \"the round completes with the remaining valid critics\" but says nothing about the zero-valid-critics case.",
+          "why_it_matters": "If zero critics contribute, overall_score has no source; the JSON would either fail the schema check or produce a misleading \"perfect 10\" empty record. Either way the loop has silently degraded in a way the human must see.",
+          "suggested_fix": "Specify that a round with zero valid critics is treated as a failed round: the orchestrator logs an error, increments the round counter, and the round-cap escalation summary highlights zero-valid-critic rounds separately."
+        },
+        {
+          "section": "US-2 / Acceptance Criteria",
+          "category": "objective",
+          "problem": "US-2 says the loop stops \"when every currently-valid critic scores perfect\" but no acceptance criterion captures this stopping condition. AC-3 only covers the round-cap and non-cooperative paths.",
+          "why_it_matters": "The \"all 10s\" early-stop is a real behavior US-2 promises. Without it in AC, the implementation may run to the cap even when convergence is reached, wasting time and budget on the free-tier model.",
+          "suggested_fix": "Add AC-7: \"The loop exits a pass early when every currently-valid, non-non-cooperative critic returns overall_score=10 with at least one issue entry; the round cap remains as the hard backstop.\""
+        },
+        {
+          "section": "AC-1",
+          "category": "objective",
+          "problem": "AC-1 requires the three artifacts to be \"non-stub\" but does not define what counts as a stub vs. a real implementation. There is no minimum-functionality bar.",
+          "why_it_matters": "\"Non-stub\" is a value judgement; without a checkable definition the milestone can be declared done with print(\"TODO\") bodies. This directly conflicts with Tests Before Implementation.",
+          "suggested_fix": "Replace \"non-stub\" with concrete behavior checks per artifact, e.g. \"orchestrate_critique_loop.py exits 0 on a fixture run with mocked providers and writes a schema-valid JSON to outputs/critique-log/\"; \"validate_critique.py returns a non-empty error list on a hand-mutated invalid JSON fixture\"; \"critique-loop/SKILL.md contains literal headings for Invoke, Triage, and Stop sections that the test suite greps for.\""
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "needs_clarify",
+          "problem": "It is not stated whether the orchestration script is single-pass-per-invocation or can run both passes in one call. US-1 and US-2 each describe a separate invocation (\"After Clarify, the agent runs the loop\u2026\") but the script design is ambiguous.",
+          "why_it_matters": "A two-invocation design means the second invocation must re-read the document and the providers; a one-invocation design means a single command runs the whole loop including the Clarify wait. This changes the CLI surface and the test surface materially.",
+          "suggested_fix": null
+        },
+        {
+          "section": "AC-4",
+          "category": "needs_clarify",
+          "problem": "The schema check uses PLAN.md \u00a74.3 as the authority, but the spec does not name which fields are required vs optional, nor what the `verdict` enum values are beyond \"pass\"/\"needs_revision\". The opening system prompt of the SDD loop also lists a `model` field \u2014 FR-1 references the panel but the schema's per-critic identity is not pinned here.",
+          "why_it_matters": "`validate_critique.py` can only enforce a schema that is fully defined. A partial definition leaks ambiguity into the Python implementation and into tests.",
+          "suggested_fix": null
+        },
+        {
+          "section": "Cumulative History",
+          "category": "objective",
+          "problem": "States the critic panel is \"locked (six models, three provider keys, one free tier) per ADR-001\" but FR-1 and US-4 describe the panel as fully data-driven from providers.yaml. If the panel is locked, US-4's claim that \"the loop picks it up with zero code change, because it reads the panel from config\" is trivially true only for future additions \u2014 the lock should be restated explicitly to avoid implying the current six can be swapped freely.",
+          "why_it_matters": "\"Locked\" and \"config-driven\" coexist in this spec without a clarifying sentence. A maintainer reading FR-4 could reasonably remove a critic via config, breaking M1's ADR-001 invariant.",
+          "suggested_fix": "Add a one-line note: \"providers.yaml is the single source of truth for the panel, but the current six-slot composition is locked per ADR-001; adding slots is permitted, removing or reordering existing slots is an amendment.\""
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "\"No secrets: env-var names read at runtime; never logged.\" is an anti-pattern statement, not a testable rule. AC-6 inherits the same vagueness. There is no list of which env-var names are expected, no redaction policy, and no test for it.",
+          "why_it_matters": "Real-World Testing and Observable Interfaces both require concrete behavior. \"Never logged\" without a redaction mechanism and a test is a wish, not a requirement.",
+          "suggested_fix": "Enumerate the env-var names the loop reads (e.g. ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY, OPENROUTER_API_KEY, DEEPSEEK_API_KEY), add a redaction rule (any value matching /^[A-Za-z0-9_-]{20,}$/ in log lines is replaced with [REDACTED]), and add an acceptance check that a test invocation with these vars set produces log output where the values never appear verbatim."
+        },
+        {
+          "section": "AC-5",
+          "category": "objective",
+          "problem": "AC-5 is the only acceptance criterion for the sub-skill content, and it bundles invoke + triage + stop into a single check. There is no requirement on the skill's structural form (sections, headings, machine-readable frontmatter) that other kit skills presumably share.",
+          "why_it_matters": "The other ten sub-skills from M1 are referenced as \"delivered and verified\" but their shape is not restated. M2's skill may diverge silently from the M1 convention, which the consistency principle of the SDD process should prevent.",
+          "suggested_fix": "Either (a) reference the M1 sub-skill template by path and require the critique-loop skill to match its section order, or (b) add a concrete checklist of required headings (frontmatter fields, Invoke, Triage with objective/needs_clarify/false-positive subsections, Stop, References) and make AC-5 check each one."
+        },
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "The Goal says the loop runs \"the real two-pass, six-model critique loop against any milestone document\" but only one of the five documents is referenced in the output filename token. US-2 says \"full rigor across all five docs\" while FR-1 uses a singular `{document}` token. There is no command shape for critiquing all five docs in one invocation.",
+          "why_it_matters": "If the loop only takes one document per run, US-2 is six invocations per pass; the \"session\" and round numbering definitions for the non-cooperative flag become ambiguous across invocations, and critique-log filenames may collide or lose ordering.",
+          "suggested_fix": "Either (a) explicitly state one-document-per-invocation and renumber the non-cooperative flag's \"3 rounds running\" to be per-document across invocations (and persist the per-document flag to disk), or (b) extend FR-1 to accept a directory or list of documents and produce one JSON per document per round with a shared session-wide non-cooperative flag."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_2.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 9,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-1 / AC-3",
+          "category": "needs_clarify",
+          "problem": "The retry policy for unparseable responses is contradictory: earlier in the document it says \"unparseable \u2192 2 tries\", while FR-1 and AC-3 state \"\u22641 retry\" (i.e., at most 2 attempts total).",
+          "why_it_matters": "Inconsistent retry limits could cause the implementation to either over\u2011retry (wasting time) or under\u2011retry (failing valid responses), breaking the defined reliability guarantees.",
+          "suggested_fix": null
+        },
+        {
+          "section": "File paths for providers.yaml",
+          "category": "objective",
+          "problem": "The spec references two different locations for the providers configuration: `kit/config/providers.yaml` and `kit/providers.yaml`.",
+          "why_it_matters": "Scripts may read the wrong file, leading to missing or out\u2011of\u2011order critic models, violating the config\u2011driven panel requirement.",
+          "suggested_fix": "Choose a single canonical path (e.g., `kit/config/providers.yaml`) and update all mentions in the spec, functional requirements, and acceptance criteria to use that path consistently."
+        },
+        {
+          "section": "Concurrency timeout",
+          "category": "needs_clarify",
+          "problem": "The spec mentions that a slow model must not block the round past its timeout, but does not specify what the timeout duration should be.",
+          "why_it_matters": "Without a defined timeout, implementers cannot enforce the required non\u2011blocking behavior, risking indefinite hangs or premature failures.",
+          "suggested_fix": null
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 6,
+        "edge_case_coverage": 9,
+        "internal_consistency": 8,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-1, FR-2",
+          "category": "objective",
+          "problem": "The CLI interface for both scripts is not specified (arguments, options, environment variables). Implementers cannot know how to invoke the scripts, pass the document path, select pass/round, configure round cap, timeouts, or output directory.",
+          "why_it_matters": "Without a defined CLI contract, the scripts cannot be integrated into the agent workflow (US-1, US-2) or tested automatically. The sub-skill (FR-3) cannot instruct the agent on invocation.",
+          "suggested_fix": "Add a 'CLI Interface' subsection to FR-1 and FR-2 specifying: orchestrate_critique_loop.py --document <path> --pass <1|2> --round <N> --config <path> --output-dir <path> --round-cap <int> --timeout <seconds>; validate_critique.py --input <path> --schema <path>."
+        },
+        {
+          "section": "FR-4, Edge Cases",
+          "category": "objective",
+          "problem": "The structure of providers.yaml and the critic_slot schema are not described. The scripts need to know fields like model_id, provider_key, tier (free/paid), timeout, and any provider-specific parameters.",
+          "why_it_matters": "Config-driven panel (US-4) and free-tier retry logic (Edge Cases) require a known schema. Without it, the scripts cannot load the panel correctly or apply tier-specific backoff.",
+          "suggested_fix": "Include a minimal providers.yaml schema example in the spec (or reference the exact M1 ADR/PHR that defines it) showing critic_slots array with required fields: model_id, provider, api_env_var, tier, timeout_seconds, max_retries."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "The critique prompt template is not specified. FR-1 says the script 'builds the critique prompt (Pass-1 light or Pass-2 full, per the rubric in PLAN.md \u00a74.3)' but the prompt content, variables, and difference between light/full are absent.",
+          "why_it_matters": "The orchestration script must construct the exact prompt sent to each model. Ambiguity here leads to inconsistent critiques and breaks the 'models checking models' invariant.",
+          "suggested_fix": "Define the prompt template in the spec (or reference a dedicated prompt file under kit/prompts/) with placeholders for {document}, {constitution}, {rubric}, {pass_type}. Explicitly state what 'light' vs 'full' includes (e.g., light = rubric only; full = rubric + constitution + prior issues)."
+        },
+        {
+          "section": "Edge Cases, FR-1",
+          "category": "objective",
+          "problem": "Timeout values for model calls and round-level deadline are not specified. The spec mentions 'a slow model (DeepSeek) must not block the round past its timeout' but gives no default or configuration mechanism.",
+          "why_it_matters": "Concurrency control and round completion depend on timeouts. Without defaults, the script may hang or fail unpredictably, violating the 'never silently dies' rule.",
+          "suggested_fix": "Add default timeout (e.g., 120s per model call) and round deadline (e.g., 300s) as configurable CLI options (--model-timeout, --round-timeout) with env-var overrides."
+        },
+        {
+          "section": "US-2, FR-1",
+          "category": "needs_clarify",
+          "problem": "The distinction between 'Pass-1 light' and 'Pass-2 full' critique is referenced but not defined. It is unclear whether this affects the rubric scores, the prompt, the set of documents critiqued, or the stopping condition.",
+          "why_it_matters": "The two-pass process is central to the SDD workflow. If the difference is only prompt size, say so; if it changes which rubric dimensions are scored or which documents are included, that must be explicit for the orchestration script and the sub-skill.",
+          "suggested_fix": null
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Edge Cases & Rules / FR-1",
+          "category": "objective",
+          "problem": "The retry policy for unparseable responses is stated as '\u22641 retry' in FR-1 and Edge Cases, but the cumulative history says 'unparseable \u2192 2 tries' (which could mean 2 total attempts, i.e., 1 retry). This ambiguity could lead to inconsistent implementation.",
+          "why_it_matters": "The retry policy is a core invariant; a mismatch between the spec and the inherited history could cause the implementation to violate the constitution's Framework Trust principle.",
+          "suggested_fix": "Clarify the terminology: define '\u22641 retry' as 'at most 2 total attempts' and update the cumulative history to match, or explicitly state that the M1 policy is superseded by this spec."
+        },
+        {
+          "section": "Edge Cases & Rules / FR-1",
+          "category": "objective",
+          "problem": "The spec does not specify the exact JSON schema for the critique-log output beyond listing field names (model/document/round/pass/overall_score/scores/verdict/issues). It references PLAN.md \u00a74.3 but does not include the schema inline or in an appendix, making the spec self-contained.",
+          "why_it_matters": "Without an explicit schema, the implementation and validation script may diverge, and the testability of AC-4 is reduced.",
+          "suggested_fix": "Include the full JSON schema (with types, required fields, and constraints) in the spec, or reference a specific schema file path that is part of the milestone deliverables."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The spec says 'a slow model (DeepSeek) must not block the round past its timeout' but does not define the timeout value or how it is configured. It also does not specify what happens to a critic that times out (is it retried per transport policy, or excluded immediately?).",
+          "why_it_matters": "Without a defined timeout and handling, the concurrency behavior is underspecified, potentially causing the loop to hang or to treat timeouts inconsistently with the retry policy.",
+          "suggested_fix": "Define a default per-call timeout (e.g., 60s) and specify that a timeout is treated as a transport failure subject to the \u22643 tries with backoff, after which the critic is excluded for the round."
+        },
+        {
+          "section": "Edge Cases & Rules / FR-1",
+          "category": "objective",
+          "problem": "The spec mentions 'invalid 3 rounds running \u2192 non-cooperative flag' but does not define what constitutes a 'round' for this count when a critic is excluded due to transport failure (i.e., does a transport-failed round count toward the 3-round invalid count?).",
+          "why_it_matters": "Ambiguity could lead to a critic being flagged non-cooperative prematurely or never, affecting the loop's robustness and the accuracy of the non-cooperative handling.",
+          "suggested_fix": "Clarify that only rounds where the critic returns an unparseable/invalid response (not transport failures) count toward the 3-round invalid threshold, and that transport failures are handled separately per round."
+        },
+        {
+          "section": "Functional Requirements / FR-1",
+          "category": "objective",
+          "problem": "The spec says the loop 'calls all six models concurrently' but does not specify how the results are aggregated when some critics fail or are excluded. It does not state whether the round's output JSON includes only valid critics or also records excluded ones.",
+          "why_it_matters": "The output format and the stopping condition (all currently-valid critics score perfect) depend on knowing which critics are included in the aggregate; ambiguity could cause the loop to stop prematurely or to produce misleading logs.",
+          "suggested_fix": "Specify that the round JSON includes a 'critics' array with each critic's status (valid/excluded/non-cooperative) and that the aggregate 'overall_score' is computed only over valid critics, with excluded critics listed separately."
+        },
+        {
+          "section": "Acceptance Criteria / AC-3",
+          "category": "objective",
+          "problem": "AC-3 says 'the retry policy is implemented exactly per the edge cases' but the edge cases list does not include a case for a critic that returns a valid JSON but with a schema violation (e.g., missing 'scores' key). The schema validity rule only mentions unparseable or low-score-with-no-issues.",
+          "why_it_matters": "A critic could return well-formed JSON that violates the schema, and the current rules would not classify it as invalid, leading to incorrect scoring and potential acceptance of bad critiques.",
+          "suggested_fix": "Add an edge case: 'Schema-invalid response (missing required fields or wrong types) \u2192 treated as unparseable, retried \u22641 time, then invalid.'"
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

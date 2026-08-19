@@ -1,0 +1,51 @@
+# SDD Multi-Agent Kit — Critic Provider Configuration
+# Schema version 1. Env-var NAMES only; never store secret values here.
+version: 1
+
+providers:
+  - id: nvidia-nim
+    key_env: NVIDIA_NIM_API_KEY
+    tier: free
+    models:
+      - id: nvidia/nemotron-3-ultra-550b-a55b
+      - id: openai/gpt-oss-120b
+      - id: z-ai/glm-5.2
+      - id: mistralai/mistral-nemotron
+      - id: meta/muse-glimmer-30b
+  - id: google-ai-studio
+    key_env: GOOGLE_AISTUDIO_API_KEY
+    tier: free
+    models:
+      - id: gemini-3.6-flash
+  - id: ollama-cloud
+    key_env: OLLAMA_API_KEY
+    tier: free
+    models:
+      - id: minimax-m3:cloud
+
+# Ordered critique order: every model runs every round, in this order.
+# Validation: each slot.model must exist under the models of the provider whose
+# id equals slot.provider. No duplicate models in critic_slots.
+critic_slots:
+  # Per-model timeout bounds the per-attempt hard deadline (default: --timeout).
+  - model: nvidia/nemotron-3-ultra-550b-a55b
+    provider: nvidia-nim
+    timeout: 420
+  - model: openai/gpt-oss-120b
+    provider: nvidia-nim
+    timeout: 600
+  - model: z-ai/glm-5.2
+    provider: nvidia-nim
+    timeout: 360
+  - model: mistralai/mistral-nemotron
+    provider: nvidia-nim
+    timeout: 420
+  - model: meta/muse-glimmer-30b
+    provider: nvidia-nim
+    timeout: 420
+  - model: gemini-3.6-flash
+    provider: google-ai-studio
+    timeout: 360
+  - model: minimax-m3:cloud
+    provider: ollama-cloud
+    timeout: 420

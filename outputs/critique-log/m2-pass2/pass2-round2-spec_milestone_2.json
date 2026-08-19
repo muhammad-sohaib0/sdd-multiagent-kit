@@ -1,0 +1,289 @@
+{
+  "document": "spec_milestone_2",
+  "pass": 2,
+  "round": 2,
+  "critics": [
+    {
+      "model": "mistralai/mistral-nemotron",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The retry policy for unparseable responses is not clearly defined in terms of what constitutes a 'valid' attempt. The description mentions '\u22641 retry' but does not specify whether this is per round or per session.",
+          "why_it_matters": "Ambiguity in retry logic could lead to inconsistent behavior in the critique loop, potentially causing unnecessary retries or missed failures.",
+          "suggested_fix": "Explicitly state that the \u22641 retry applies per round, not per session, and clarify the conditions under which a response is considered 'valid' or 'invalid'."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "The description of the `validate_critique.py` script does not specify how it handles malformed JSON or missing fields. The schema validation should be more explicitly defined.",
+          "why_it_matters": "Without clear validation rules, the script might pass invalid critiques, leading to unreliable results.",
+          "suggested_fix": "Add a detailed description of how the script validates the JSON structure, including handling of malformed JSON, missing fields, and type mismatches."
+        },
+        {
+          "section": "User Scenarios",
+          "category": "needs_clarify",
+          "problem": "US-2 mentions 'full rigor' but does not define what 'full rigor' entails in terms of scoring or validation.",
+          "why_it_matters": "The term 'full rigor' is subjective and could lead to inconsistent interpretations of the critique process.",
+          "suggested_fix": "Define 'full rigor' in terms of specific validation steps or scoring criteria."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "FR-1 mentions that the critique prompt differs between Pass 1 and Pass 2 but does not provide the exact differences in the prompt text.",
+          "why_it_matters": "Without the exact prompt differences, it is unclear how the critique process varies between passes, which could lead to inconsistent critiques.",
+          "suggested_fix": "Include the exact differences in the critique prompt between Pass 1 and Pass 2."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The description of the 'Unparseable response' edge case does not specify how the extractor handles nested JSON structures or complex JSON with multiple objects.",
+          "why_it_matters": "Complex JSON structures could lead to parsing errors or incorrect repairs, affecting the validity of the critique.",
+          "suggested_fix": "Detail how the extractor handles nested JSON structures and complex JSON, including any limitations or assumptions."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_2.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 5,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "Inconsistent model count: Goal specifies a 'six-model critique loop', whereas Cumulative History and Edge Cases specify a 'seven-model panel'.",
+          "why_it_matters": "Developers and test suites cannot determine whether the orchestration script expects 6 or 7 active critic slots from config.",
+          "suggested_fix": "Update Goal to specify 'seven-model critique loop' (or align all sections to the intended count)."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "Contradictory transport retry bounds: FR-1 and Cumulative History specify '\u22643 tries with backoff' for transport/timeout/429, while Edge Cases and AC-3 specify 'Bounded to \u22645 transport tries per round' / '\u22645 tries with growing backoff'.",
+          "why_it_matters": "The retry loop implementation and automated unit tests cannot pass both requirements simultaneously.",
+          "suggested_fix": "Standardize the maximum transport retry attempt count across FR-1, Cumulative History, Edge Cases, and AC-3."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "Unclear specification for 'non-cooperative flag': FR-1 specifies 'invalid 3 rounds running \u2192 non-cooperative flag', but Edge Cases states 'there is no session-level flag or exclusion'.",
+          "why_it_matters": "It is ambiguous whether setting a non-cooperative flag has functional side-effects (e.g. exclusion/logging) or if it conflicts with the prohibition against cross-round flags.",
+          "suggested_fix": "Clarify the precise effect, scope, and logging target of the non-cooperative flag, explicitly reconciling it with the cross-round non-exclusion rule."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 4,
+      "scores": {
+        "clarity": 4,
+        "completeness": 5,
+        "edge_case_coverage": 5,
+        "internal_consistency": 3,
+        "testability": 3
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "The document alternates between describing a \"six\u2011model\" critique loop and a \"seven\u2011model\" panel, creating ambiguity about the intended number of critics.",
+          "why_it_matters": "Implementers may hard\u2011code the wrong number of model calls, causing either missing critiques or unnecessary API usage, and breaking downstream expectations.",
+          "suggested_fix": "Pick a single, definitive count (six or seven) and update every reference consistently. Add a short table summarising the panel composition."
+        },
+        {
+          "section": "Functional Requirements \u2192 FR\u20111",
+          "category": "objective",
+          "problem": "The CLI argument list omits defaults and explanations for `--round` and `--round-cap`, and does not show example invocations.",
+          "why_it_matters": "Users may invoke the script with incorrect or missing parameters, leading to runtime errors or unintended behavior.",
+          "suggested_fix": "Specify that `--round` defaults to 1, `--round-cap` defaults to 25, and provide a usage example such as `orchestrate_critique_loop.py --doc path/to/spec.md --name spec --pass 1 --round 1 --out outputs/`."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The retry policy is described inconsistently: earlier it says transport retries are \"\u22643 tries\", later it states \"\u22645 transport tries per round\".",
+          "why_it_matters": "Implementers cannot know which limit to enforce, risking either premature escalation or excessive API calls.",
+          "suggested_fix": "Choose a single retry limit (e.g., \u22645) and update all mentions to match, adding a concise table of retry limits for each failure type."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The term \"non\u2011cooperative flag\" is introduced without definition or description of its effect.",
+          "why_it_matters": "Without a clear definition, developers cannot implement the flag handling correctly, potentially breaking the \"never exclude across rounds\" guarantee.",
+          "suggested_fix": "Define the flag (e.g., a boolean `non_cooperative` in the per\u2011critic log entry) and describe how it influences logging and escalation."
+        },
+        {
+          "section": "Acceptance Criteria \u2192 AC\u20111",
+          "category": "objective",
+          "problem": "AC\u20111 requires files to be \"non\u2011stub\" but provides no measurable criteria for what constitutes a non\u2011stub implementation.",
+          "why_it_matters": "A reviewer could accept empty or placeholder files that technically satisfy the wording, leaving the milestone incomplete.",
+          "suggested_fix": "Add concrete checks, such as \"the script must parse arguments, read providers.yaml, and exit with code 0 on success\" or \"the skill markdown must contain a step\u2011by\u2011step invocation example\"."
+        },
+        {
+          "section": "Testability (overall)",
+          "category": "objective",
+          "problem": "The specification does not enumerate any automated tests or test harnesses to verify compliance with the acceptance criteria.",
+          "why_it_matters": "Without test cases, continuous integration cannot automatically detect regressions, and reviewers must rely on manual inspection.",
+          "suggested_fix": "Create a test suite (e.g., in `outputs/milestones/milestone_2/tests_milestone_2.md`) that exercises successful runs, retry scenarios, and failure escalations, and reference it in the acceptance criteria."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "muse-glimmer-30b",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 5,
+      "scores": {
+        "clarity": 6,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 4,
+        "testability": 5
+      },
+      "issues": [
+        {
+          "section": "Goal / FR-1 / Edge Cases / Cumulative History",
+          "category": "objective",
+          "problem": "Panel size is inconsistent: Cumulative History and Edge Cases define a seven-model panel and a round as a call to the seven-model panel, Goal states a six-model critique loop, and FR-1 says calls all six models concurrently.",
+          "why_it_matters": "Ambiguous panel size breaks the config-driven contract, US-4, AC-2 and the definition of a round; implementation and tests cannot be verified.",
+          "suggested_fix": "Unify to a single panel size across Goal, Cumulative History, Edge Cases and FR-1, e.g., seven models as per ADR-001/ADR-003, and update FR-1 to call all models from critic_slots."
+        },
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "objective",
+          "problem": "Timeout defaults conflict: FR-1 specifies per-model HTTP timeout default 300s, Edge Cases specifies hard wall-clock deadline default 600s per call overridable via timeout key in providers.yaml.",
+          "why_it_matters": "Conflicting defaults make the concurrency and failure semantics untestable and lead to divergent implementations.",
+          "suggested_fix": "Define one authoritative default and clarify the relationship between HTTP socket timeout and hard wall-clock deadline; use the same default in FR-1 and Edge Cases."
+        },
+        {
+          "section": "Cumulative History / FR-1 / Edge Cases / AC-3",
+          "category": "objective",
+          "problem": "Transport retry limit is inconsistent: Cumulative History says transport \u22643 tries, FR-1 says transport/timeout/429 \u2192 \u22643 tries, Edge Cases and AC-3 require \u22645 transport tries per round with specific backoffs.",
+          "why_it_matters": "Retry policy is a fixed invariant; mismatch violates AC-3 and changes reliability and escalation behavior.",
+          "suggested_fix": "Align FR-1 and Cumulative History with Edge Cases/AC-3 to \u22645 transport tries with the documented backoffs, and remove the \u22643 claim."
+        },
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "needs_clarify",
+          "problem": "Round invocation semantics are ambiguous: FR-1 CLI includes --round N and states one invocation = one pass over one document, while Edge Cases defines a session as consecutive rounds and AC-3 implies internal looping until perfect scores or cap.",
+          "why_it_matters": "Unclear whether orchestrate_critique_loop loops internally across rounds or the caller drives rounds, affecting round cap, escalation and stopping conditions.",
+          "suggested_fix": "Explicitly state that the script manages consecutive rounds internally until stop/cap, and document --round as initial round number for resumption or remove it; make session vs invocation semantics explicit."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "Undocumented non-cooperative flag: FR-1 mentions invalid 3 rounds running \u2192 non-cooperative flag, which is not defined elsewhere in Edge Cases, ACs or the retry policy.",
+          "why_it_matters": "Introduces an undocumented state that breaks internal consistency and testability.",
+          "suggested_fix": "Remove the non-cooperative flag reference or fully specify its definition, triggers, logging and effect on retry/no exclusion policy."
+        },
+        {
+          "section": "FR-1 / Goal",
+          "category": "needs_clarify",
+          "problem": "Pass-1 objective dimensions are not enumerated: Pass 1 is said to score only objective dimensions and tag business/subjective issues needs_clarify, but the five scores clarity, completeness, edge_case_coverage, internal_consistency, testability are not classified as objective vs subjective.",
+          "why_it_matters": "Without an explicit mapping the Pass-1 vs Pass-2 rule line cannot be enforced or validated.",
+          "suggested_fix": "List which of the five dimensions are objective for Pass 1 and which are considered business/subjective and thus tagged needs_clarify."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 9,
+        "internal_consistency": 5,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "Cumulative History / FR-1 / Edge Cases",
+          "category": "objective",
+          "problem": "Inconsistent panel size: Cumulative History and Edge Cases refer to a 'seven-model panel' / 'seven models' (per ADR-001/ADR-003), but FR-1 states 'calls all six models concurrently'. The number of critics must be unambiguous.",
+          "why_it_matters": "Implementation will hard-code or configure the wrong concurrency count; tests and acceptance criteria will fail if the script expects six but config provides seven (or vice versa).",
+          "suggested_fix": "Pick one number (likely seven, per M1 ADRs) and update FR-1, US-3, and any other references. Ensure `critic_slots` in providers.yaml drives the actual count, not a hard-coded constant."
+        },
+        {
+          "section": "Cumulative History vs Edge Cases vs AC-3",
+          "category": "objective",
+          "problem": "Transport retry count contradicts itself: Cumulative History says 'transport \u2192 \u22643 tries with backoff'; Edge Cases says 'Bounded to \u22645 transport tries per round'; AC-3 says '\u22645 tries with growing backoff on transport/429/5xx/timeout'. Three different numbers (3, 5, 5) for the same policy.",
+          "why_it_matters": "The orchestration script will implement one of these; the others become false documentation. Flaky-provider behavior (US-3) will not match the spec.",
+          "suggested_fix": "Decide on a single retry bound (5 tries aligns with Edge Cases and AC-3) and update Cumulative History. Explicitly state: 'Transport/429/5xx/timeout: up to 5 attempts (initial + 4 retries) with backoff'."
+        },
+        {
+          "section": "FR-1 / FR-2 / AC-4",
+          "category": "needs_clarify",
+          "problem": "Critique response schema is referenced as 'PLAN.md \u00a74.3 rubric schema' but PLAN.md is a separate document not included here. The schema definition (required/optional fields, score ranges, verdict enum) is not self-contained.",
+          "why_it_matters": "Implementers of `validate_critique.py` and the extractor cannot validate without the external plan. The spec must be standalone or inline the schema.",
+          "suggested_fix": "Either inline the full JSON schema (or a precise textual description) in this spec, or add a normative appendix. At minimum, list all required fields, score ranges (0-10), verdict values ('pass'|'needs_revision'), and issue object structure."
+        },
+        {
+          "section": "Edge Cases / AC-3",
+          "category": "needs_clarify",
+          "problem": "'Non-cooperative flag' is mentioned (invalid 3 rounds running \u2192 non-cooperative flag) but its consequences are never defined. Does it affect round participation? Escalation? Logging only?",
+          "why_it_matters": "Without defined behavior, the flag is dead code. The retry policy says 'no cross-round exclusion', so the flag must not exclude the critic \u2014 but then what does it do?",
+          "suggested_fix": "Define the flag's semantics: e.g., 'After 3 consecutive rounds with invalid output, the critic is marked non-cooperative in the log; the round still includes them next round, but the escalation summary highlights non-cooperative critics for human review.'"
+        },
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "objective",
+          "problem": "Output filename pattern `pass{1|2}-round{N}-{document}.json` uses `{document}` directly. If the document path contains directories (e.g., `specs/milestone_2/spec_milestone_2.md`), the resulting filename will have slashes, causing write failures.",
+          "why_it_matters": "Script will crash on valid inputs. The spec must sanitize or basename the document identifier.",
+          "suggested_fix": "Specify that `{document}` is the basename without extension (e.g., `spec_milestone_2`), or define a sanitization rule (replace non-alphanum with `_`)."
+        },
+        {
+          "section": "FR-3 / AC-5",
+          "category": "needs_clarify",
+          "problem": "Sub-skill acceptance (AC-5) only says 'instructs the agent on invoking, triaging (objective/needs_clarify/false-positive), and stopping.' No detail on what 'false positive' means, how the agent rejects with reason, or how stopping conditions are evaluated (perfect scores from all *currently-valid* critics?).",
+          "why_it_matters": "The sub-skill is a primary deliverable (FR-3). Vague acceptance criteria make AC-5 unverifiable \u2014 a stub could pass.",
+          "suggested_fix": "Expand FR-3 with concrete sub-skill sections: invocation command template, JSON parsing steps, triage decision tree (objective \u2192 fix; needs_clarify \u2192 collect; false_positive \u2192 document reason), stopping condition (all valid critics score 10 overall AND zero objective issues), and escalation trigger."
+        },
+        {
+          "section": "Edge Cases",
+          "category": "needs_clarify",
+          "problem": "Hard wall-clock deadline default 600s per call, overridable per model via `timeout` in providers.yaml. Interaction with the per-attempt HTTP timeout (default 300s) is unspecified: which wins? Are they nested?",
+          "why_it_matters": "If both exist, the script may enforce two conflicting timeouts, causing premature kills or hangs.",
+          "suggested_fix": "Clarify: 'The per-call wall-clock deadline (default 600s, configurable via `timeout` in providers.yaml) is the ultimate bound. The HTTP client timeout (default 300s) should be set \u2264 wall-clock deadline. On deadline expiry, the process is terminated and treated as a transport failure.'"
+        },
+        {
+          "section": "AC-3 / Edge Cases",
+          "category": "objective",
+          "problem": "AC-3 states 'Pass 2 advances only when every currently-valid critic scores perfect (or the round cap escalates).' Edge Cases says 'Never silently stops because scores aren't 10 (PLAN.md \u00a74.3).' But FR-1 says the script writes one JSON per round and stops \u2014 it doesn't describe a multi-round loop *inside* the script. Is the loop external (agent-driven) or internal?",
+          "why_it_matters": "If the script runs a single round per invocation (per FR-1: 'one invocation = one pass over one document'), then multi-round logic belongs to the agent/sub-skill. The spec conflates the two.",
+          "suggested_fix": "Explicitly state: `orchestrate_critique_loop.py` executes exactly ONE round. The agent (via critique-loop sub-skill) invokes it repeatedly until stopping condition or round cap. Update FR-1 and AC-3 accordingly."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

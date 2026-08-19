@@ -1,0 +1,433 @@
+{
+  "document": "spec_milestone_3",
+  "pass": 2,
+  "round": 1,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "FR-1 states that prompts may write key values to 'the user's own env/config', but does not specify the exact file target or mechanism (e.g., local project `.env` file, shell profile, or tool-specific config JSON).",
+          "why_it_matters": "Without an explicit persistence target, different installers or developers will implement key saving inconsistently or fail automated test verification.",
+          "suggested_fix": "Specify the exact key persistence destination (e.g. writing key assignments into `.env` in the active project directory, or updating tool-specific config files where applicable)."
+        },
+        {
+          "section": "FR-3",
+          "category": "objective",
+          "problem": "FR-3 lists both project-level (`.claude/skills/`) and personal-level (`~/.claude/skills/`) paths for Claude Code, but does not define how the wizard chooses between project and personal scope (e.g., default option or prompt).",
+          "why_it_matters": "The installer logic cannot determine the destination path unambiguously during execution without a clear scope rule or default.",
+          "suggested_fix": "Clarify in FR-3 that the setup wizard defaults to project-level installation (`.claude/skills/`) with an interactive option or flag to select personal/global scope (`~/.claude/skills/`)."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 7,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-3",
+          "category": "objective",
+          "problem": "Claude Desktop is specified to share the exact same location as Claude Code (`.claude/skills/...`), which is architecturally incorrect for the desktop application.",
+          "why_it_matters": "Claude Desktop typically uses a distinct configuration directory (e.g., `~/Library/Application Support/Claude/` on macOS) and does not automatically read from the `.claude/` folder used by the CLI. Implementing this as specified will result in the kit not being installed or recognized by Claude Desktop.",
+          "suggested_fix": "Update FR-3 to specify the correct, distinct configuration path for Claude Desktop (e.g., `~/Library/Application Support/Claude/claude_desktop_config.json` or equivalent skill directory) and define how the adapter writes to it."
+        },
+        {
+          "section": "FR-1 & FR-3",
+          "category": "objective",
+          "problem": "The spec states the wizard persists API keys to the target tool's configuration as env-var names, but it does not specify how or where these variables are actually written for each tool.",
+          "why_it_matters": "Without knowing the specific configuration file or environment mechanism for Claude Code, OpenCode, and Antigravity, the adapter's `install()` function cannot be implemented correctly. It violates the Observable Interfaces constitution by leaving the exact configuration mutation undefined.",
+          "suggested_fix": "Add a sub-bullet to FR-3 for each tool detailing the exact file or environment where the API key variable names will be recorded (e.g., Claude Code uses `~/.claude/settings.json`, OpenCode uses `~/.config/opencode/config.json`)."
+        },
+        {
+          "section": "FR-3",
+          "category": "needs_clarify",
+          "problem": "For Claude Code, the spec offers a choice between project (`.claude/skills/`) and personal (`~/.claude/skills/`) installation, but does not define how the wizard determines or prompts for this choice.",
+          "why_it_matters": "Needs human decision on the default behavior and prompting strategy for project vs. personal scope."
+        },
+        {
+          "section": "FR-2 & FR-3",
+          "category": "objective",
+          "problem": "The OpenCode adapter is specified to 'read `.claude/skills/` directly' implying it does not need its own copy, but this creates a tight, undocumented coupling to the Claude Code adapter.",
+          "why_it_matters": "If the user selects only OpenCode (US-3), and OpenCode relies on Claude Code's installation path, the installation will fail if Claude Code is not also installed or selected. This breaks the 'Tool subset' scenario and the standalone-first principle.",
+          "suggested_fix": "Specify that the OpenCode adapter installs to its own native path (e.g., `~/.config/opencode/skills/` or similar) OR explicitly state that OpenCode's `install()` must copy the files to the shared `.claude/skills/` directory even if Claude Code is not installed."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "AC-1 requires the adapters to be 'non-stub', but there is no testable definition of what constitutes a non-stub implementation in this context.",
+          "why_it_matters": "A developer could implement `detect()`, `install()`, and `confirmEnabled()` with simple `return true` or `console.log` statements and technically pass the criterion without actually performing the file system operations. This reduces testability.",
+          "suggested_fix": "Replace 'non-stub' with a concrete requirement, such as: 'each adapter successfully copies the kit files to a temporary mock file system and verifies their presence' in the tests document, or reference a specific integration test ID here."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 7,
+        "completeness": 6,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1 (1) \u2014 wizard description",
+          "category": "objective",
+          "problem": "The phrase \"Interactive Node CLI (README input)\" is meaningless in context. It is almost certainly a typo for \"readline input\", but as written it suggests the wizard reads from a README file, which contradicts the prompt flow described elsewhere.",
+          "why_it_matters": "The wizard's prompting mechanism is the user-facing surface of the entire milestone; if the spec does not pin it down, the implementer can pick anything (raw readline, inquirer, prompts, etc.) and tests cannot assert on it.",
+          "suggested_fix": "Replace with a concrete statement such as: \"Interactive Node CLI that reads key inputs via the built-in `readline` module (or a single, named dependency if added later), and prints prompts to stdout.\""
+        },
+        {
+          "section": "FR-1 (1) vs Edge Cases 'No secret values'",
+          "category": "objective",
+          "problem": "FR-1 (1) says keys are persisted \"as env-var **names** only (never secret values in the repo)\", but the Edge Cases bullet says \"Keys are stored only in the user's own environment/tool config; the wizard never writes a key into `kit/`, the repo, or a PHR/log.\" These read inconsistently: one implies only the variable name is stored, the other implies the value is stored in the tool's local env/config (not in the repo).",
+          "why_it_matters": "If the implementer follows FR-1 literally, the tool's runtime will have no key to use at invocation time. If they follow the Edge Case literally, FR-1's parenthetical is misleading. Either way, behavior is ambiguous and untestable.",
+          "suggested_fix": "State the rule once, precisely, e.g.: \"The wizard writes the actual key value to the target tool's local env/config (e.g., `.claude/settings.local.json`, shell env, Antigravity config), and writes only the env-var *name* into any committed or logged artifact. No secret value is ever written to `kit/`, the repo, a PHR, or an ADR.\""
+        },
+        {
+          "section": "AC-1 \u2014 'non-stub'",
+          "category": "objective",
+          "problem": "\"Each adapter is non-stub\" is not measurable. There is no threshold for lines of code, exported symbols, or exercised behavior, so a 3-line stub that exports three functions would pass.",
+          "why_it_matters": "A test gate that cannot be falsified is not a test. The structural-completeness gate the constitution requires depends on criteria like this being checkable.",
+          "suggested_fix": "Replace with a concrete check, e.g.: \"Each adapter file (1) exports `detect`, `install`, and `confirmEnabled` as named functions, (2) is at least N lines, and (3) the wizard's end-to-end test exercises it against a fixture directory and observes a copied skill tree plus a confirmation line on stdout.\""
+        },
+        {
+          "section": "FR-3 \u2014 Claude Code install scope",
+          "category": "objective",
+          "problem": "FR-3 lists Claude Code's location as either project (`.claude/skills/...`) or personal (`~/.claude/skills/...`) but no Functional Requirement or US says which the wizard picks, whether the user is prompted, or what the default is. US-1 implies a one-time global setup; the Edge Cases re-run rule does not address scope either.",
+          "why_it_matters": "Project vs personal install is a major behavioral difference (project-local only affects one repo; personal is global). The implementer will guess, and the guess may not match the maintainer's intent.",
+          "suggested_fix": "Add an explicit decision, e.g.: \"The wizard installs to the user-home location (`~/.claude/skills/...`) by default, which Claude Code, Claude Desktop, and OpenCode all read. A `--project` flag (out of scope for M3? \u2014 flag this in Clarify) would switch to the project-relative path.\""
+        },
+        {
+          "section": "FR-2 / FR-3 \u2014 detection mechanism unspecified",
+          "category": "objective",
+          "problem": "`detect()` is required to return whether a tool is installed and its config location, but the spec never says *how* detection works. Is it a process check (`which claude`), a config-file presence check (`~/.claude/`), a version probe, or something else?",
+          "why_it_matters": "Detection is the first thing the wizard does and gates the rest of the run. Each tool has very different installation footprints, so the implementer will pick ad-hoc heuristics per adapter and tests cannot be written against a shared contract.",
+          "suggested_fix": "Either (a) add a per-tool detection hint to FR-3 (e.g., \"Claude Code: presence of `~/.claude/` or `which claude`; OpenCode: `which opencode`; Antigravity: presence of `~/.antigravity/`\"), or (b) state that each adapter is free to define its own detection and tests must cover both the present and absent case for each."
+        },
+        {
+          "section": "FR-2 / FR-4 \u2014 `confirmEnabled()` semantics",
+          "category": "objective",
+          "problem": "`confirmEnabled()` is described as verifying \"the trigger is recognized\", but for Antigravity the trigger is embedded in the SKILL.md description. The spec does not say what verification looks like for either case (slash registry lookup? grep on the file? opening a connection?).",
+          "why_it_matters": "Without a concrete verification step, a no-op `return true` is indistinguishable from a working check, and the user may think the install succeeded when the trigger is not actually wired up.",
+          "suggested_fix": "Specify the check per tool, e.g.: \"For Claude Code/Desktop/OpenCode: `confirmEnabled()` asserts that the `sdd-multiagent-kit` folder is present at the install path (the slash command derives from the folder name). For Antigravity: `confirmEnabled()` reads the installed `SKILL.md` and asserts the trigger phrase appears in the description.\""
+        },
+        {
+          "section": "Edge Cases \u2014 idempotency wording",
+          "category": "objective",
+          "problem": "\"Re-runs: ... idempotent.\" Strictly, idempotency means the same input yields the same output. Re-running with a different key is not idempotent in that strict sense, even though the run is safe.",
+          "why_it_matters": "The constitution's Simplicity-by-Default and Observable Interfaces principles lean on precise wording. Loose use of \"idempotent\" can hide destructive side effects (overwriting modified files, for example).",
+          "suggested_fix": "Reword: \"Re-runs are safe to repeat: existing kit files in the install location are overwritten in place, the trigger is re-confirmed, and no out-of-scope files are modified. Re-runs do not auto-load prior key values; the user is re-prompted and may press Enter to keep each existing value.\""
+        },
+        {
+          "section": "FR-5 / AC-5 \u2014 Node engine version",
+          "category": "objective",
+          "problem": "`package.json` is required to declare the bin, files, license, and zero runtime dependencies, but no Node version floor is specified. Without an `engines.node` field, the kit will install on EOL Node versions where `readline`, `fs/promises`, etc. behave differently or are missing features the wizard may rely on.",
+          "why_it_matters": "An npm-distributed framework that runs on a Node version it was not tested on violates the Standalone-First and Real-World Testing principles.",
+          "suggested_fix": "Add to FR-5: \"`engines.node` declares the minimum supported Node major version (e.g., `>=18` or `>=20`), and this is asserted by a test or by CI.\" Add a matching check to AC-5."
+        },
+        {
+          "section": "FR-3 \u2014 Claude Desktop 'shares its config' assumption",
+          "category": "objective",
+          "problem": "FR-3 states Claude Desktop shares Claude Code's config (\"same location as Claude Code (shares its config) \u2192 automatic\"). This is an external-behavior assumption about a closed-source product and is presented as fact without citation.",
+          "why_it_matters": "If this assumption is wrong, the install for Claude Desktop silently does nothing and `confirmEnabled()` will (per FR-4) still need to verify a trigger that does not exist. The Edge Cases section does not cover this.",
+          "suggested_fix": "Either (a) cite a public source for the shared-config behavior and add a runtime assertion in `confirmEnabled()` (e.g., \"if the shared path is empty for Claude Desktop, report an explicit error\"), or (b) treat Claude Desktop as a separate install that may or may not need its own copy, and add an Edge Case for the case where the assumption fails."
+        },
+        {
+          "section": "FR-1 (1) \u2014 Ollama Cloud vs Ollama",
+          "category": "needs_clarify",
+          "problem": "FR-1 (1) lists the three keys as \"NVIDIA NIM, Google AI Studio, Ollama Cloud\". The M1/M2 history (providers.yaml, the ten sub-skills) was built around \"Ollama\" (the local runtime), not necessarily \"Ollama Cloud\". This is either a deliberate change or an accidental rename.",
+          "why_it_matters": "If Ollama Cloud is a new third key alongside NVIDIA and Google, M1/M2 may need a providers.yaml update and the wizard will be collecting four keys, not three. If it is the same as before, the rename should be tracked in an ADR.",
+          "suggested_fix": "No fix from the drafter; ask in Clarify: \"Is 'Ollama Cloud' the same Ollama key M1/M2 collected, or a deliberate new third-party service requiring a new providers.yaml entry and key? Update the M3 spec (and M1/M2 docs if needed) accordingly.\""
+        },
+        {
+          "section": "US-2 / FR-1 (2) \u2014 Pakistani guide slot is unconditional?",
+          "category": "needs_clarify",
+          "problem": "US-2 and FR-1 (2) say the \"Guide for Pakistani users\" slot is offered \"directly beneath the NVIDIA key prompt\", with no condition. Showing a region-specific guide to every user is unusual UX and could be misread as the only supported path.",
+          "why_it_matters": "The wizard is global; a region-specific link under a key prompt is a UX decision with legal/support implications (e.g., implying NVIDIA is otherwise unavailable in Pakistan, which may not be accurate).",
+          "suggested_fix": "No fix from the drafter; ask in Clarify: \"Is the Pakistani guide slot shown to every user, or only when locale/region is detected as Pakistan? If always, confirm intent and that the linked resource lives at a stable URL.\""
+        },
+        {
+          "section": "Edge Cases \u2014 partial or skipped key input",
+          "category": "needs_clarify",
+          "problem": "The Edge Cases section addresses 'keys provided again' (re-prompts all three) but does not address what happens when a user enters an empty string, whitespace, or skips a key during the first run. Does the wizard abort, warn, or continue with the unset key?",
+          "why_it_matters": "A setup wizard that silently writes an empty key into the target tool's config will break the kit at runtime. A wizard that aborts on an empty key will block the Pakistani-guide flow and the tool-subset flow from being testable in isolation.",
+          "suggested_fix": "No fix from the drafter; ask in Clarify: \"On the first run, if a user submits an empty value for any of the three keys, does the wizard (a) refuse to proceed, (b) write an empty value and warn, (c) skip that key and treat the corresponding env-var as unset, or (d) something else? Specify for each of the three keys.\""
+        },
+        {
+          "section": "FR-1 (6) \u2014 behavior when `confirmEnabled()` fails",
+          "category": "needs_clarify",
+          "problem": "Edge Cases covers `install()` throwing (report and continue) but says nothing about `confirmEnabled()` returning false or throwing. The acceptance flow is unclear: does a failed confirmation make the install count as failed, or is it a soft warning?",
+          "why_it_matters": "A user who sees 'installed' but whose `/sdd` trigger does not work has a broken kit. The exit code and the final summary message both depend on this decision.",
+          "suggested_fix": "No fix from the drafter; ask in Clarify: \"If `confirmEnabled()` reports the trigger is not active, does the wizard (a) print a warning and continue to the next tool, (b) mark the tool as partially installed in the final summary, (c) exit with a non-zero code, or (d) prompt the user to re-run? Pick one and add it to Edge Cases + AC.\""
+        },
+        {
+          "section": "Re-run key flow granularity",
+          "category": "needs_clarify",
+          "problem": "Edge Cases says the wizard 'asks for all three each run (it does not auto-load prior keys; the user may skip/keep existing)'. 'Skip/keep existing' is ambiguous: is Enter-to-keep offered per-key, or only as an all-or-nothing skip at the start?",
+          "why_it_matters": "The user experience on a re-run (very common \u2014 e.g., after a key rotation) hinges on this. The current text is implementable in at least two meaningfully different ways.",
+          "suggested_fix": "No fix from the drafter; ask in Clarify: \"On re-run, is the prompt flow (a) per-key with Enter meaning 'keep the existing value, do not prompt me to type it', or (b) a single 'keep all existing keys' question followed by typed-input prompts only for keys the user wants to change? Pick one and update FR-1 + Edge Cases.\""
+        },
+        {
+          "section": "Out of Scope \u2014 uninstall pathway",
+          "category": "needs_clarify",
+          "problem": "Out of Scope lists repo docs, examples, and deferred guide content, but does not mention an uninstall or `sdd-uninstall` command. It is unclear whether removal is a manual operation (rm -rf the skills folder) or part of M3.",
+          "why_it_matters": "An installable package without a documented removal path is a friction point for users and a missed place to enforce Standalone-First cleanup (e.g., removing env-var entries the wizard wrote).",
+          "suggested_fix": "No fix from the drafter; ask in Clarify: \"Is an uninstall command (`sdd-uninstall` or equivalent) in scope for M3, deferred to a later milestone, or intentionally out of scope? Add the answer to either FR or Out of Scope.\""
+        },
+        {
+          "section": "FR-1 (1) \u2014 non-interactive / CI fallback",
+          "category": "needs_clarify",
+          "problem": "The wizard is described as 'Interactive Node CLI' with no mention of a non-interactive mode (env-var prefill, flags, or piped input). Real-World Testing under the constitution often requires installing in CI or scripted environments where there is no TTY.",
+          "why_it_matters": "If the wizard is strictly interactive, it cannot be smoke-tested in CI without TTY shims, and users with automation needs will fork it. The spec does not decide this.",
+          "suggested_fix": "No fix from the drafter; ask in Clarify: \"Does the wizard support a non-interactive mode for M3 (e.g., reading keys from env vars like `SDD_NVIDIA_KEY`, or `--yes` flags), or is interactive-only acceptable for this milestone? If interactive-only, confirm the Real-World Testing principle is satisfied by manual or TTY-shadowed tests.\""
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 6,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "Contradiction between persisting keys to tool config and asking for all three keys each run without auto-loading prior keys. The spec says keys are persisted to target tool's configuration as env-var names, but then says 'the wizard asks for all three each run (it does not auto-load prior keys; the user may skip/keep existing)'. If keys are persisted, the wizard should detect and offer to reuse them; if not persisted, the 'skip/keep existing' option is meaningless.",
+          "why_it_matters": "User experience is broken: either users re-enter keys every time (tedious) or the 'skip' option doesn't work. Also violates 'Observable Interfaces' \u2014 the wizard's behavior around key persistence is ambiguous.",
+          "suggested_fix": "Decide on one model: (A) Wizard reads existing keys from tool config/env and pre-fills prompts with 'keep current' as default, or (B) Wizard never persists keys \u2014 user manages keys in their shell/env, wizard only validates they're set. Update FR-1 and Edge Cases accordingly."
+        },
+        {
+          "section": "FR-3 / FR-2",
+          "category": "objective",
+          "problem": "OpenCode adapter's `install(paths)` behavior is undefined. FR-3 states 'OpenCode: reads `.claude/skills/` directly \u2192 no separate copy; same `/sdd` works.' But FR-2 requires every adapter to implement `install(paths)` that 'copies the kit skill content into the tool's location'. For OpenCode, no copy occurs \u2014 so what does `install()` do? No-op? Verification? Symlink?",
+          "why_it_matters": "Adapter interface contract is violated if OpenCode's install() differs semantically. The wizard calls `install(paths)` uniformly; inconsistent behavior breaks the extension pattern (\u00a711.4).",
+          "suggested_fix": "Explicitly define OpenCode's `install(paths)` as a verification step that confirms `.claude/skills/sdd-multiagent-kit/` exists and is readable, or document that `install()` is a no-op for OpenCode and the wizard should skip calling it for OpenCode."
+        },
+        {
+          "section": "FR-4",
+          "category": "objective",
+          "problem": "Folder name `sdd-multiagent-kit` yielding `/sdd` trigger is unexplained. The spec asserts 'The kit's folder name (`sdd-multiagent-kit`) yields `/sdd` for the three tools with a native slash-command registry' but provides no mechanism. Is this a convention in the Agent-Skills standard (\u00a710.3)? If so, the spec should reference the rule; if not, it's an incorrect assumption.",
+          "why_it_matters": "If the trigger derivation is wrong, the wizard's `confirmEnabled()` will falsely report success. The entire trigger confirmation (AC-4) depends on this.",
+          "suggested_fix": "Add a note citing the exact Agent-Skills standard rule (e.g., 'per \u00a710.3, the slash command is derived from the last path segment after the final hyphen') or correct the folder name to `sdd` if that's what the standard expects."
+        },
+        {
+          "section": "FR-5",
+          "category": "objective",
+          "problem": "`package.json` declares 'no runtime dependencies' but `bin/setup-wizard.js` is an interactive Node CLI requiring at minimum: a prompt library (e.g., `inquirer`, `prompts`), filesystem utilities (`fs-extra` or `fs/promises` with recursive copy), and possibly chalk/colors. These cannot be devDependencies if the bin script runs post-install.",
+          "why_it_matters": "npm install will fail or the wizard will crash at runtime if dependencies are missing. Violates 'Standalone-First' \u2014 the installed package must run without the source repo.",
+          "suggested_fix": "List actual runtime dependencies in `package.json` (or bundle them via `esbuild`/`vercel/pkg` into a single executable). Update FR-5 to reflect the chosen approach."
+        },
+        {
+          "section": "FR-1 / US-2 / Edge Cases",
+          "category": "needs_clarify",
+          "problem": "The 'Guide for Pakistani users' slot: what exactly does the wizard display? A URL? A local file path? A 'Press Enter to open browser' action? The spec says 'the wizard links to where it will live' but no location (URL, docs path, GitHub wiki) is specified. The maintainer supplies content separately \u2014 but where?",
+          "why_it_matters": "Implementation cannot complete the UI without knowing the link target. This is a product decision (where the guide lives) not inferable from the brief.",
+          "suggested_fix": null
+        },
+        {
+          "section": "FR-1 / AC-2",
+          "category": "needs_clarify",
+          "problem": "What does 'slot only' mean in the UI? A clickable link? A checkbox 'Show guide'? A 'Learn more' button that opens a browser? The spec says 'offers a Guide for Pakistani users option' and 'the wizard links to where it will live' \u2014 but the interaction pattern is unspecified.",
+          "why_it_matters": "UI implementation blocked. Different patterns (link vs button vs modal) have different accessibility and UX implications.",
+          "suggested_fix": null
+        },
+        {
+          "section": "FR-3 (Antigravity)",
+          "category": "objective",
+          "problem": "Antigravity's `confirmEnabled()` cannot verify a slash command (none exists). The spec says 'the trigger is embedded in the SKILL.md description so explicit invocation is recognized' and 'the wizard confirms the trigger for each installed tool'. But `confirmEnabled()` for Antigravity must verify the description contains the trigger phrase \u2014 this is not stated.",
+          "why_it_matters": "AC-4 requires trigger handling to match \u00a710.3 exactly. If `confirmEnabled()` just checks file existence, it will pass even if the trigger phrase is missing from the skill description.",
+          "suggested_fix": "Add to FR-3 Antigravity bullet: 'confirmEnabled() verifies the skill's SKILL.md description/instructions contain the `/sdd` trigger phrase.'"
+        },
+        {
+          "section": "Edge Cases (Re-runs)",
+          "category": "objective",
+          "problem": "Re-run behavior for keys is underspecified. 'Keys provided again: the wizard asks for all three each run (it does not auto-load prior keys; the user may skip/keep existing).' If the wizard doesn't auto-load prior keys, how does the user 'skip/keep existing'? They'd have to manually re-type the same key. This contradicts the earlier statement that keys are persisted to tool config.",
+          "why_it_matters": "Same root cause as Issue 1. The re-run rule cannot be implemented until the key persistence model is fixed.",
+          "suggested_fix": "Resolve Issue 1 first, then restate re-run behavior consistently: e.g., 'On re-run, the wizard detects existing keys in tool config/env, displays masked values, and defaults to keeping them.'"
+        },
+        {
+          "section": "FR-1 (API keys list)",
+          "category": "needs_clarify",
+          "problem": "The three API keys are named as 'NVIDIA NIM, Google AI Studio, Ollama Cloud'. But the Pakistani guide addresses 'user without a paid NVIDIA signup'. Are there other user gaps (e.g., no Google AI Studio access, no Ollama Cloud)? Why only a Pakistani guide for NVIDIA? Is this a regional restriction specific to NVIDIA NIM?",
+          "why_it_matters": "If other tools have similar access gaps, the UI should offer guides consistently. This is a product/policy decision.",
+          "suggested_fix": null
+        },
+        {
+          "section": "General / Constitution",
+          "category": "objective",
+          "problem": "The spec does not reference or demonstrate compliance with the constitution's 'Tests Before Implementation' principle. While a separate tests document exists (cross-referenced), the spec itself should at minimum note testability considerations (e.g., 'adapters are pure functions with injected fs for unit testing', 'wizard uses dependency injection for prompt/fs to enable mocking').",
+          "why_it_matters": "The two-pass critique loop and structural-completeness gate expect each document to show awareness of constitutional principles. Missing this weakens the spec's alignment with the process.",
+          "suggested_fix": "Add a 'Testability Notes' subsection under Functional Requirements or Edge Cases describing how each component (wizard, adapters) is designed for unit/integration testing (e.g., injected filesystem, prompt abstraction, no global state)."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-3",
+          "category": "objective",
+          "problem": "Contradiction regarding OpenCode installation: FR-3 states OpenCode reads `.claude/skills/` directly with no separate copy, while FR-1 and FR-3 together imply the installer will copy kit files into that location.",
+          "why_it_matters": "If the installer copies files for OpenCode, it may create duplicate skill directories, cause permission issues, or violate the tool's expected workflow, leading to runtime errors or user confusion.",
+          "suggested_fix": "Clarify that for OpenCode the installer must NOT copy files; instead ensure the shared `.claude/skills/` directory is used as\u2011is (e.g., by creating a symlink or by placing the kit there once). Update FR-1/FR-3 to reflect this behavior."
+        },
+        {
+          "section": "FR-2",
+          "category": "objective",
+          "problem": "The spec does not specify how adapters are discovered/registered by the wizard.",
+          "why_it_matters": "Without a defined registration mechanism, new adapters may not be loaded, breaking the extension pattern and preventing contributors from adding tools without modifying core code.",
+          "suggested_fix": "Add a requirement that `bin/setup-wizard.js` dynamically loads all `.js` files in the `installers/` directory (e.g., using `fs.readdirSync`), validates they export `detect`, `install`, and `confirmEnabled`, and registers them for the detection/installation flow."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The exact environment variable names used to persist the three API keys are not defined.",
+          "why_it_matters": "Implementers need consistent naming across adapters and tests; ambiguous names could lead to mismatched configurations or security oversights."
+        },
+        {
+          "section": "AC-1",
+          "category": "needs_clarify",
+          "problem": "What constitutes a \"non\u2011stub\" adapter implementation is not defined.",
+          "why_it_matters": "Reviewers need a clear criterion to verify that adapters are functional rather than placeholder files, affecting acceptance."
+        },
+        {
+          "section": "Edge Cases",
+          "category": "needs_clarify",
+          "problem": "The spec does not define the wizard's exit code or overall success/failure semantics when one or more adapters fail to install.",
+          "why_it_matters": "Automation scripts and CI pipelines rely on exit codes to detect failure; ambiguous behavior could cause false\u2011positive builds."
+        },
+        {
+          "section": "Pakistani-guide slot",
+          "category": "needs_clarify",
+          "problem": "The location or format of the link that the wizard should present for the reserved \"Guide for Pakistani users\" is unspecified.",
+          "why_it_matters": "Without a defined link target, the wizard cannot reliably direct users, breaking the user experience promised in US-2."
+        },
+        {
+          "section": "Re\u2011runs / Overwrite behavior",
+          "category": "needs_clarify",
+          "problem": "The spec states re\u2011runs overwrite kit files in place, but does not describe how to handle user\u2011modified skill files that may exist.",
+          "why_it_matters": "Blind overwriting could destroy user customizations, leading to data loss and negative user feedback."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The wizard collects all three API keys in one pass, but the behavior when a user already has keys configured (e.g., in the tool's env) is ambiguous. The edge case says 'the user may skip/keep existing' but the wizard 'asks for all three each run' \u2014 it's unclear how the user signals 'keep existing' and whether the wizard validates or overwrites existing keys.",
+          "why_it_matters": "Without a clear interaction model, the wizard could overwrite valid keys or confuse users, leading to broken setups and support burden.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "FR-3 / FR-4",
+          "category": "objective",
+          "problem": "The spec says Claude Desktop 'shares its config' with Claude Code and is 'automatic', but it does not specify whether Claude Desktop has its own detect()/install()/confirmEnabled() adapter or whether it is handled by the Claude Code adapter. The four installers are listed as claude-code, claude-desktop, opencode, antigravity, but FR-3 implies Claude Desktop may not need a separate copy.",
+          "why_it_matters": "If Claude Desktop is not a separate adapter, the 'four installers' requirement (AC-1) is inconsistent; if it is, the spec must define its detect/install/confirm behavior distinctly.",
+          "suggested_fix": "Clarify whether Claude Desktop has its own adapter file or is folded into the Claude Code adapter. If separate, specify its detect() (e.g., checks for Claude Desktop app presence) and install() (e.g., writes to the shared config). If not, update FR-1/AC-1 to say 'three adapters plus a shared Claude handler'."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The edge case 'Keys provided again: the wizard asks for all three each run (it does not auto-load prior keys; the user may skip/keep existing)' is internally inconsistent: if the wizard asks for all three each run, how can the user 'skip/keep existing'? The spec does not define a skip mechanism or how existing keys are preserved.",
+          "why_it_matters": "This ambiguity will cause the implementer to guess, potentially leading to a wizard that either forces re-entry (annoying) or silently overwrites (dangerous).",
+          "suggested_fix": "Define an explicit prompt flow: e.g., for each key, ask 'Enter key (leave blank to keep existing if present, or press Enter to skip)'. Specify that blank input preserves the existing env var and does not overwrite."
+        },
+        {
+          "section": "FR-5 / AC-5",
+          "category": "objective",
+          "problem": "package.json declares 'no runtime dependencies', but the wizard is an interactive CLI that likely needs a prompt library (e.g., 'prompts' or 'inquirer') to handle user input robustly. The spec does not explain how the wizard implements interactive prompts without dependencies.",
+          "why_it_matters": "If the wizard uses raw Node readline, it may be clunky but feasible; if it uses a dependency, the 'no runtime deps' claim is false. This affects testability and the simplicity gate.",
+          "suggested_fix": "Either explicitly state that the wizard uses Node's built-in readline (and specify that in the spec), or allow a minimal runtime dependency (e.g., 'prompts') and update FR-5/AC-5 accordingly."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The spec does not address what happens when a tool's config directory does not exist (e.g., fresh install, no ~/.claude directory). The install() must create directories, but this is not specified.",
+          "why_it_matters": "Without explicit directory creation, install() may fail on fresh systems, violating the 'installable with a single npm install' promise and the real-world testing constitution.",
+          "suggested_fix": "Add an edge case: 'If the target tool's config directory does not exist, the adapter creates it (recursively) before copying files.'"
+        },
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "objective",
+          "problem": "The spec says keys are persisted as 'env-var names only (never secret values in the repo)' and 'prompts may write values to the user's own env/config'. It is unclear how the wizard writes to the user's env/config \u2014 does it modify shell rc files (e.g., ~/.bashrc) or the tool's config file? This is a security-sensitive operation.",
+          "why_it_matters": "Writing to shell rc files can be risky and platform-specific; writing to tool config may be the intended path. Without clarity, the implementer may choose an unsafe method or fail to persist keys correctly.",
+          "suggested_fix": "Specify the exact persistence mechanism: e.g., 'The wizard writes the key values to the target tool's configuration file (e.g., ~/.claude/settings.json) as environment variables, or appends export lines to the user's shell profile if the tool does not support env config. It never writes to committed files.'"
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "AC-6 says 'sdd-setup is runnable (the bin entry resolves and the wizard starts)' but does not specify how to test this in an automated way, especially in CI where there is no interactive terminal. The tests document is referenced but not detailed here.",
+          "why_it_matters": "Without a testable definition (e.g., 'the wizard starts and prints a prompt when run with piped input'), the acceptance criterion is vague and hard to verify, hurting testability.",
+          "suggested_fix": "Refine AC-6 to: 'Running `sdd-setup` with no arguments prints a welcome message and the first key prompt, and exits non-zero on invalid input. In automated tests, pipe a scripted input sequence to verify the wizard completes a full run.'"
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 6
+}

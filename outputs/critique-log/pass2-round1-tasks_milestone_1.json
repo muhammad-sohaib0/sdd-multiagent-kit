@@ -1,0 +1,214 @@
+{
+  "document": "tasks_milestone_1",
+  "pass": 2,
+  "round": 1,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "tasks_milestone_1.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 10,
+      "scores": {
+        "clarity": 10,
+        "completeness": 10,
+        "edge_case_coverage": 9,
+        "internal_consistency": 10,
+        "testability": 10
+      },
+      "issues": [],
+      "verdict": "pass"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "tasks_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 6,
+        "edge_case_coverage": 5,
+        "internal_consistency": 8,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Build Order \u2014 Group A",
+          "category": "objective",
+          "problem": "T1 is defined as a single task that produces the entire tests_milestone_1.md document before any content exists. This violates the Tests-Before-Implementation granularity expected by Article III and the brief's structural-completeness gate, because the verification contract for 19 downstream tasks cannot be meaningfully authored or reviewed as one monolithic deliverable.",
+          "why_it_matters": "A single T1 makes the tests doc an all-or-nothing artifact; if any AC is wrong, the entire test contract must be reworked. It also makes T1 unreviewable for structural completeness until all 19 tasks it covers are known in detail.",
+          "suggested_fix": "Split T1 into T1a (define AC-1/AC-2/AC-3 verification steps, runnable before content) and T1b (define AC-4/AC-5/AC-6/AC-7 verification steps, which reference content shape). Keep both in Group A, ordered before the content they verify."
+        },
+        {
+          "section": "Build Order \u2014 Group C",
+          "category": "objective",
+          "problem": "T5\u2013T14 are ten independent tasks that each author one SKILL.md 'per spec FR-2', but the tasks document does not state the shared SKILL.md schema (frontmatter fields, section headings, dispatch contract) that every task must conform to. The schema is referenced only indirectly via 'spec FR-2'.",
+          "why_it_matters": "Without the schema stated or pinned in the tasks doc, ten parallel authors (or one author over time) will drift on structure, causing T16 (frontmatter check) and T20 (Stranger Test contract parity) to fail late and expensively.",
+          "suggested_fix": "Add a short 'SKILL.md schema' subsection (or a T0 task that creates a template) listing the required frontmatter keys and section headings that T5\u2013T14 must use, and have T16 assert against that explicit schema rather than against 'spec FR-2' alone."
+        },
+        {
+          "section": "Build Order \u2014 Group E",
+          "category": "objective",
+          "problem": "T18 (Secret scan) says 'allowlist empty', but the tasks document does not define the detection patterns, the scan scope (kit/ only vs. outputs/ too), or the tool used. AC-3 is referenced but not operationalized.",
+          "why_it_matters": "A secret scan with undefined patterns is untestable and unreviewable; 'zero matches' is trivially satisfiable by a weak pattern set, undermining the Standalone-First and Observable Interfaces principles for M1's security posture.",
+          "suggested_fix": "Specify the pattern set (e.g., AWS keys, GitHub tokens, private key headers, generic high-entropy strings), the scan command/tool, and the explicit scope (the 13 M1 files). State that the allowlist file is created empty at T18 time and lives at a named path."
+        },
+        {
+          "section": "Build Order \u2014 Group E",
+          "category": "objective",
+          "problem": "T20 (Stranger Test) is listed as a task in the build order, but the Stranger Test is a constitution-mandated critique-loop mechanism, not a build task. Placing it in the same linear task list as T2\u2013T19 conflates verification with the two-pass six-model critique that the brief says arrives in M2.",
+          "why_it_matters": "If T20 is a build task, it needs a deterministic pass/fail procedure; if it is a critique-loop step, it belongs to the loop, not the tasks doc. The current framing makes the milestone's 'final gate' ambiguous and untestable by automation.",
+          "suggested_fix": "Either (a) redefine T20 as a deterministic contract-parity assertion (list the exact assertions a fresh session must confirm) and rename it 'Stranger Test parity check', or (b) move the Stranger Test out of the tasks doc and into the milestone's workflow/critique section, leaving T19 as the final build task."
+        },
+        {
+          "section": "Build Order \u2014 Group D",
+          "category": "needs_clarify",
+          "problem": "T15 (master orchestrator) is said to include 'standing adjudication/stopping rules' and a 'critique invariant (automation arrives in M2)'. The tasks doc does not specify whether T15 must define the human-in-the-loop adjudication procedure for M1 (since the six-model loop is not yet automated) or merely stub it.",
+          "why_it_matters": "If T15 must define the M1 adjudication procedure, it is a non-trivial policy task that needs its own acceptance criteria; if it is a stub, the milestone ships without a usable critique process, weakening the two-pass critique-loop constitution article for M1's own dogfooding."
+        },
+        {
+          "section": "Build Order \u2014 Group B",
+          "category": "objective",
+          "problem": "T2 creates 'the ten kit/skills/<name>/ folders' but does not enumerate the ten names. The names are implied by T5\u2013T14, but T2 is ordered before them and is marked independent/parallel, so a worker executing T2 cannot derive the folder list from T2 alone.",
+          "why_it_matters": "A parallel worker on T2 would have to read T5\u2013T14 to know what to create, breaking the independence claim and risking folder-name drift (e.g., 'task-breakdown' vs. 'tasks-breakdown') that would silently break T15's by-name dispatch.",
+          "suggested_fix": "Add the explicit list of ten folder names to T2 (research-ct-scan, specify, plan-builder, task-breakdown, clarify-interview, milestone-builder, workflow-builder, scenario-tester, stranger-test, history-logger), matching T5\u2013T14 verbatim."
+        },
+        {
+          "section": "Status",
+          "category": "objective",
+          "problem": "The Status table marks T1 as 'drafted next' and T2\u2013T20 as 'pending', but T1 is defined in Group A as the first task that produces tests_milestone_1.md. The status note implies T1 is not yet started, which contradicts the Tests-Before-Implementation ordering that the document otherwise enforces.",
+          "why_it_matters": "If T1 is genuinely not drafted, then the entire Group B\u2013E build is proceeding without a reviewable test contract, which is the exact failure Article III forbids. The status line reads as a process admission rather than a plan.",
+          "suggested_fix": "Reword the T1 status to 'pending \u2014 first task to execute (produces tests_milestone_1.md)' and remove the 'drafted next' parenthetical, or split T1 per the earlier issue and mark the test-contract portion as the true first task with status 'ready to execute'."
+        },
+        {
+          "section": "Cumulative History",
+          "category": "objective",
+          "problem": "The Cumulative History section says 'Same as the spec/plan' and defers all history to companion documents. The brief requires PHR/ADR history logging as a first-class artifact, and the tasks doc is silent on whether T15's history-logger sub-skill must log M1's own build history.",
+          "why_it_matters": "If the history-logger is authored in T14 but not exercised during M1, the kit ships a skill that has never been dogfooded, violating Real-World Testing. The tasks doc should make the dogfooding explicit.",
+          "suggested_fix": "Add a task (or extend T14/T16) requiring that the history-logger be invoked at least once to record M1's completion as the first PHR entry, and assert that entry exists as part of T16 or a new verification task."
+        },
+        {
+          "section": "Build Order \u2014 Dependency note",
+          "category": "objective",
+          "problem": "The dependency note states 'No task depends on a future milestone's artifact' as the forward-reference gate, but it does not list the inverse check: that no M1 content file references a future artifact. T16 only checks file existence and frontmatter, not absence of forward references inside the content.",
+          "why_it_matters": "A constitution.template.md or SKILL.md could mention 'critique-loop' or the M2 installer in prose, passing T16 while violating the forward-reference gate. The gate is asserted in the note but not enforced by any task.",
+          "suggested_fix": "Add a verification step (in T16 or as a new task) that greps the 13 M1 files for the banned forward-reference tokens (critique-loop, installer, M2 scripts, docs site) and asserts zero matches, with an explicit allowlist for any unavoidable mentions."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "tasks_milestone_1.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 6,
+        "internal_consistency": 9,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "Group C \u2014 Content files",
+          "category": "needs_clarify",
+          "problem": "The contract reference \"per spec FR-2\" is not explained in this document, leaving authors uncertain about the exact requirements for each SKILL.md.",
+          "why_it_matters": "Ambiguity may cause inconsistent skill contracts, breaking downstream verification (T16\u2011T20) and violating the tests\u2011first principle.",
+          "suggested_fix": null
+        },
+        {
+          "section": "T15 \u2014 Author `kit/SKILL.md`",
+          "category": "needs_clarify",
+          "problem": "Reference to AC-5 is made without defining what AC-5 entails in this document.",
+          "why_it_matters": "Implementers cannot verify compliance with an undefined acceptance criterion, risking gate failures.",
+          "suggested_fix": null
+        },
+        {
+          "section": "T20 \u2014 Stranger Test (AC-7)",
+          "category": "needs_clarify",
+          "problem": "The phrase \"finished five-document set\" is vague; the specific documents required for the test are not enumerated.",
+          "why_it_matters": "The test cannot be reliably executed without a clear definition of inputs, undermining the final gate of the milestone.",
+          "suggested_fix": null
+        },
+        {
+          "section": "T2 \u2014 Create the kit directory structure",
+          "category": "objective",
+          "problem": "The task mentions creating ten `kit/skills/<name>/` folders but does not list the exact folder names, risking mismatches with later skill tasks.",
+          "why_it_matters": "Inconsistent folder naming would break references in T5\u2011T14 and the orchestrator (T15), causing build failures.",
+          "suggested_fix": "Add an explicit bullet list of the ten skill folder names within the T2 description."
+        },
+        {
+          "section": "T16 \u2014 Frontmatter & inventory check (AC-1/AC-4)",
+          "category": "objective",
+          "problem": "The required `name`, `description`, and `version` fields are mentioned but no schema or format is defined for these fields in SKILL.md files.",
+          "why_it_matters": "Without a concrete schema, validators may accept malformed or incomplete metadata, leading to downstream inconsistencies.",
+          "suggested_fix": "Define a YAML frontmatter schema (e.g., `name: string`, `description: string`, `version: semver`) and reference it in T16."
+        },
+        {
+          "section": "Verification tasks (T16\u2011T20)",
+          "category": "objective",
+          "problem": "The document does not specify remediation or failure\u2011handling procedures when a verification task fails.",
+          "why_it_matters": "Lack of clear failure handling can stall the milestone workflow and violate the simplicity and real\u2011world testing constitution principles.",
+          "suggested_fix": "Add a brief guideline for each verification task describing expected actions on failure (e.g., abort, log, iterate on implementation)."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "tasks_milestone_1.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Group B \u2014 T2",
+          "category": "objective",
+          "problem": "The task says 'Create kit/, kit/config/, and the ten kit/skills/<name>/ folders' but does not specify the exact names of the ten skill folders. The spec \u00a74.1 inventory is referenced, but the task list itself should be self-contained for an executor who may not have the spec open.",
+          "why_it_matters": "Without explicit folder names, the executor may create mismatched paths, causing T16 (frontmatter & inventory check) to fail and breaking the dependency chain.",
+          "suggested_fix": "List the ten skill folder names explicitly in T2 (e.g., research-ct-scan, specify, plan-builder, task-breakdown, clarify-interview, milestone-builder, workflow-builder, scenario-tester, stranger-test, history-logger)."
+        },
+        {
+          "section": "Group E \u2014 T20",
+          "category": "objective",
+          "problem": "T20 says 'Hand the finished five-document set to a fresh zero-context session' but does not define what 'finished five-document set' includes (spec, plan, tasks, workflow, tests) nor how the Stranger Test is to be executed (e.g., what prompt is given, what constitutes 'contract parity' beyond the three listed checks).",
+          "why_it_matters": "The Stranger Test is a key acceptance gate (AC-7); without a concrete execution procedure, the test is not reproducible and could be performed inconsistently, undermining the milestone's final gate.",
+          "suggested_fix": "Expand T20 to specify: (a) the exact set of five documents to provide, (b) the prompt/instructions to give the fresh session, and (c) a checklist of parity assertions (13 paths, six models + ordered critic_slots, seven articles verbatim, plus any other spec-defined invariants)."
+        },
+        {
+          "section": "Group C \u2014 T5\u2013T14",
+          "category": "needs_clarify",
+          "problem": "Each skill-authoring task says 'contract per spec FR-2' but does not specify what FR-2 requires beyond the reference. The drafter assumed the spec's FR-2 is sufficient, but the tasks document does not restate the contract, so an executor without the spec may not know the required structure/content of each SKILL.md.",
+          "why_it_matters": "If the FR-2 contract is not self-contained in the tasks, the executor may produce skills that do not meet the spec, causing verification failures and rework.",
+          "suggested_fix": "Consider adding a brief summary of FR-2's requirements (e.g., required frontmatter fields, section structure, or behavioral contract) in the tasks document, or explicitly state that the executor must read spec \u00a7FR-2 before starting Group C."
+        },
+        {
+          "section": "Group E \u2014 T16",
+          "category": "objective",
+          "problem": "T16 asserts 'exactly ten sub-skills (no critique-loop)' but does not specify how the check is performed (e.g., by directory listing, by frontmatter, or by file existence). The task also does not define what to do if an extra file is found.",
+          "why_it_matters": "Ambiguity in the verification method could lead to false positives/negatives, and the lack of a failure-handling rule could stall the build.",
+          "suggested_fix": "Specify the exact command or script (e.g., 'list kit/skills/*/SKILL.md and assert count == 10 and no critique-loop directory') and define the expected output on failure (e.g., 'exit non-zero with a message listing unexpected files')."
+        },
+        {
+          "section": "Status table",
+          "category": "objective",
+          "problem": "The status table lists T1 as 'pending (tests doc = tests_milestone_1.md, drafted next)' but the build order in Group A says T1 is the first task. The parenthetical 'drafted next' is ambiguous \u2014 it could mean the tests doc is drafted as part of T1 or that T1 is drafted next in the document. This creates confusion about the current state.",
+          "why_it_matters": "Ambiguity in the status table could mislead the executor about whether T1 is already done or not, affecting the start point of the build.",
+          "suggested_fix": "Clarify the status: either mark T1 as 'pending' with a note that the tests doc will be authored as part of T1, or change the parenthetical to 'to be authored in T1'."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 4
+}

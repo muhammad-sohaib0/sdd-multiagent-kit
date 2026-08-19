@@ -1,0 +1,242 @@
+{
+  "document": "spec_milestone_1",
+  "pass": 1,
+  "round": 10,
+  "critics": [
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 9,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "3A. The Two Gates",
+          "category": "needs_clarify",
+          "problem": "The Simplicity Gate defines a standalone component as a 'separately installed/deployed unit' but does not clarify whether the M1 deliverable itself (the `sdd-multiagent-kit` npm package) counts as one standalone component against the limit during the bootstrap build, or if the limit applies strictly to the components the kit generates for target projects.",
+          "why_it_matters": "If the kit itself counts as a standalone component, the bootstrap build's plan.md must account for it in the Simplicity Justifications. If not, the gate's application to the bootstrap build needs explicit scoping.",
+          "suggested_fix": null
+        },
+        {
+          "section": "6. Authentication / Security",
+          "category": "needs_clarify",
+          "problem": "The secret detection rule includes a 'base64/hex blob \u2265 32 chars that is not an obvious, allowlisted constant' but does not define what constitutes 'obvious' in the context of the 13 shipped files, nor how a verifier distinguishes a UUID from a secret without the allowlist.",
+          "why_it_matters": "This ambiguity could lead to false positives during the AC-3 scan if the shipped content contains long non-secret strings (e.g., a long description hash or a model ID suffix) that resemble blobs, blocking the milestone.",
+          "suggested_fix": null
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 10,
+      "scores": {
+        "clarity": 10,
+        "completeness": 10,
+        "edge_case_coverage": 10,
+        "internal_consistency": 10,
+        "testability": 10
+      },
+      "issues": [],
+      "verdict": "pass"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 9,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "FR-2 / clarify-interview",
+          "category": "objective",
+          "problem": "The clarify-interview sub-skill does not specify behavior when a human refuses to answer a question or provides an invalid/non-responsive answer.",
+          "why_it_matters": "Without defined behavior, the pipeline could hang, loop indefinitely, or produce an incomplete spec that passes gates but lacks critical decisions.",
+          "suggested_fix": "Add an edge-case rule to clarify-interview: 'Human refuses or gives non-responsive answer \u2192 record refusal in needs_clarify.md, mark the question as unresolved, and escalate to blocking human confirmation (same as ADR significance) before proceeding. The milestone cannot pass G2 with unresolved clarify items.'"
+        },
+        {
+          "section": "FR-1 step 4h / stranger-test / AC-7",
+          "category": "objective",
+          "problem": "The Stranger Test failure feedback loop has no maximum iteration bound or exit condition documented.",
+          "why_it_matters": "Unbounded re-looping on Stranger Test failures could stall a milestone indefinitely, violating the 'never an unbounded retry loop' principle from the sub-skill failure policy.",
+          "suggested_fix": "Add to stranger-test edge-case rule: 'Maximum 3 Stranger Test iterations per milestone; on 3rd failure, escalate as blocking human confirmation with summary of persistent gaps.' Also add this bound to the master skill's pipeline description in FR-1."
+        },
+        {
+          "section": "4.5 / Requirement Category Checklist format",
+          "category": "objective",
+          "problem": "The checklist format is described as 'a Markdown table with columns category | required (base|conditional) | why needed' but does not specify row ordering, handling of rejected conditional categories (n/a reason column), or whether the table includes a header row.",
+          "why_it_matters": "Inconsistent checklist formatting across runs could break specify sub-skill parsing or cause gate false positives on structural completeness.",
+          "suggested_fix": "Add a concrete example table in \u00a74.5 showing: header row, base categories first, then conditional categories with 'conditional' marker, rejected conditionals with 'n/a' in required column and rejection reason in why-needed column. State that specify must accept this exact column order."
+        },
+        {
+          "section": "FR-1 step 2 / Constitution adoption",
+          "category": "objective",
+          "problem": "The phrase 'Adopt/create constitution.md ... from constitution.template.md (once per project)' is ambiguous: it could mean (a) always generate fresh from template, (b) adopt existing if present else generate, or (c) interactive choice.",
+          "why_it_matters": "If a project already has a constitution.md (e.g., from a prior run), the master skill must not silently overwrite it, nor fail confusingly.",
+          "suggested_fix": "Clarify: 'If outputs/constitution.md exists, adopt it as-is (do not overwrite). If absent, create it by copying constitution.template.md. This happens once per project at the first milestone-zero transition.'"
+        },
+        {
+          "section": "FR-2 / research-ct-scan / installed-skill awareness",
+          "category": "objective",
+          "problem": "The installed-skill awareness rule assumes the invoking CLI agent can list its own skill/plugin directories. No fallback is specified if the agent/tool lacks this introspection capability.",
+          "why_it_matters": "On a tool that cannot enumerate installed skills, the CT scan would either fail or produce a checklist missing conditional categories that should have been activated.",
+          "suggested_fix": "Add edge-case rule: 'If the agent cannot list installed skills, proceed with base categories only and emit a PHR noting the limitation. Do not fabricate conditional categories.'"
+        },
+        {
+          "section": "General / Stranger Test iteration limit",
+          "category": "needs_clarify",
+          "problem": "Whether the Stranger Test should have a hard iteration cap (and what that cap should be) is a product decision balancing thoroughness vs. user patience.",
+          "why_it_matters": "A cap too low risks shipping incomplete specs; a cap too high (or none) risks infinite loops. The drafter cannot correctly infer the right trade-off.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "FR-2 / clarify-interview / human refusal",
+          "category": "needs_clarify",
+          "problem": "What the product should do when a human explicitly refuses to answer a clarify question (vs. just not responding) is a policy decision: abort the milestone, proceed with a default, or escalate.",
+          "why_it_matters": "Different CLI agent workflows may have different expectations (e.g., CI/CD vs. interactive). The drafter cannot infer the intended UX.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "3A / Simplicity Gate default of 3",
+          "category": "needs_clarify",
+          "problem": "Whether the per-milestone standalone-component limit of 3 is the right default heuristic, or whether it should be configurable at project start (not just overrideable later via constitution amendment), is a product judgment.",
+          "why_it_matters": "Projects with inherently many integrations (e.g., a gateway service) may find 3 too restrictive and the override process (ADR + constitution edit) too heavy for initial setup.",
+          "suggested_fix": ""
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "model": "minimax-m3:cloud",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "\u00a78 AC-1",
+          "category": "objective",
+          "problem": "AC-1 states the 13 kit content files are enforced by 'G1/G2 and the six-critic panel', but the gates as defined in \u00a73A operate on milestone documents (spec/plan/tasks/workflow/tests), not on the 13 kit content files (kit/SKILL.md, kit/config/providers.yaml, kit/skills/*/SKILL.md, kit/constitution.template.md). The six-critic panel is explicitly M2 and not present in M1. The enforcement chain for AC-1 within M1 is therefore unspecified.",
+          "why_it_matters": "An acceptance criterion whose enforcement mechanism does not exist in the milestone that owns the criterion is un-verifiable at acceptance time, which defeats the purpose of the gate. If the bootstrap reviewer cannot point at where 'substantive content, no stubs, no placeholders' is actually checked for kit files, AC-1 cannot be objectively passed.",
+          "suggested_fix": "Either (a) move the 'substantive content / no stubs' check for the 13 kit files to tests_milestone_1.md (alongside the secret scan already placed there) and reference it from AC-1, or (b) explicitly state in AC-1 that this is verified by the bootstrap reviewer against the \u00a73 FR-1/FR-2 contracts and the \u00a74.1 inventory, and is not gate-automated in M1."
+        },
+        {
+          "section": "\u00a73 FR-1 step 4i (build semantics)",
+          "category": "objective",
+          "problem": "Step 4i states the M1 build output is the 13 files at \u00a74.1 paths, but the master skill (kit/SKILL.md, itself file #1 of those 13) is the orchestrator that, when followed, produces the 13 files. The bootstrap mechanism by which the master skill can produce itself is only acknowledged in passing ('the kit's own bootstrap build (this project)').",
+          "why_it_matters": "Without an explicit bootstrap order, a future contributor/agent following this spec could attempt to execute the master skill to bootstrap M1 and get a chicken-and-egg loop, or could miss that M1 is intentionally human-authored against the spec rather than self-executed.",
+          "suggested_fix": "Add a brief bootstrap note to \u00a73 (near step 4i) or to \u00a71 clarifying that for M1 specifically, the 13 files are authored by a human (or a non-SDD-driven agent run) following this spec, and that the master skill's pipeline applies from M2 onward where its own content is already present. Keep the statement that 'build' means 'execute the milestone's ordered tasks to materialize that milestone's artifacts' but make the M1 self-reference explicit."
+        },
+        {
+          "section": "\u00a74.5 secret-allowlist sub-bullet",
+          "category": "objective",
+          "problem": "The phrase 'additions follow the \u00a74.5 criteria (written reason + PHR, never silent)' is a self-referential pointer back to the same section. The reader is told the criteria are in \u00a74.5 but is not given a sub-bullet name to locate them, while the same criteria are described inline in \u00a76 with slightly different wording (PHR, not silent, written reason).",
+          "why_it_matters": "Self-referential cross-references within a normative spec increase the chance that an edit to one place silently leaves the other out of sync, and they make the document harder to navigate for new contributors and for the stranger (AC-7).",
+          "suggested_fix": "Replace 'the \u00a74.5 criteria' with a descriptive pointer (e.g., 'the secret-allowlist criteria stated in \u00a76') so that the cross-reference resolves to a uniquely named location, and align the wording in \u00a74.5 with the \u00a76 phrasing."
+        },
+        {
+          "section": "\u00a72 US-4 + \u00a73 FR-4",
+          "category": "objective",
+          "problem": "US-4 says adding a model is 'a data-only change to kit/config/providers.yaml' (singular path), while FR-4's validation rule requires that the model also appears in the provider's `models` list, so the edit in fact touches two YAML sections (a provider's `models` and `critic_slots`). The spec does not say so explicitly, and the phrasing in US-4 could mislead a contributor to edit only `critic_slots`.",
+          "why_it_matters": "A contributor following US-4 alone and adding only a `critic_slots` entry would create a config that fails FR-4's validation rule (model not in the provider's models list), which is exactly the class of defect the rule is designed to catch.",
+          "suggested_fix": "In US-4, replace 'a data-only change to kit/config/providers.yaml' with wording that names both YAML sections that change (e.g., 'a data-only change to the provider's `models` list and the corresponding `critic_slots` entry in kit/config/providers.yaml'). Optionally add a short example or a cross-reference to FR-4's validation rule."
+        },
+        {
+          "section": "\u00a73 FR-2 research-ct-scan edge-case (installed-skill tiebreaker)",
+          "category": "needs_clarify",
+          "problem": "The edge-case rule says 'if several match the same category, use the one whose description most closely matches it'. The phrase 'most closely matches' does not define a tiebreaker when more than one skill matches equally closely (e.g., two skills with semantically equivalent descriptions both installed).",
+          "why_it_matters": "A real installation of Claude Code or Antigravity may ship multiple skills that overlap with a single conditional category; without a tiebreaker, the selection becomes non-deterministic, which is a constitutional violation of Observable Interfaces and complicates the Stranger Test's reproducibility check.",
+          "suggested_fix": "Ask the human in Clarify how to break ties: alphabetical order, lowest install order, prefer framework-trusted over user-installed, or some other rule. Then encode the chosen tiebreaker in the FR-2 edge-case rule."
+        },
+        {
+          "section": "\u00a73A Simplicity Gate override semantics",
+          "category": "needs_clarify",
+          "problem": "\u00a73A says the default is 'overridable project-wide once, in constitution.md'. \u00a74.5 reiterates 'overridable once per project' and notes each override is a constitution change requiring an ADR. The two phrasings create an ambiguity: is the override a strict one-shot (can only be changed once, ever), or a 'one override in effect at a time' rule where a new override supersedes the old one (each requires an ADR)?",
+          "why_it_matters": "The Amendment Process article (PLAN.md \u00a76, Article VII) implies any constitution change is allowed with an ADR. A strict one-shot cap is a stronger constraint than the amendment process alone would impose, and the two phrasings could be read either way. Downstream milestones (M4+) that depend on the override being usable more than once will be affected.",
+          "suggested_fix": "Ask the human in Clarify whether the simplicity default may be overridden more than once per project (each override requiring an ADR) or is strictly capped at one override total. Encode the chosen interpretation in \u00a73A and \u00a74.5 in matching wording."
+        },
+        {
+          "section": "\u00a75 free-tier preflight re-verification",
+          "category": "needs_clarify",
+          "problem": "AC-2 says the six models are 'verified reachable on the free tiers' and points at PHR milestone_0/003 as the evidence. The spec does not state a re-verification policy: what happens if a model's free tier changes between the preflight PHR and a later milestone's build, or between the M1 build and a downstream consumer's installation?",
+          "why_it_matters": "Free-tier availability for hosted models changes on provider schedules; a one-time preflight is a point-in-time claim. A downstream user installing M3's output months later has no way to know whether the claim still holds, and the spec is silent on whether the user is expected to re-verify or trust the inherited PHR.",
+          "suggested_fix": "Ask the human in Clarify whether the M1/M2/M3 build should include a re-verification step at install time (M3 installer) and/or at critique-loop start (M2), or whether the inherited PHR is the durable claim. Encode the chosen policy in \u00a75 or in M2/M3's spec when those are written."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_1.md",
+      "round": 2,
+      "pass": 1,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 9,
+        "edge_case_coverage": 8,
+        "internal_consistency": 6,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "FR-1 / FR-2",
+          "category": "objective",
+          "problem": "Inconsistent count of sub\u2011skills: FR\u20111 states \"ten process sub\u2011skills\" but FR\u20112 table lists ten sub\u2011skills plus `history-logger`, making eleven. Later FR\u20111 also says \"the ten M1 sub\u2011skills below are the M1 deliverable inventory\" while the inventory in \u00a74.1 includes `history-logger` as file 13.",
+          "why_it_matters": "The mismatch can cause confusion in implementation, documentation generation, and verification (e.g., the Stranger Test expects ten sub\u2011skills). It also violates internal consistency requirements.",
+          "suggested_fix": "Reconcile the count: either update FR\u20111 to state eleven sub\u2011skills (including `history-logger`) or remove `history-logger` from the FR\u20112 table and treat it as a master\u2011skill utility rather than a sub\u2011skill. Ensure all references (tables, inventories, acceptance criteria) reflect the corrected number."
+        },
+        {
+          "section": "Simplicity default override",
+          "category": "needs_clarify",
+          "problem": "The exact syntax and placement for the `simplicity_default: N` override line inside `constitution.md` is not specified (e.g., plain text, markdown heading, code block).",
+          "why_it_matters": "Implementers need a precise format to ensure the kit can parse and apply the override correctly without ambiguity."
+        },
+        {
+          "section": "Secret allowlist definition",
+          "category": "needs_clarify",
+          "problem": "The location and format of the `allowlist: []` definition for secret detection are ambiguous (should it be a fenced code block, YAML frontmatter, or inline markdown?).",
+          "why_it_matters": "Consistent parsing of the allowlist is required for the security scan to function reliably."
+        },
+        {
+          "section": "Back\u2011reference format in companion files",
+          "category": "needs_clarify",
+          "problem": "It is unclear whether the back\u2011reference line must be a blockquote exactly as `> Companion to: <path>` and whether it must appear as the first line of each companion document.",
+          "why_it_matters": "Standardizing this format ensures downstream tools and the Stranger Test can reliably locate the reference."
+        },
+        {
+          "section": "PHR template structure",
+          "category": "needs_clarify",
+          "problem": "The required markup for the three fields \"What was requested / What was produced / Rationale\" within the PHR template is not defined (e.g., headings, bullet list, plain paragraphs).",
+          "why_it_matters": "A consistent template is needed for automated logging, parsing, and human readability."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

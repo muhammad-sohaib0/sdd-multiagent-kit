@@ -1,0 +1,150 @@
+{
+  "document": "spec_milestone_4",
+  "pass": 2,
+  "round": 10,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_4.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 9,
+        "edge_case_coverage": 9,
+        "internal_consistency": 8,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements (FR-7) / Acceptance Criteria (AC-5)",
+          "category": "objective",
+          "problem": "Contradiction between git status requirement and commit restriction. FR-7 states 'nothing is committed during the milestone itself; .gitignore itself is a tracked deliverable', but in Git a file cannot be 'tracked' unless a commit has been made after `git init`.",
+          "why_it_matters": "Automated verification scripts testing AC-5 and FR-7 using `git ls-files` will fail if `.gitignore` is uncommitted/untracked, creating an unresolvable contradiction for test runners.",
+          "suggested_fix": "Clarify that `.gitignore` must be present in the working tree and staged, or explicitly allow an initial commit containing the milestone deliverables if tracking is required."
+        },
+        {
+          "section": "Functional Requirements (FR-6)",
+          "category": "needs_clarify",
+          "problem": "FR-6 strictly mandates that 'the only commands AGENTS.md lists are the engine invocation (...) and its validator (...)', prohibiting any other command references in `AGENTS.md`.",
+          "why_it_matters": "If `AGENTS.md` references `sdd-setup` (defined in FR-1 and FR-8) or npm setup instructions for context, it will technically violate FR-6 during static document validation.",
+          "suggested_fix": "Specify that the engine invocation and validator are the only *execution/runtime engine* commands to document, while allowing operational references to `sdd-setup`."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_4.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 6,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "AC-1 states that the repository must contain twelve deliverables: (1)\u2013(11) eleven files at the repo root plus the three docs and a .gitignore, but only eight root files are actually enumerated (README, CLAUDE, AGENTS, CONTRIBUTING, SECURITY, SUPPORT, LICENSE, CHANGELOG). The count mismatch creates ambiguity about which additional root files are required.",
+          "why_it_matters": "Implementers may either omit required files or create extra unnecessary files, causing the acceptance test that checks for an exact set of files to fail unpredictably.",
+          "suggested_fix": "Revise AC-1 to either list all eleven expected root files explicitly (e.g., include `package.json`, `kit/`\u2011related manifest, or clarify that the count includes `.gitignore` and `CHANGELOG`), or change the wording to \"the repository must contain the twelve deliverables listed below\" and enumerate them in a bullet list."
+        },
+        {
+          "section": "Functional Requirements \u2013 FR-1 (README)",
+          "category": "needs_clarify",
+          "problem": "The phrase \"the npm quickstart is the *install* mechanism \u2014 the installed kit itself has no runtime dependencies, consistent with the no-deps note\" is vague about whether the kit truly has zero runtime dependencies or merely none beyond Node itself.",
+          "why_it_matters": "Contributors might incorrectly add dependencies to the kit, violating the no\u2011deps guarantee and breaking downstream environments that rely on the claim of zero runtime dependencies.",
+          "suggested_fix": "Add a precise statement such as: \"The published npm package must not list any dependencies or peerDependencies in its package.json; the only runtime requirement is a Node.js interpreter capable of executing the bundled JavaScript files.\""
+        },
+        {
+          "section": "Functional Requirements \u2013 FR-8 (Kit identity constants)",
+          "category": "needs_clarify",
+          "problem": "The spec lists three environment variable names that the setup wizard collects, but it does not specify where these variables are consumed (e.g., by which scripts or runtime components).",
+          "why_it_matters": "If the variables are not referenced elsewhere, reviewers cannot verify that the documentation matches the implementation, and future maintainers may forget to wire them up, leading to broken setups.",
+          "suggested_fix": "Add a sentence indicating the exact location(s) where each variable is read, for example: \"`NVIDIA_NIM_API_KEY` is read by `kit/scripts/orchestrate_critique_loop.py` when selecting the NVIDIA provider; `GOOGLE_AISTUDIO_API_KEY` is used by the Google AISTUDIO adapter; `OLLAMA_API_KEY` is consumed by the local Ollama skill loader.\""
+        },
+        {
+          "section": "Edge Cases & Rules \u2013 Placeholder for Pakistani guide",
+          "category": "objective",
+          "problem": "The spec mandates a placeholder heading `## Guide for Pakistani users` with a one\u2011line pointer, but it does not define how the placeholder will be detected or prevented from being overwritten inadvertently.",
+          "why_it_matters": "Automated validation scripts may miss the placeholder if they only check for word count, allowing a future contributor to accidentally replace it with filler text, violating the deferred content rule.",
+          "suggested_fix": "Specify a concrete marker, such as `<!-- PKG_PLACEHOLDER_START -->` and `<!-- PKG_PLACEHOLDER_END -->`, surrounding the heading and pointer line, and require validation to ensure those markers remain unchanged."
+        },
+        {
+          "section": "Functional Requirements \u2013 FR-6 (CLAUDE.md & AGENTS.md precedence)",
+          "category": "needs_clarify",
+          "problem": "The rule about contradictions says \"where one merely adds detail the other omits, they do not conflict (omission is not a contradiction)\" but does not clarify how to handle contradictory detail added in a later version of CLAUDE.md that was not present in AGENTS.md at the time of release.",
+          "why_it_matters": "Later updates could unintentionally introduce conflicts that are not caught because the spec only references the initial version of AGENTS.md, leading to divergent tool behavior.",
+          "suggested_fix": "Add a clause stating that any new detail added to tool\u2011specific files must be cross\u2011checked against the current AGENTS.md, and if a conflict arises, AGENTS.md must be updated to become the new source of truth before the tool\u2011specific file is merged."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_4.md",
+      "round": 0,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 8,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements FR-1",
+          "category": "needs_clarify",
+          "problem": "The quickstart command is specified as `npm install -g sdd-multiagent-kit && sdd-setup`, but the spec does not clarify whether `sdd-setup` is expected to be run with any arguments or flags in the quickstart, or whether it is purely interactive. The text says 'takes no arguments or flags' but this is buried in a parenthetical and could be interpreted as a limitation of the wizard rather than a usage instruction.",
+          "why_it_matters": "Ambiguity here could lead to inconsistent documentation in README and GUIDE, and testers might not know whether to test the command with or without arguments.",
+          "suggested_fix": "Explicitly state in FR-1 that the quickstart command is run exactly as shown, with no additional arguments or flags, and that `sdd-setup` is interactive-only."
+        },
+        {
+          "section": "Edge Cases & Rules - Non-stub definition",
+          "category": "needs_clarify",
+          "problem": "The non-stub definition says 'strip markdown marker characters (`#`, `*`, backticks) before counting' but does not specify whether other markdown syntax like `>`, `-`, `|`, or `_` should be stripped. This could lead to inconsistent word counts across files.",
+          "why_it_matters": "Inconsistent counting rules could cause some files to pass the 200-word threshold while others fail, leading to disputes about whether a deliverable is non-stub.",
+          "suggested_fix": "Clarify that all markdown formatting characters (including `>`, `-`, `|`, `_`, etc.) are stripped before counting, or provide a precise list of characters to strip."
+        },
+        {
+          "section": "Edge Cases & Rules - .gitignore",
+          "category": "needs_clarify",
+          "problem": "The spec says the `.gitignore` must include 'temp/transient artifacts' with examples like `.vscode/` and `.idea/` user settings, but it does not specify whether these are mandatory patterns or just illustrative. The text says 'the parenthetical examples ... are illustrative, not a closed list' but then says 'must include' the mandatory patterns. It is unclear if `.vscode/` and `.idea/` are required or optional.",
+          "why_it_matters": "If testers interpret the examples as mandatory, they might fail a deliverable that omits them; if they interpret them as optional, they might accept a `.gitignore` that lacks common editor exclusions, which could lead to accidental commits of user settings.",
+          "suggested_fix": "Explicitly state that the mandatory patterns are only `.env`, `.env.*`, `node_modules/`, `outputs/critique-log/`, `*.log`, `.DS_Store`, and that editor-specific patterns like `.vscode/` and `.idea/` are recommended but not required."
+        },
+        {
+          "section": "Acceptance Criteria AC-1",
+          "category": "needs_clarify",
+          "problem": "AC-1 lists twelve deliverables but the enumeration is confusing: it says '(1)\u2013(11) the eleven files ... plus docs/GUIDE, docs/ARCHITECTURE, docs/BOOTSTRAP inside the docs/ directory, and (12) .gitignore'. This implies that the eleven files include the three docs/ files, but the list of eleven files only includes root files. The count is inconsistent: eleven root files + three docs files + .gitignore = fifteen, not twelve.",
+          "why_it_matters": "The acceptance criterion is ambiguous about which files are counted, which could lead to testers checking for the wrong set of files or missing some deliverables.",
+          "suggested_fix": "Rewrite AC-1 to clearly enumerate all twelve deliverables: eight root files (README, CLAUDE, AGENTS, CONTRIBUTING, SECURITY, SUPPORT, LICENSE, CHANGELOG) + three docs files + .gitignore = twelve."
+        },
+        {
+          "section": "Functional Requirements FR-6",
+          "category": "needs_clarify",
+          "problem": "FR-6 says CLAUDE.md 'may rely entirely on AGENTS.md (reference without repeating), but it is itself a non-stub prose file (\u2265200 words) regardless of how much it references.' This is contradictory: if it relies entirely on AGENTS.md, it could be a short reference file, but the non-stub requirement forces it to be \u2265200 words. The spec does not clarify whether the 200-word count includes the reference text or only original content.",
+          "why_it_matters": "This ambiguity could lead to a CLAUDE.md that is padded with filler to meet the word count, or one that is rejected for being too short despite being a valid reference.",
+          "suggested_fix": "Clarify that the 200-word count applies to the entire file content, including any reference text, and that the file must be substantive even if it references AGENTS.md."
+        },
+        {
+          "section": "Edge Cases & Rules - Terminology",
+          "category": "needs_clarify",
+          "problem": "The spec defines PHR and ADR but does not specify where these records are stored beyond 'outputs/history/'. It also does not clarify whether the README's acknowledgement section must list the specific PHR/ADR files or just the source repositories.",
+          "why_it_matters": "Without clarity, contributors might not know how to credit the adapted patterns properly, and testers might not know what to look for in the acknowledgement section.",
+          "suggested_fix": "Specify that the acknowledgement section must credit the source repositories and optionally reference the PHR/ADR records under `outputs/history/`, but do not require listing individual files."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 3
+}

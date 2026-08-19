@@ -1,0 +1,467 @@
+{
+  "document": "spec_milestone_2",
+  "pass": 2,
+  "round": 3,
+  "critics": [
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_2.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 4,
+      "scores": {
+        "clarity": 5,
+        "completeness": 4,
+        "edge_case_coverage": 5,
+        "internal_consistency": 4,
+        "testability": 3
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements \u2192 FR-1",
+          "category": "needs_clarify",
+          "problem": "CLI argument validation and error messages are described only in prose; no concrete validation rules, required/optional flag handling, or exit\u2011code conventions are specified.",
+          "why_it_matters": "Implementers may produce scripts that accept malformed input silently or exit with ambiguous codes, breaking automation pipelines and making debugging difficult.",
+          "suggested_fix": "Add an explicit argument specification table (e.g., using argparse conventions) that lists each flag, type, default, required status, and the exact exit code for each failure mode."
+        },
+        {
+          "section": "Functional Requirements \u2192 FR-1",
+          "category": "needs_clarify",
+          "problem": "The format and required fields of `providers.yaml` are referenced but not defined; the schema for `critic_slots` and per\u2011model `timeout` keys is missing.",
+          "why_it_matters": "Without a concrete schema, a maintainer could mis\u2011configure the file, causing runtime crashes or silent omission of critics.",
+          "suggested_fix": "Include a YAML schema snippet (or JSON Schema) in the spec that enumerates required top\u2011level keys, the structure of each model entry, and validation rules."
+        },
+        {
+          "section": "Functional Requirements \u2192 FR-1",
+          "category": "needs_clarify",
+          "problem": "The \u201cfirst call staggered per slot to avoid rate\u2011limit bursts\u201d rule lacks a deterministic algorithm (e.g., fixed delay, exponential back\u2011off, or token bucket).",
+          "why_it_matters": "Different implementations may choose incompatible staggering strategies, leading to unexpected 429 errors or unnecessary latency.",
+          "suggested_fix": "Specify a concrete staggering policy, such as \u201cwait 2\u202fs \u00d7 slot_index before issuing the first request for that slot\u201d or reference an existing rate\u2011limit library."
+        },
+        {
+          "section": "Functional Requirements \u2192 FR-1",
+          "category": "needs_clarify",
+          "problem": "The adaptive back\u2011off values for transport failures are given (30\u202fs \u00d7 attempt for 429, 8\u202fs \u00d7 attempt for others) but the maximum back\u2011off, jitter, and total timeout per round are not defined.",
+          "why_it_matters": "Unbounded back\u2011off could cause the round to exceed the overall round\u2011cap deadline, violating the \u201chard wall\u2011clock deadline\u201d requirement.",
+          "suggested_fix": "Add a ceiling (e.g., 120\u202fs) and optional jitter (\u00b110\u202f%) to the back\u2011off formula, and state that the sum of all retries must not exceed the per\u2011model timeout."
+        },
+        {
+          "section": "Functional Requirements \u2192 FR-1",
+          "category": "needs_clarify",
+          "problem": "The JSON extractor\u2019s repair algorithm is described qualitatively (e.g., \u201ctries every `{` as a candidate start\u201d) but lacks deterministic steps, error thresholds, or examples of failure modes.",
+          "why_it_matters": "Implementers may over\u2011repair malformed output, turning nonsensical data into apparently valid JSON, which could corrupt the critique log.",
+          "suggested_fix": "Provide a step\u2011by\u2011step pseudo\u2011code algorithm, include edge\u2011case examples (e.g., nested braces in prose), and define a fallback that marks the response invalid after a configurable number of repair attempts."
+        },
+        {
+          "section": "Functional Requirements \u2192 FR-1",
+          "category": "needs_clarify",
+          "problem": "When `n_valid == 0` for a round, the spec says the round \u201cproduces no usable signal\u201d but later states the script writes a JSON per round. It is unclear whether an empty JSON file is emitted or the round is skipped.",
+          "why_it_matters": "Downstream tools that consume the critique logs may crash or misinterpret missing files, breaking the escalation logic.",
+          "suggested_fix": "Clarify the exact file\u2011output behavior for a zero\u2011valid\u2011critic round (e.g., write a JSON with a `verdict: \"no_valid_critics\"` field) or explicitly state that no file is written."
+        },
+        {
+          "section": "Functional Requirements \u2192 FR-1",
+          "category": "needs_clarify",
+          "problem": "Pass\u20112 \u201cre\u2011checks Clarify consistency\u201d is mentioned without defining the consistency checks (e.g., that `needs_clarify` issues from Pass\u20111 must be resolved or re\u2011scored).",
+          "why_it_matters": "Implementers could skip essential validation, allowing unresolved issues to pass unnoticed, defeating the purpose of the two\u2011pass loop.",
+          "suggested_fix": "Add a checklist of Pass\u20112 consistency rules, such as: each `needs_clarify` issue must have a corresponding `clarified` flag, and any remaining `needs_clarify` after Pass\u20112 should cause the round to be marked incomplete."
+        },
+        {
+          "section": "Functional Requirements \u2192 FR-2",
+          "category": "objective",
+          "problem": "No automated test suite is defined for the scripts; the spec only mentions that `validate_critique.py` is used by verification tests, but those tests are not described.",
+          "why_it_matters": "Without concrete test cases, regression bugs in retry logic, concurrency, or schema validation may go undetected, reducing reliability.",
+          "suggested_fix": "Add a \u201cTests\u201d subsection that enumerates required unit and integration tests (e.g., mock provider responses, transport failures, unparseable JSON, round\u2011cap exhaustion) and specify the testing framework."
+        },
+        {
+          "section": "Functional Requirements \u2192 FR-3",
+          "category": "needs_clarify",
+          "problem": "The sub\u2011skill markdown (`SKILL.md`) is required to instruct agents on triaging false\u2011positives, but the spec does not outline the expected structure, examples, or decision flow.",
+          "why_it_matters": "Agents may interpret triage instructions inconsistently, leading to divergent handling of issues across teams.",
+          "suggested_fix": "Provide a skeleton of `SKILL.md` with headings for invocation, reading JSON, triage tables, and stopping conditions, plus a concrete example walkthrough."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The handling of environment variables for secrets is mentioned (\u201cno secrets introduced; env\u2011var names read at runtime\u201d) but the specific variable names, required scopes, and security considerations are omitted.",
+          "why_it_matters": "Implementers might inadvertently hard\u2011code credentials or omit necessary variables, causing runtime failures or security leaks.",
+          "suggested_fix": "List the expected environment variables (e.g., `OPENAI_API_KEY`, `GOOGLE_API_KEY`), mark them as required, and state that they must never be logged."
+        },
+        {
+          "section": "Functional Requirements \u2192 FR-1",
+          "category": "objective",
+          "problem": "Exit codes and logging format for the orchestration script are not defined, making it unclear how automation pipelines detect success, failure, or escalation.",
+          "why_it_matters": "Automation tools rely on deterministic exit codes; ambiguous behavior can cause silent failures or endless retries.",
+          "suggested_fix": "Define a set of exit codes (e.g., 0\u202f=\u202fsuccess, 1\u202f=\u202finvalid arguments, 2\u202f=\u202fall critics failed, 3\u202f=\u202fround\u2011cap reached) and specify a structured log format (e.g., JSON lines) for human\u2011readable summaries."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 8,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements \u2014 FR-1 & Edge Cases",
+          "category": "objective",
+          "problem": "Ambiguity regarding CLI parameter `--round N` versus multi-round session execution. FR-1 defines `--round N` as a CLI flag, whereas Edge Cases defines a session as 'one orchestration process run (consecutive rounds)'.",
+          "why_it_matters": "Implementers and calling agents cannot determine if the script performs internal multi-round looping starting at `--round N` or if it executes a single round per process invocation.",
+          "suggested_fix": "Explicitly clarify whether `--round N` sets the starting round index for an internal multi-round loop or if each process execution runs exactly one round and exits."
+        },
+        {
+          "section": "Functional Requirements \u2014 FR-1 & FR-2",
+          "category": "objective",
+          "problem": "The top-level JSON schema for the output log file `outputs/critique-log/pass{1|2}-round{N}-{document}.json` is not explicitly specified.",
+          "why_it_matters": "Individual critic response schemas are defined, but the container structure of the log file (e.g., a top-level JSON array of critic responses vs. a wrapped object containing metadata) is undefined, preventing deterministic implementation and validation by `validate_critique.py`.",
+          "suggested_fix": "Define the exact top-level JSON schema for the output log file (e.g., `[ {critic_obj_1}, ... ]` or `{ \"document\": \"...\", \"round\": N, \"pass\": P, \"critiques\": [...] }`)."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "Vague escalation condition for consecutive total critic failures ('if n_valid == 0 for a round... if it persists, escalates to the human').",
+          "why_it_matters": "Without an explicit count of consecutive all-fail rounds, implementations may either halt immediately on a single transient all-fail round or waste API attempts looping up to `--round-cap` before escalating.",
+          "suggested_fix": "Specify an exact numeric threshold for consecutive all-fail rounds (e.g., 'if `n_valid == 0` for 3 consecutive rounds, halt execution and escalate to human')."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 7,
+        "completeness": 5,
+        "edge_case_coverage": 6,
+        "internal_consistency": 6,
+        "testability": 5
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "needs_clarify",
+          "problem": "The spec states 'one document per invocation (Pass 2 over the five-doc set is run as five invocations)' but does not define how the state of 'currently-valid critics' is synchronized across these five independent processes.",
+          "why_it_matters": "If Pass 2 runs as five separate invocations, a critic that fails in invocation 1 has no session-level flag (as explicitly forbidden in Edge Cases). Invocation 2 will independently call all seven models again. This makes the 'every currently-valid critic scores perfect' stopping condition mathematically impossible to evaluate globally, as each invocation only sees its own isolated round.",
+          "suggested_fix": "Clarify whether Pass 2 is executed sequentially within a single Python process (sharing a session state object) or if a shared state file (e.g., `outputs/critique-state.json`) must be read/written by each invocation to track cross-document critic validity."
+        },
+        {
+          "section": "Functional Requirements > FR-1",
+          "category": "needs_clarify",
+          "problem": "The retry policy for unparseable JSON is defined as '\u22641 retry, i.e. up to 2 attempts', but the edge case section mentions 'The extractor is deliberately tolerant... the repaired object still passes the full validity check'. It is ambiguous whether the repair attempt counts as the 1st attempt or if repair + validation is a single attempt.",
+          "why_it_matters": "Testability of the retry mechanism depends entirely on this definition. If a critic returns truncated JSON, is repaired, and fails validation, does that consume the 1 allowed retry, or is it immediately marked invalid?",
+          "suggested_fix": "Explicitly state: 'A single API call constitutes one attempt. The extraction and repair process occurs within the validation step of that attempt. If the repaired JSON fails validation, the attempt is marked invalid, consuming one of the allowed attempts.'"
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The spec states 'All critics fail in a round: if n_valid == 0 for a round... it treats it as a non-progressing round (counts toward the round cap) and, if it persists, escalates'. However, it does not define the threshold for 'if it persists'.",
+          "why_it_matters": "Without a numeric threshold, the implementation cannot objectively decide when to escalate versus when to continue looping. This leaves the behavior to developer interpretation and makes the acceptance criteria untestable.",
+          "suggested_fix": "Define a specific threshold, e.g., 'If n_valid == 0 for 2 consecutive rounds, the script escalates to the human.'"
+        },
+        {
+          "section": "Functional Requirements > FR-1",
+          "category": "needs_clarify",
+          "problem": "The spec requires 'first call staggered per slot to avoid rate-limit bursts' but provides no metric or parameter for the stagger duration.",
+          "why_it_matters": "A developer cannot implement 'staggered' without a delay value, and a tester cannot verify it. 'Staggered' could mean 50ms, 2s, or 10s, all of which have different impacts on the 600s wall-clock deadline.",
+          "suggested_fix": "Introduce a configurable parameter, e.g., 'stagger_delay_ms' (default 500ms) in `providers.yaml` or as a CLI argument, and specify that the stagger delay counts toward the wall-clock deadline."
+        },
+        {
+          "section": "Acceptance Criteria > AC-3",
+          "category": "objective",
+          "problem": "AC-3 requires 'Pass 2 advances only when every currently-valid critic scores perfect'. The term 'perfect' is not explicitly defined as a score of 10 in the acceptance criteria, and the edge case 'Empty issue list with low score: invalid (noise), retried' implies that a score of 10 with zero issues might also be invalid noise.",
+          "why_it_matters": "If a critic returns `overall_score: 10` and `issues: []`, is that valid? The schema validity rule says 'overall_score < 10 with zero issues \u2192 invalid', but does not explicitly validate the 'perfect' state required for advancement.",
+          "suggested_fix": "Add an explicit rule: 'A perfect score is defined as `overall_score == 10` with at least one issue OR a verdict of `pass` with zero issues. An `overall_score == 10` with zero issues and `verdict: needs_revision` is invalid.'"
+        },
+        {
+          "section": "Functional Requirements > FR-2",
+          "category": "objective",
+          "problem": "The schema requires `verdict` to be either `pass` or `needs_revision`, but the spec does not define how the script handles a critic returning an invalid verdict string (e.g., 'fail', 'accept').",
+          "why_it_matters": "If the schema validation is strict, an invalid verdict should mark the critique as invalid, triggering a retry. If it is lenient, the orchestration logic might break when evaluating stopping conditions.",
+          "suggested_fix": "Specify in FR-2: 'The `verdict` field must strictly match `pass` or `needs_revision`. Any other value fails schema validation and is treated as an unparseable response, triggering the \u22641 retry policy.'"
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "The spec states 'On final failure, the script logs a short snippet of the critic's last raw response'. It does not specify where this snippet is logged.",
+          "why_it_matters": "If it is logged to stdout/stderr, it might be lost in CI environments. If it is written to the critique-log JSON, it violates the strict schema defined in FR-2 unless an optional `debug` or `error_snippet` field is added.",
+          "suggested_fix": "Specify the destination: 'The snippet is written to a separate file `outputs/critique-log/errors/pass{1|2}-round{N}-{document}-{model}.txt` to avoid polluting the strict schema JSON.'"
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 5,
+      "scores": {
+        "clarity": 6,
+        "completeness": 5,
+        "edge_case_coverage": 4,
+        "internal_consistency": 5,
+        "testability": 3
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "References 'PLAN.md \u00a74.3 rubric schema' and 'PLAN.md \u00a74.4' but the cross-reference table shows 'plan_milestone_2.md' \u2014 unclear if this is the same document or a different PLAN.md. The rubric schema is never included or linked concretely.",
+          "why_it_matters": "Implementers cannot build the prompt or validation without the exact schema. Ambiguity causes divergent implementations.",
+          "suggested_fix": "Either inline the rubric schema here, or provide an absolute path to the canonical schema file (e.g., `kit/schemas/critique_rubric.json`) and reference that exclusively."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "Says 'calls all seven models concurrently (first call staggered per slot to avoid rate-limit bursts)' \u2014 concurrent and staggered are contradictory. No definition of stagger interval, jitter, or whether staggering applies to retries.",
+          "why_it_matters": "Rate-limit bursts will still occur if staggering is ill-defined; concurrent execution with staggering is an oxymoron.",
+          "suggested_fix": "Define: 'Launch all model calls within a single round with a fixed stagger of N seconds between slot N and N+1 (configurable). Retries for a given model are not staggered across models.'"
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "No minimum quorum specified. If only 1 of 7 critics returns valid output, the round 'completes with the remaining valid critics' \u2014 but a single critic cannot provide meaningful consensus.",
+          "why_it_matters": "The loop could 'progress' with statistically meaningless signal, wasting rounds and hitting the cap falsely.",
+          "suggested_fix": "Define a minimum valid critic count (e.g., 4 of 7) per round. Below that, treat as all-fail (non-progressing round)."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "Retry policy conflict: 'unparseable \u2192 \u22641 retry (\u22642 invalid attempts)' and 'transport/timeout/429 \u2192 \u22645 tries'. A response that times out after partial bytes could be both transport failure and unparseable. No precedence rule.",
+          "why_it_matters": "Implementation will arbitrarily pick one policy, leading to inconsistent retry counts across models.",
+          "suggested_fix": "Classify failure mode first: if HTTP error/timeout/429 \u2192 transport policy; else if HTTP 200 but body unparseable \u2192 unparseable policy. Never both."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "needs_clarify",
+          "problem": "Extractor repairs 'markdown-fenced JSON (fences anywhere in the response, not just at the start), surrounding prose \u2014 including prose that itself contains braces \u2014 trailing commas, and output-cap truncation' but 'Single-quoted JSON is not repaired.' No rationale for this asymmetry.",
+          "why_it_matters": "Single-quoted JSON is common in model output; rejecting it while accepting prose-with-braces is arbitrary and will cause avoidable invalidations.",
+          "suggested_fix": "Either add single-quote repair (replace unescaped single quotes with double quotes where valid) or explicitly document why it's excluded (e.g., 'too ambiguous')."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "Hard wall-clock deadline 'default 600s per call, overridable per model via a timeout key in providers.yaml' \u2014 but earlier says 'per-model HTTP timeout default 600s, overridable per model via a timeout key'. Are these the same timeout? If not, which wins?",
+          "why_it_matters": "Two different timeout mechanisms with same default but potentially different values causes silent misconfiguration.",
+          "suggested_fix": "Unify: one `timeout_seconds` key in providers.yaml per model, used for both HTTP socket timeout and the wall-clock deadline. Document that the wall-clock deadline = timeout_seconds + small grace (e.g., 5s)."
+        },
+        {
+          "section": "FR-3",
+          "category": "completeness",
+          "problem": "SKILL.md description is vague: 'instructs the agent how to invoke the orchestration script... how to triage issues (objective \u2192 resolve; needs_clarify \u2192 compile the list; false positive \u2192 reject with reason), and how to apply the stopping conditions.' No detail on what 'false positive' criteria are, or how the agent distinguishes them from valid objective issues.",
+          "why_it_matters": "Agents will inconsistently classify issues, undermining the loop's reliability. The skill must codify the classification rules.",
+          "suggested_fix": "Specify false-positive criteria: e.g., 'issue references non-existent section', 'issue contradicts explicit requirement in document', 'issue is a duplicate of another issue in same round'. Require the agent to log rejection reason per issue."
+        },
+        {
+          "section": "AC-3",
+          "category": "objective",
+          "problem": "'Pass 2 advances only when every currently-valid critic scores perfect (or the round cap escalates)' \u2014 'advances' to what? Next round? Next document? The loop is per-document per-pass; Pass 2 runs 5 invocations (one per doc). Does 'advances' mean the document passes and we move to the next document?",
+          "why_it_matters": "Ambiguous stopping condition. Implementers won't know when to stop the Pass 2 loop for a given document.",
+          "suggested_fix": "State: 'For a given document in Pass 2, the orchestration script runs rounds until either (a) all valid critics in a round return overall_score=10 with zero issues, or (b) round-cap is reached. On (a), the script exits 0 for that document; on (b), it exits non-zero with escalation summary.'"
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "edge_case_coverage",
+          "problem": "No handling for document mutation between rounds. The spec says 'one document per invocation' but a session runs multiple rounds. If the agent edits the document between rounds (to fix issues), the script must reload it each round \u2014 not stated.",
+          "why_it_matters": "If the script caches the document at round 1, fixes are invisible to critics, making the loop useless.",
+          "suggested_fix": "Explicitly require: 'At the start of each round, re-read the document from disk. Do not cache across rounds.'"
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "edge_case_coverage",
+          "problem": "No specification for providers.yaml validation: duplicate model entries, missing required keys (api_base, api_key_env, models[]), invalid critic_slots (references non-existent models), timeout <= 0.",
+          "why_it_matters": "Malformed config causes cryptic failures at runtime instead of clear startup errors.",
+          "suggested_fix": "Add config validation step at script entry: validate schema, check all critic_slots resolve to defined models, ensure timeout > 0, fail fast with line-numbered errors."
+        },
+        {
+          "section": "FR-2",
+          "category": "completeness",
+          "problem": "validate_critique.py only validates 'shape against the PLAN.md \u00a74.3 schema' but does not check semantic rules: overall_score < 10 with empty issues, verdict values, score ranges 0-10, issue category enum.",
+          "why_it_matters": "Invalid but structurally valid critiques pass validation, polluting logs and breaking downstream logic.",
+          "suggested_fix": "Extend validation to enforce all semantic rules from the spec: score ranges, verdict enum, non-empty issues when score < 10, category enum, required fields per issue."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "testability",
+          "problem": "AC-1 requires 'non-stub' but provides no objective test for 'stub'. AC-3/AC-4/AC-5 have no automated verification criteria. No mention of unit tests, integration tests, or contract tests for the scripts.",
+          "why_it_matters": "Without test specifications, 'done' is subjective. The milestone cannot be objectively verified.",
+          "suggested_fix": "Add a Tests section (or reference tests_milestone_2.md) with: unit tests for retry logic (mocked transport), contract tests for validate_critique.py against golden JSON files, integration test with a fake provider that returns canned responses, and a scenario test for the full 7-model loop with injected failures."
+        },
+        {
+          "section": "Cross-Reference",
+          "category": "needs_clarify",
+          "problem": "References 'outputs/milestones/milestone_2/plan_milestone_2.md' etc. but these paths are relative to repo root? The spec itself is at 'outputs/milestones/milestone_2/spec_milestone_2.md'. Inconsistent path style.",
+          "why_it_matters": "Tooling that parses cross-references will break. Also suggests the spec is not self-contained.",
+          "suggested_fix": "Use consistent relative paths from the spec file's directory, or absolute repo-root paths. Document the convention."
+        },
+        {
+          "section": "Goal",
+          "category": "internal_consistency",
+          "problem": "Says 'the retry policy... is fixed' and 'the kit's core process content... is delivered and verified under kit/'. But M1 'explicitly deferred the critique engine's automation... to M2'. If the retry policy is fixed in M1, why is M2 re-specifying it in detail? Risk of drift.",
+          "why_it_matters": "Two sources of truth for the same policy. If they diverge, implementation follows the wrong one.",
+          "suggested_fix": "Either: (a) reference the M1 ADR/PHR as the single source and do not repeat the policy here, or (b) state 'This spec is the authoritative definition; M1 references are historical.'"
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "edge_case_coverage",
+          "problem": "No handling for critic returning valid JSON with overall_score=10 but non-empty issues array. The schema allows it but the validity rule says 'overall_score < 10 with zero issues \u2192 invalid'. The inverse (10 with issues) is not addressed.",
+          "why_it_matters": "A critic could score 10 but list blocking issues, causing the loop to incorrectly treat the document as perfect.",
+          "suggested_fix": "Add validity rule: 'overall_score == 10 with non-empty issues \u2192 invalid (contradiction), retry per unparseable policy.'"
+        },
+        {
+          "section": "FR-1",
+          "category": "completeness",
+          "problem": "No specification for the critique prompt template. 'builds the critique prompt (embeds the PLAN.md \u00a74.3 rubric schema and the document text)' \u2014 but the prompt structure, system message, few-shot examples, and Pass-1 vs Pass-2 instruction differences are not defined.",
+          "why_it_matters": "Prompt quality directly determines critique quality. Different implementations will produce incomparable results.",
+          "suggested_fix": "Include the exact prompt template in the spec (or reference a versioned prompt file in kit/prompts/). Define the Pass-1 vs Pass-2 instruction delta explicitly."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "muse-glimmer-30b",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 6,
+        "completeness": 6,
+        "edge_case_coverage": 7,
+        "internal_consistency": 5,
+        "testability": 5
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "CLI defines --out <dir> but output path is hardcoded to outputs/critique-log/pass{1|2}-round{N}-{document}.json.",
+          "why_it_matters": "Inconsistent path handling breaks US-4 config-driven expectations and verification tests that rely on --out.",
+          "suggested_fix": "Make output base directory driven by --out and construct filename from it, or remove --out and document fixed path."
+        },
+        {
+          "section": "FR-1 / Goal",
+          "category": "objective",
+          "problem": "Script is described as running the real two-pass loop, yet CLI requires --round N per invocation and FR-1 writes only one round file.",
+          "why_it_matters": "Responsibility for looping, stopping and escalation is ambiguous between script and SKILL.md, leading to implementation drift.",
+          "suggested_fix": "Explicitly state orchestrate_critique_loop.py implements a single round; looping/stopping/escalation is agent responsibility per SKILL.md, or make script loop internally."
+        },
+        {
+          "section": "FR-1",
+          "category": "objective",
+          "problem": "FR-1 says 'calls all seven models concurrently' while panel is config-driven and may have !=7 models.",
+          "why_it_matters": "Hard-coded seven contradicts US-4 and Config-driven panel requirement.",
+          "suggested_fix": "Iterate over critic_slots from providers.yaml; remove hard-coded seven references."
+        },
+        {
+          "section": "FR-1 / Edge Cases",
+          "category": "needs_clarify",
+          "problem": "Pass 1 rule 'scores only objective dimensions and tags business/subjective issues needs_clarify' is undefined; schema requires all five scores.",
+          "why_it_matters": "Critics cannot implement Pass 1 scoring consistently without knowing which dimensions are objective vs subjective.",
+          "suggested_fix": "List objective dimensions explicitly and define how subjective findings are represented in scores/issues for Pass 1."
+        },
+        {
+          "section": "Edge Cases / AC-3",
+          "category": "needs_clarify",
+          "problem": "'currently-valid critic' for stopping condition and 'if it persists' for all-fail escalation are undefined.",
+          "why_it_matters": "Stopping and escalation behavior is non-deterministic; tests cannot verify correct termination.",
+          "suggested_fix": "Define currently-valid critic as critics that produced a valid critique in the current round, and define persistence threshold e.g., N consecutive all-fail rounds before escalation."
+        },
+        {
+          "section": "Edge Cases",
+          "category": "objective",
+          "problem": "Empty issue list with low score is declared invalid and retried, but retry limit for schema-invalid responses is not specified.",
+          "why_it_matters": "Could cause unbounded retries distinct from unparseable retry policy.",
+          "suggested_fix": "Apply same \u22641 retry limit for schema-invalid responses as for unparseable, and document it."
+        },
+        {
+          "section": "Edge Cases",
+          "category": "needs_clarify",
+          "problem": "Staggered start to avoid rate-limit bursts is required but stagger interval is not specified.",
+          "why_it_matters": "Implementation may still burst and hit 429s.",
+          "suggested_fix": "Specify minimum stagger e.g., 200ms per slot and allow override via config."
+        },
+        {
+          "section": "Schema",
+          "category": "objective",
+          "problem": "Required fields list omits issue sub-fields section/category/problem that are implied by the critique meta schema.",
+          "why_it_matters": "validate_critique.py may reject valid critiques or accept incomplete ones.",
+          "suggested_fix": "Enumerate full required issue fields: section, category, problem, why_it_matters, suggested_fix, with optional per-issue fields noted."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "mistralai/mistral-nemotron",
+      "document": "spec_milestone_2.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 6,
+        "internal_consistency": 8,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Goal",
+          "category": "objective",
+          "problem": "The goal statement is overly technical and lacks a clear, concise explanation of what the critique engine actually does for the user. It assumes prior knowledge of M1's master skill.",
+          "why_it_matters": "A clear goal statement is essential for users to understand the purpose and value of the critique engine without needing to refer to other documents.",
+          "suggested_fix": "Rewrite the goal to clearly explain the critique engine's purpose in simple terms, including what it does, how it helps users, and why it's important."
+        },
+        {
+          "section": "User Scenarios",
+          "category": "objective",
+          "problem": "US-2 mentions 'full rigor' but does not define what that means. The distinction between Pass 1 and Pass 2 is not clearly explained.",
+          "why_it_matters": "Users need to understand the difference between Pass 1 and Pass 2 to use the critique engine effectively.",
+          "suggested_fix": "Define 'full rigor' and clearly explain the difference between Pass 1 and Pass 2, including what is checked in each pass."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "FR-1 mentions 'the PLAN.md \u00a74.3 rubric schema' but does not provide a reference or link to PLAN.md. This makes it difficult for users to understand the rubric schema.",
+          "why_it_matters": "Users need to know what the rubric schema is to understand how the critique engine works.",
+          "suggested_fix": "Provide a reference or link to PLAN.md \u00a74.3 rubric schema."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The edge cases and rules are listed but not organized in a way that makes it easy to understand how they interact. For example, the retry policy is mentioned in multiple places but not consolidated.",
+          "why_it_matters": "Users need a clear, consolidated view of the retry policy and other edge cases to understand how the critique engine handles failures.",
+          "suggested_fix": "Consolidate the retry policy and other edge cases into a single, clear section with a logical flow."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "AC-3 mentions 'Pass 2 advances only when every currently-valid critic scores perfect' but does not define what 'perfect' means in this context.",
+          "why_it_matters": "Users need to know what 'perfect' means to understand when Pass 2 will advance.",
+          "suggested_fix": "Define what 'perfect' means in the context of Pass 2 advancement."
+        },
+        {
+          "section": "Cross-Reference",
+          "category": "needs_clarify",
+          "problem": "The Cross-Reference section lists documents but does not explain how they relate to the current document or how they should be used.",
+          "why_it_matters": "Users need to understand the relationship between the current document and the referenced documents to use them effectively.",
+          "suggested_fix": "Explain the relationship between the current document and the referenced documents, including how they should be used together."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 6
+}

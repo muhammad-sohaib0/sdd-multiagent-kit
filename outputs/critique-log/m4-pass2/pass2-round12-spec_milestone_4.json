@@ -1,0 +1,133 @@
+{
+  "document": "spec_milestone_4",
+  "pass": 2,
+  "round": 12,
+  "critics": [
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_4.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The quickstart command is `npm install -g sdd-multiagent-kit && sdd-setup`, but the spec does not clarify whether `sdd-setup` is a standalone command or requires the npm package to be installed first. It also does not specify the expected behavior if the user runs `sdd-setup` without the package installed (e.g., error message, exit code).",
+          "why_it_matters": "Without this clarification, testers cannot verify the quickstart works as documented, and users may be confused about the installation prerequisite.",
+          "suggested_fix": "Add a note that `sdd-setup` is only available after the npm package is installed, and specify the expected error/exit behavior if run standalone."
+        },
+        {
+          "section": "FR-6",
+          "category": "needs_clarify",
+          "problem": "The spec states that CLAUDE.md may reference AGENTS.md and may rely entirely on it, but it also requires CLAUDE.md to be a non-stub prose file (\u2265200 words). It is unclear whether the 200-word count includes the reference text or if the file must contain substantive original content beyond the reference.",
+          "why_it_matters": "This ambiguity affects testability of the non-stub requirement and could lead to a CLAUDE.md that is just a pointer with filler text, failing the intent of the requirement.",
+          "suggested_fix": "Clarify that the 200-word count applies to the entire file content (including reference text) but that the file must contain at least some original prose beyond the reference to be considered non-stub."
+        },
+        {
+          "section": "FR-7",
+          "category": "needs_clarify",
+          "problem": "The spec says `.gitignore` must exclude `outputs/critique-log/` but does not specify whether the directory itself should be created or if it is expected to be absent. It also does not clarify if the `.gitignore` pattern should be `outputs/critique-log/` (with trailing slash) or `outputs/critique-log` (without).",
+          "why_it_matters": "Ambiguity in the pattern could lead to incorrect exclusion behavior (e.g., excluding `outputs/critique-log` as a file vs. directory) and testers may not know if the directory must exist.",
+          "suggested_fix": "Specify the exact pattern (e.g., `outputs/critique-log/`) and state that the directory need not exist for the pattern to be valid."
+        },
+        {
+          "section": "Edge Cases & Rules - Non-stub definition",
+          "category": "needs_clarify",
+          "problem": "The non-stub definition says 'strip markdown marker characters (`#`, `*`, backticks) before counting' but does not specify how to handle other markdown syntax like `-`, `>`, `|`, or inline links. This could lead to inconsistent word counts across files.",
+          "why_it_matters": "Inconsistent counting rules make the non-stub threshold non-deterministic and hard to test objectively.",
+          "suggested_fix": "Provide a more comprehensive list of markdown characters to strip, or specify that only the listed characters are stripped and all other characters count as word content."
+        },
+        {
+          "section": "FR-8",
+          "category": "needs_clarify",
+          "problem": "The spec states that the trigger `/sdd` is recognized automatically by Claude Code, Claude Desktop, and OpenCode, but does not clarify whether this recognition requires any configuration beyond installation (e.g., enabling skills in OpenCode) or if it is truly zero-config.",
+          "why_it_matters": "If configuration is required, the docs (README, GUIDE) must mention it, and the claim of 'no configuration beyond installation' could be misleading.",
+          "suggested_fix": "Clarify the exact configuration requirements for each tool, or explicitly state that no additional configuration is needed for any of the listed tools."
+        },
+        {
+          "section": "AC-5",
+          "category": "objective",
+          "problem": "The acceptance criterion says `git init` alone satisfies AC-5, but it does not specify whether the `.git` directory must be present at the repo root after `git init` or if the command's success is sufficient. It also does not clarify if the `.gitignore` must be present before or after `git init`.",
+          "why_it_matters": "Testers need a clear, checkable condition for AC-5; ambiguity could lead to false passes or failures.",
+          "suggested_fix": "State that AC-5 is satisfied if a `.git` directory exists at the repo root and the `.gitignore` file is present at the repo root (regardless of order of creation)."
+        },
+        {
+          "section": "Edge Cases & Rules - .gitignore",
+          "category": "needs_clarify",
+          "problem": "The spec says 'never excluding legitimate source' and lists examples of real files, but does not define what constitutes 'legitimate source' beyond the examples. It is unclear if patterns like `dist/` are permitted if they would exclude a legitimate `dist/` directory that contains source.",
+          "why_it_matters": "Without a clear definition, the rule is subjective and could lead to unintended exclusions or disputes during review.",
+          "suggested_fix": "Define 'legitimate source' as any file or directory that is part of the kit's deliverables or required for the kit to function, and clarify that additional patterns are allowed only if they do not exclude such files."
+        },
+        {
+          "section": "FR-7",
+          "category": "needs_clarify",
+          "problem": "The spec lists `SECURITY.md` scope as including 'the documentation files themselves' but does not clarify whether this includes the docs/ directory files or only root-level documentation. It also does not specify how to handle security issues in the docs that are not yet written (e.g., during M4).",
+          "why_it_matters": "Ambiguity in scope could lead to inconsistent security reporting expectations and testers may not know what to verify.",
+          "suggested_fix": "Clarify that 'documentation files' includes all files under `docs/` and root-level `*.md`, and state that security issues in docs are reportable even if the docs are incomplete."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_4.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 8,
+        "edge_case_coverage": 6,
+        "internal_consistency": 8,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-6 \u2013 Conflict rules",
+          "category": "needs_clarify",
+          "problem": "The description of precedence between AGENTS.md and tool\u2011specific files is verbose and uses ambiguous terms like \u201cdirect contradiction\u201d without concrete examples, making it hard to implement validation.",
+          "why_it_matters": "Ambiguity can lead to inconsistent documentation that violates FR\u20116, causing downstream tools to misinterpret commands or report false conflicts.",
+          "suggested_fix": "Provide a concise rule list with explicit examples of contradictory statements and a clear algorithm for determining which file wins (e.g., bullet list: 1) identical fact with different values \u2192 conflict, base wins; 2) base omits a fact \u2192 no conflict)."
+        },
+        {
+          "section": ".gitignore \u2013 Mandatory patterns",
+          "category": "needs_clarify",
+          "problem": "The spec says additional patterns are permitted and the parenthetical examples are illustrative, but does not define a boundary, leaving room for accidental exclusion of source files.",
+          "why_it_matters": "Over\u2011broad ignore patterns could cause essential files (kit/, docs/, root *.md, etc.) to be untracked, breaking AC\u20111 and making the repository incomplete.",
+          "suggested_fix": "State that only the listed mandatory patterns are required and any extra patterns must be reviewed to ensure they do not match paths under `kit/`, `docs/`, `README.md`, `LICENSE`, `package.json`, etc.; optionally add a whitelist check in the validation step."
+        },
+        {
+          "section": "FR-8 \u2013 Pakistani guide placeholder",
+          "category": "needs_clarify",
+          "problem": "The spec mandates a placeholder heading with a one\u2011line pointer but does not specify the exact wording of that pointer.",
+          "why_it_matters": "Different wording could be interpreted as fabricated content, violating the \u201cnever fabricated\u201d rule and causing reviewers to flag the file as a stub.",
+          "suggested_fix": "Define the exact placeholder line, e.g., `## Guide for Pakistani users` followed by `*Content for this section is provided separately and is not generated by the kit.*`."
+        },
+        {
+          "section": "AC-5 \u2013 git init verification",
+          "category": "objective",
+          "problem": "Acceptance criterion requires a `.git` directory, but the spec does not describe how the milestone automation should invoke `git init` or verify its success.",
+          "why_it_matters": "Without an explicit step, the repository may be delivered without being a git repo, failing AC\u20115 and breaking downstream tooling that assumes a Git context.",
+          "suggested_fix": "Add a task description in the milestone that runs `git init` at the repo root and asserts that a `.git` directory exists before proceeding to file creation."
+        },
+        {
+          "section": "FR-1 \u2013 npm install claim",
+          "category": "needs_clarify",
+          "problem": "FR\u20111 claims the kit has \u201cno third\u2011party runtime dependencies,\u201d yet the quick\u2011start uses `npm install -g sdd-multiagent-kit`, which may pull node modules.",
+          "why_it_matters": "This creates a potential inconsistency between the dependency claim and actual installation behavior, confusing contributors and possibly violating the \u201cno runtime dependencies\u201d promise.",
+          "suggested_fix": "Clarify that the npm package contains only the global binary (`sdd-setup`) and does not install any runtime libraries, or adjust the claim to state that the only external requirement is Node\u202f\u2265\u202f18."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}

@@ -1,0 +1,119 @@
+{
+  "document": "spec_milestone_5",
+  "pass": 2,
+  "round": 5,
+  "critics": [
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 7,
+        "completeness": 6,
+        "edge_case_coverage": 5,
+        "internal_consistency": 6,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-2 \u2014 Example milestone set",
+          "category": "needs_clarify",
+          "problem": "The requirement that files have the \"exact filenames\" and be placed under a specific path is stated, but it also says additional headings are neither required nor prohibited, creating ambiguity about what is allowed beyond the required headings.",
+          "why_it_matters": "Implementers may add or reorder headings, causing automated validation to fail or producing documents that diverge from the kit's expected shape.",
+          "suggested_fix": "State explicitly that extra headings are permitted only if they appear after the required headings and do not disrupt the required order, and give a concrete example of a valid file layout."
+        },
+        {
+          "section": "Edge Cases & Rules \u2013 Non\u2011stub rule",
+          "category": "needs_clarify",
+          "problem": "The word\u2011count definition mixes \"whitespace\u2011delimited tokens\" with \"markdown syntax markers and headings count as tokens\", which is contradictory and leaves the counting method undefined.",
+          "why_it_matters": "Different tooling will produce different token counts, leading to inconsistent enforcement of the \u2265200\u2011word threshold.",
+          "suggested_fix": "Provide a precise algorithm (e.g., strip markdown syntax, then split on whitespace) or reference an existing linter that implements the rule."
+        },
+        {
+          "section": "Acceptance Criteria \u2013 AC\u20111",
+          "category": "objective",
+          "problem": "AC\u20111 lists required brief headings (## Brief, ## Requirements, etc.) that are not mentioned in FR\u20111, creating a mismatch between functional requirements and acceptance criteria.",
+          "why_it_matters": "Authors may produce a brief that satisfies FR\u20111 but fails AC\u20111, causing the milestone to be rejected despite meeting the functional intent.",
+          "suggested_fix": "Add the required brief heading list to FR\u20111 or adjust AC\u20111 to match the headings actually required by the kit."
+        },
+        {
+          "section": "Cross\u2011Reference table",
+          "category": "needs_clarify",
+          "problem": "The table mixes paths for the current milestone (milestone_5) with paths for the example milestone (milestone_1), without indicating which belong to which context.",
+          "why_it_matters": "Readers may place files in the wrong directory or misunderstand which artifacts are part of the spec versus the example set.",
+          "suggested_fix": "Separate the cross\u2011reference into two tables: one for the milestone_5 artifacts produced by this spec, and another for the exemplar milestone_1 files."
+        },
+        {
+          "section": "Edge Cases & Rules \u2013 Simplicity rule",
+          "category": "objective",
+          "problem": "The rule references \"constitution's Article IV\" which is not included or linked in this document.",
+          "why_it_matters": "Stakeholders cannot verify compliance with a rule they cannot locate, reducing the rule's enforceability.",
+          "suggested_fix": "Add a brief summary of the Simplicity rule or provide a hyperlink to the constitution document where it is defined."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 7,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements / FR-2",
+          "category": "needs_clarify",
+          "problem": "The heading set for the workflow document is specified as '## Build States' and '## 3. Feature-to-Node Traceability'. The second heading includes a numeric prefix '3.' which is unusual and inconsistent with the other documents' headings (which have no numeric prefixes). It is unclear whether this is a typo, a deliberate naming convention, or a requirement that the heading literally contains '3.'.",
+          "why_it_matters": "If the heading is meant to be literal, the example files must match exactly, and any automated validation would need to account for this oddity. If it's a typo, the spec is internally inconsistent and could lead to incorrect implementation.",
+          "suggested_fix": "Clarify whether the workflow heading is '## Feature-to-Node Traceability' (without the '3.' prefix) or if the '3.' is intentional. If intentional, explain why this document alone uses a numbered heading."
+        },
+        {
+          "section": "Edge Cases & Rules / Non-stub",
+          "category": "needs_clarify",
+          "problem": "The word count rule states '\u2265200 words per file, individually' for prose deliverables, but then says 'markdown syntax markers and headings count as tokens'. This means a file with 200 heading tokens and no substantive content would pass the threshold. The rule also exempts structured files from the word count but doesn't define what constitutes 'substantive content' beyond the word count.",
+          "why_it_matters": "The word count is described as 'a rough threshold, not a lint', but the acceptance criteria (AC-2) require 'substantive content'. Without a clearer definition, the testability of this requirement is weak, and a file could technically pass the word count while being mostly headings or markdown artifacts.",
+          "suggested_fix": "Define 'substantive content' more precisely (e.g., at least 100 non-heading, non-markdown tokens, or require at least one paragraph of prose per section). Alternatively, state explicitly that the word count is the only enforced metric and that 'substantive' is aspirational."
+        },
+        {
+          "section": "Edge Cases & Rules / Internal consistency",
+          "category": "needs_clarify",
+          "problem": "The rule states 'Any tasks build steps are illustrative and reference files that need not exist in the repo; tasks_milestone_1.md carries a note marking its build steps as illustrative'. However, it doesn't specify where this note should appear (top of file? in a specific section?) or what exact wording should be used. This makes AC-2's testability ambiguous.",
+          "why_it_matters": "Without a defined location and wording for the illustrative note, a validator cannot reliably check that the note exists. The acceptance criteria don't mention this note at all, creating a gap between the rules and the testable ACs.",
+          "suggested_fix": "Add a specific requirement in AC-2 or FR-2 that tasks_milestone_1.md must contain a clearly identifiable note (e.g., a line starting with '> **Note:**' or a specific section) stating the build steps are illustrative. Specify the exact required text or format."
+        },
+        {
+          "section": "Acceptance Criteria / AC-1",
+          "category": "needs_clarify",
+          "problem": "AC-1 requires the brief to contain 'the minimum set the kit's scan expects' with headings '## Brief', '## Requirements', '## Non-negotiable', '## Out of scope', '## Success criteria'. However, the spec doesn't define what 'directly invokable' means beyond these headings. It's unclear whether the kit requires additional metadata (e.g., a project name, version, or specific front-matter) that the example brief must include.",
+          "why_it_matters": "If the kit's scan expects more than just these headings (e.g., a YAML front-matter block or a specific file structure), the example brief might not be 'directly invokable' despite having the listed headings, failing AC-1's primary requirement.",
+          "suggested_fix": "Reference the exact kit scan logic (e.g., 'per AGENTS.md section X') or enumerate all required elements (headings, front-matter, file naming) that make a brief 'directly invokable'. If the listed headings are sufficient, state that explicitly."
+        },
+        {
+          "section": "Out of Scope",
+          "category": "objective",
+          "problem": "The Out of Scope section mentions 'Localized guide content (e.g., the reserved \"Guide for Pakistani users\" slot, PLAN.md \u00a712)'. This references 'PLAN.md \u00a712' but the spec doesn't define what PLAN.md is in this context \u2014 is it the example brief (examples/sample-project/PLAN.md) or some other document? The example brief's required headings (AC-1) don't include a \u00a712, creating confusion.",
+          "why_it_matters": "The reference is ambiguous and could be misinterpreted. If PLAN.md \u00a712 refers to the example brief, it implies the brief has a section 12 that isn't in the required heading list, which is contradictory. If it refers to something else, it's undefined.",
+          "suggested_fix": "Clarify what PLAN.md \u00a712 refers to. If it's the example brief, either add it to the allowed additional headings or remove the reference. If it's a different document, specify which one."
+        },
+        {
+          "section": "Edge Cases & Rules / Platform-agnostic",
+          "category": "objective",
+          "problem": "The rule prohibits platform-specific steps in the tasks document, but the example project is described as a 'Python 3 command-line tool'. The spec doesn't address whether the example's PLAN.md or other documents can mention Python 3 as a requirement, or whether the tasks document must avoid even mentioning 'python3' as a command (since that could be considered platform-specific in terms of invocation).",
+          "why_it_matters": "If the tasks document must be completely platform-agnostic, it cannot reference how to run the Python tool (e.g., 'python3 quote.py'), which would make the build steps meaningless. If it can reference Python, the boundary of 'platform-specific' needs clarification.",
+          "suggested_fix": "Clarify that mentioning Python 3 as a language/runtime is acceptable, but OS-specific installation commands (e.g., 'apt-get install python3') are prohibited. Provide examples of acceptable vs. prohibited task steps."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}

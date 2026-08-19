@@ -1,0 +1,284 @@
+{
+  "document": "tests_milestone_1",
+  "pass": 2,
+  "round": 1,
+  "critics": [
+    {
+      "model": "gemini-3.6-flash",
+      "document": "tests_milestone_1.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 7,
+        "testability": 9
+      },
+      "issues": [
+        {
+          "section": "2. Acceptance-Criterion Mapping",
+          "category": "objective",
+          "problem": "Section 2 maps AC-1, AC-4, and AC-5 to 'NT22 walkthrough', but Table 1 defines node tests only up to NT21.",
+          "why_it_matters": "Referencing a non-existent test ID (NT22) breaks test traceability and mapping validation.",
+          "suggested_fix": "Update Section 2 references to refer explicitly to 'Section 3 (Walkthrough)' or add NT22 to Table 1 if it represents a distinct node test."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "tests_milestone_1.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 8
+      },
+      "issues": [
+        {
+          "section": "NT20",
+          "category": "objective",
+          "problem": "The secret scan test defines patterns but the allowlist is described as 'empty' while also referencing 'an obvious, allowlisted constant' \u2014 contradictory. Also, the base64/hex blob detection criterion is vague ('obvious' is not operationalized).",
+          "why_it_matters": "Without a precise allowlist and a clear definition of 'obvious constant', the test is not deterministic and could either block legitimate constants or miss secrets, undermining AC-3.",
+          "suggested_fix": "Define the allowlist explicitly (e.g., a named list of constants with their exact values) and specify the heuristic for 'obvious constant' (e.g., matches a known project identifier, length \u2264 32, appears in a designated constants file)."
+        },
+        {
+          "section": "NT18",
+          "category": "objective",
+          "problem": "The test says 'exactly ten sub-skills (no critique-loop)' but the workflow includes a critique loop (M2, M9) and the spec references six-model critique. The mapping of sub-skills to workflow nodes is not enumerated, so it's unclear which ten are expected and how they exclude the critique loop.",
+          "why_it_matters": "Without an explicit list of the ten sub-skills, the test cannot be executed unambiguously, and the exclusion of the critique-loop sub-skills is not verifiable.",
+          "suggested_fix": "Enumerate the ten sub-skills by name (e.g., research-ct-scan, milestone-builder, specify, plan, tasks, workflow, tests, gate-g1, gate-g2, stranger-test) and state that critique-loop sub-skills are not part of the kit's SKILL.md set."
+        },
+        {
+          "section": "NT19",
+          "category": "objective",
+          "problem": "The test requires 'six models, ordered critic_slots' but does not specify the exact model IDs or the expected order. The providers.yaml validation is not fully testable without a concrete expected schema.",
+          "why_it_matters": "Without a concrete expected model list and order, the test cannot assert correctness; a change in model order would not be caught, violating AC-2.",
+          "suggested_fix": "Add a reference to the exact model IDs and critic_slots order (e.g., from spec \u00a76 or providers.yaml schema) and assert that the parsed providers.yaml matches that exact list and order."
+        },
+        {
+          "section": "NT10",
+          "category": "objective",
+          "problem": "The test says 'refusal recorded in PHR; item noted in Out of Scope; not silently defaulted' but does not specify how the PHR entry and Out of Scope note are verified (e.g., file paths, format).",
+          "why_it_matters": "Without verification steps, the test cannot be automated or objectively checked, weakening the edge-case coverage for Clarify refusal.",
+          "suggested_fix": "Define the expected PHR log entry format (e.g., timestamp, node, refusal reason) and the Out of Scope section location, and assert their presence after the refusal."
+        },
+        {
+          "section": "NT16",
+          "category": "objective",
+          "problem": "The test says 'invalid + \u22641 retry; 3-round invalid \u2192 non-cooperative, excluded, loop continues' but does not define what constitutes 'unparseable/low-empty response' precisely (e.g., JSON parse failure, empty string, missing required fields).",
+          "why_it_matters": "Ambiguity in the validity criterion makes the test non-deterministic and could lead to false passes or failures in the critique loop's non-cooperative handling.",
+          "suggested_fix": "Define validity as: response must be valid JSON with required keys (model, document, round, pass, scores, issues, verdict) and scores within 0-10; any deviation is invalid. Specify that a retry is allowed once, and after 3 consecutive invalid responses the critic is marked non-cooperative."
+        },
+        {
+          "section": "NT22 (referenced in AC mapping but not defined)",
+          "category": "objective",
+          "problem": "The acceptance-criterion mapping references NT22 as covering AC-1, AC-4, and AC-5, but NT22 is not defined anywhere in the node tests table (which only goes to NT21).",
+          "why_it_matters": "This is a missing test definition; without NT22, the acceptance criteria are not fully covered and the test suite is incomplete.",
+          "suggested_fix": "Add NT22 to the node tests table, defining it as the end-to-end walkthrough test (Section 3) that verifies the full pipeline order, deferrals, and Clarify timing, with explicit pass criteria."
+        },
+        {
+          "section": "Section 3, step 5",
+          "category": "needs_clarify",
+          "problem": "The walkthrough states '11 real six-model rounds' for Pass 1 critique, but the round cap (NT17) and the number of rounds are not specified elsewhere. It is unclear whether 11 is a fixed number or an observed count from the bootstrap run.",
+          "why_it_matters": "If 11 is a hard requirement, it may conflict with the round cap or the loop's termination condition; if it is an observed count, it should not be asserted as a pass criterion.",
+          "suggested_fix": "Clarify whether the walkthrough expects exactly 11 rounds or whether it is a descriptive note; if a requirement, specify the round cap and how it is enforced."
+        },
+        {
+          "section": "NT13/NT14",
+          "category": "needs_clarify",
+          "problem": "The Stranger Test pass criterion is 'contract parity achieved' but does not define what 'contract parity' means operationally (e.g., identical outputs for same inputs, or semantic equivalence).",
+          "why_it_matters": "Without a clear definition, the Stranger Test cannot be objectively evaluated, and AC-7 is not testable.",
+          "suggested_fix": "Define contract parity as: the fresh session produces the same five-document set with identical section names, node mappings, and acceptance-criterion coverage, allowing for wording differences but not structural or semantic divergence."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "document": "tests_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 6,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "1. Node Tests (NT12)",
+          "category": "objective",
+          "problem": "The pass criterion 'passes only when every valid critic scores perfect' contradicts the standard SDD critique loop behavior and lacks a defined threshold. Critique loops typically require a passing score (e.g., >= 8/10) or zero blocking issues, not 'perfect' scores from all valid critics, which would make the loop nearly impossible to pass.",
+          "why_it_matters": "If interpreted literally, this test criterion will block the M1 build indefinitely during Pass 2, as achieving perfect 10/10 scores across all six independent critics is statistically improbable and violates the principle of Simplicity by Default.",
+          "suggested_fix": "Change the pass criterion to: 'passes when all valid critics return a passing score (e.g., >= 8/10) and zero objective issues remain unresolved'."
+        },
+        {
+          "section": "1. Node Tests (NT20)",
+          "category": "objective",
+          "problem": "The secret scan test defines a pass criterion of 'zero matches (allowlist empty)' but then references 'an obvious, allowlisted constant (spec \u00a76)'. This is contradictory: if the allowlist is empty, there are no allowlisted constants.",
+          "why_it_matters": "This contradiction makes the test un-executable as written. The implementer will not know whether to seed an allowlist or keep it empty, potentially causing false positives during the secret scan.",
+          "suggested_fix": "Clarify the test state: either remove the mention of 'allowlisted constant' from the test description, or specify that the test must be run with a specific, pre-seeded allowlist containing the expected constants."
+        },
+        {
+          "section": "1. Node Tests (NT7)",
+          "category": "needs_clarify",
+          "problem": "The test specifies 'Loop iterates until none remain' but does not define a maximum iteration limit for this specific objective resolution phase (distinct from the C2 round cap).",
+          "why_it_matters": "Without a bounded iteration limit for objective resolution, the test could theoretically result in an infinite loop if the model repeatedly introduces new objective issues while resolving old ones."
+        },
+        {
+          "section": "3. End-to-End Walkthrough",
+          "category": "needs_clarify",
+          "problem": "The walkthrough includes steps marked '[to run]' for Pass 2 critique, Stranger Test, and Build. It is unclear if this document is considered structurally complete if the very walkthrough it defines as the T1 deliverable is unfinished.",
+          "why_it_matters": "The constitution requires a structural-completeness gate. If the walkthrough contains '[to run]' placeholders, it may fail the structural completeness gate before any code is written."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "tests_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 6,
+        "completeness": 7,
+        "edge_case_coverage": 8,
+        "internal_consistency": 5,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "NT4",
+          "category": "objective",
+          "problem": "NT4 pass criterion states five docs at `outputs/` root with no `_milestone_N` suffix, but the spec, plan, tasks, workflow, and this tests document all reside under `outputs/milestones/milestone_1/`. The cross-reference table (Section 4) confirms this path. NT4 describes the single-milestone path (S3b) but M1 is explicitly multi-milestone (S3a per walkthrough step 3). Even for S3b, the spec does not say docs go at root.",
+          "why_it_matters": "Test will fail against the actual project structure. Creates confusion about where milestone artifacts belong. Contradicts the spec's own file layout.",
+          "suggested_fix": "Update NT4 to reflect that single-milestone output goes to `outputs/` root only if the spec explicitly defines that behavior; otherwise, align with the multi-milestone pattern used in M1. Clarify in spec \u00a73 (milestone-builder) what S3b produces and where."
+        },
+        {
+          "section": "Section 2 (Acceptance-Criterion Mapping)",
+          "category": "objective",
+          "problem": "AC-1 and AC-4 map to NT22, but Section 1 only defines NT1\u2013NT21. NT22 does not exist.",
+          "why_it_matters": "Traceability gap \u2014 two acceptance criteria appear uncovered. Automated checkers will flag missing test IDs.",
+          "suggested_fix": "Either add NT22 (e.g., a composite build verification test) or remap AC-1 and AC-4 to existing NTs (NT18 + walkthrough covers AC-1; NT18 covers AC-4)."
+        },
+        {
+          "section": "NT18",
+          "category": "objective",
+          "problem": "Pass criterion references \"\u00a74.1 paths\" but this document has no \u00a74.1. The spec has a \u00a74.1 (Kit File Inventory). The reference is ambiguous.",
+          "why_it_matters": "Test executor won't know which file paths to check. Breaks automated verification.",
+          "suggested_fix": "Change \"\u00a74.1 paths\" to \"spec_milestone_1.md \u00a74.1 paths\" or inline the 13 expected paths in the test."
+        },
+        {
+          "section": "NT12",
+          "category": "objective",
+          "problem": "Pass criterion \"passes only when every valid critic scores perfect\" does not define \"perfect\". Is it 10/10 on all five rubric dimensions? All dimensions \u22659? No objective issues remaining?",
+          "why_it_matters": "Without a precise threshold, the gate is subjective and cannot be automated. Different critics may interpret differently.",
+          "suggested_fix": "Define \"perfect\" explicitly: e.g., \"all five rubric dimensions score 10/10 from every valid critic\" or \"zero objective issues and all dimension scores \u22659\"."
+        },
+        {
+          "section": "NT13",
+          "category": "objective",
+          "problem": "Pass criterion \"contract parity achieved\" is not defined anywhere in the spec, plan, or this document. AC-7 depends on it.",
+          "why_it_matters": "Stranger Test is a constitutional gate (Real-World Testing). If \"contract parity\" is undefined, the test cannot be implemented or verified.",
+          "suggested_fix": "Add a definition to the spec (e.g., \u00a77 Stranger Test): \"Contract parity means a fresh session, given only the five-document set, produces an implementation that passes all five documents' acceptance criteria and matches the original kit's observable interfaces.\""
+        },
+        {
+          "section": "NT3, NT4",
+          "category": "needs_clarify",
+          "problem": "Thresholds for \"large brief\" (multi-milestone) vs \"small brief\" (single-milestone) are not defined in the spec or this document.",
+          "why_it_matters": "Milestone-builder (S3a/S3b) cannot be deterministically tested. The same brief could route differently across runs.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "NT16",
+          "category": "objective",
+          "problem": "Pass criterion uses \"low-empty response\" which is not a defined term. Likely means \"low-quality or empty\" but needs precision.",
+          "why_it_matters": "Critic validity gate (C1) must be deterministic. Ambiguity lets invalid responses slip through or valid ones get rejected.",
+          "suggested_fix": "Replace with precise criteria: e.g., \"response fails JSON schema validation, or contains <50 non-whitespace characters, or scores all dimensions 0\"."
+        },
+        {
+          "section": "Section 3 (Walkthrough step 5)",
+          "category": "needs_clarify",
+          "problem": "Walkthrough states \"11 real six-model rounds\" for Pass 1 critique. The constitution and spec do not specify a fixed round count; NT17 mentions a round cap but no value. 11 appears arbitrary.",
+          "why_it_matters": "If the cap is lower, the walkthrough is infeasible. If higher, 11 is not a meaningful milestone. PHR entry milestone_1/001 references this count.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "NT20",
+          "category": "needs_clarify",
+          "problem": "Secret scan allowlist is \"empty\" per NT20, but the pattern description says \"not an obvious, allowlisted constant (spec \u00a76)\". Spec \u00a76 must define the allowlist; if it's empty, the parenthetical is misleading. Also, \"base64/hex blob \u226532 chars\" will flag many legitimate constants (e.g., test vectors, example hashes).",
+          "why_it_matters": "False positives will block the build. The allowlist must be explicit and version-controlled.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "NT5, NT6",
+          "category": "needs_clarify",
+          "problem": "G1 gate checks \"spec with all sections\" / \"spec missing a section\" but the required sections are not enumerated in this document or the spec's G1 definition.",
+          "why_it_matters": "Gate implementation cannot be verified. Test NT5/NT6 pass criteria are unactionable.",
+          "suggested_fix": ""
+        },
+        {
+          "section": "General (Bootstrap Circularity)",
+          "category": "needs_clarify",
+          "problem": "Node tests NT7, NT12, NT13, NT14, NT16, NT17 test the critique-loop machinery (M2, M9, M10, C1, C2) that M1 is supposed to produce. The walkthrough runs these tests *during* M1's build using the kit being built. This circular dependency is not resolved in the document.",
+          "why_it_matters": "If the kit doesn't exist yet, the critique loop cannot run. The bootstrap needs a defined \"seed\" critique mechanism (e.g., human-simulated or minimal script) to validate M1 before the kit is self-hosting.",
+          "suggested_fix": ""
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "tests_milestone_1.md",
+      "round": 1,
+      "pass": 1,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 6,
+        "completeness": 7,
+        "edge_case_coverage": 8,
+        "internal_consistency": 6,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Node Tests Table",
+          "category": "objective",
+          "problem": "Missing definition for NT22, which is referenced in the Acceptance\u2011Criterion Mapping and the end\u2011to\u2011end walkthrough.",
+          "why_it_matters": "Acceptance criteria AC\u20111, AC\u20114 and AC\u20115 depend on NT22; without a concrete test definition the suite is incomplete and cannot be executed or verified.",
+          "suggested_fix": "Add a row for NT22 in the Node Tests table describing the walkthrough verification (e.g., confirm the 13 kit files exist, contracts are verbatim, and no hidden secrets) and specify its pass criterion."
+        },
+        {
+          "section": "NT1",
+          "category": "needs_clarify",
+          "problem": "The phrase \"run research-ct-scan logic\" is undefined.",
+          "why_it_matters": "Test automation requires a precise description of the logic to be executed; ambiguity prevents reliable implementation and verification."
+        },
+        {
+          "section": "NT20",
+          "category": "needs_clarify",
+          "problem": "The pass criterion mentions an \"allowlist empty\" for secret patterns, but the source and contents of the allowlist are not specified.",
+          "why_it_matters": "If an allowlist is expected, its definition must be known; otherwise the test may incorrectly fail or pass."
+        },
+        {
+          "section": "Acceptance Mapping AC-5",
+          "category": "needs_clarify",
+          "problem": "AC\u20115 references \"spec review\" but no corresponding node or test is defined in the document.",
+          "why_it_matters": "Without a concrete test, the acceptance criterion cannot be validated, leaving a gap in the verification suite."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 5
+}

@@ -1,0 +1,185 @@
+{
+  "document": "spec_milestone_5",
+  "pass": 2,
+  "round": 7,
+  "critics": [
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "document": "spec_milestone_5.md",
+      "round": 5,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 6,
+        "completeness": 6,
+        "edge_case_coverage": 5,
+        "internal_consistency": 5,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-2",
+          "category": "objective",
+          "problem": "Contradictory requirement: 'each file contains exactly the kit's section headings' immediately followed by 'Additional headings are permitted.' These cannot both be true.",
+          "why_it_matters": "Creates ambiguity for implementers and validators. A validator checking 'exactly the headings' will fail files with additional headings; a human reader expects flexibility.",
+          "suggested_fix": "Change to: 'each file contains at minimum the kit's section headings in the specified order; additional headings are permitted after the required set.'"
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 Non-stub",
+          "category": "objective",
+          "problem": "The \u2265200-word threshold is explicitly labeled 'a rough threshold, not a lint' yet is the sole quantitative measure for 'substantive' prose. No fallback criteria exist for files that fall short but are meaningful.",
+          "why_it_matters": "Makes AC-2 ('non-stub per the per-file rule') untestable in automation and subjective in review. A 190-word spec with dense content fails while a 210-word fluff piece passes.",
+          "suggested_fix": "Define a clear pass/fail rule (e.g., '\u2265200 words OR \u22653 substantive paragraphs') or delegate to a lint script. Remove 'rough threshold, not a lint' if the number is normative."
+        },
+        {
+          "section": "Cross-Reference \u2014 Milestone-5 documents",
+          "category": "objective",
+          "problem": "The table lists this spec's own path (`outputs/milestones/milestone_5/spec_milestone_5.md`) as a cross-reference. A document cannot cross-reference itself as a separate deliverable.",
+          "why_it_matters": "Confuses readers and tooling that might parse this table for dependency graphs. Suggests the author copied the template without updating it for M5.",
+          "suggested_fix": "Remove the self-referential row or relabel the table 'This milestone's five-document set (for reference)' and keep it as context, not cross-reference."
+        },
+        {
+          "section": "FR-2 / AC-2",
+          "category": "needs_clarify",
+          "problem": "Requires the example milestone set to be 'faithful to the kit's shape' with cross-references 'consistent with the spec's FRs and ACs,' but nowhere defines the kit's expected cross-reference format (table schema, ID scheme, link syntax).",
+          "why_it_matters": "Hand-crafted example must match machine-generated output exactly to be a valid teaching artifact. Without a canonical format, the example will drift from reality.",
+          "suggested_fix": "Reference the specific skill or schema that defines cross-reference format (e.g., `kit/skills/spec-writer/SKILL.md` section X) or include a miniature schema in this spec."
+        },
+        {
+          "section": "Edge Cases & Rules \u2014 Platform-agnostic",
+          "category": "needs_clarify",
+          "problem": "Prohibits 'OS-specific commands' but permits 'mentioning the runtime (python3) or documenting an env-var name.' No guidance on where the line falls (e.g., `python3 -m venv .venv` vs `python -m venv .venv`; `source .venv/bin/activate` vs `. .venv/bin/activate`).",
+          "why_it_matters": "Reviewers will inconsistently flag or allow steps. The example tasks file must be unambiguously compliant.",
+          "suggested_fix": "Provide a positive list of permitted task-step patterns (e.g., 'Only these verbs: create, write, run, test, lint') or reference a shared style guide."
+        },
+        {
+          "section": "AC-1",
+          "category": "objective",
+          "problem": "Testable check says 'Invocation is `/sdd` run against the folder containing the brief (per `docs/GUIDE.md`)' but does not require that the invocation actually succeeds or produces the expected five-document set.",
+          "why_it_matters": "A brief that passes the heading check but causes the kit to crash or emit garbage would still satisfy AC-1 as written.",
+          "suggested_fix": "Add: 'The kit must complete without error and emit all five milestone documents under a fresh `outputs/milestones/milestone_1/` directory.'"
+        },
+        {
+          "section": "FR-2 \u2014 tasks_milestone_1.md blockquote note",
+          "category": "objective",
+          "problem": "Requires a blockquote note 'at the top of the file (before the build order)' marking build steps as illustrative. This structural requirement is not listed in the required heading set for tasks files.",
+          "why_it_matters": "Validators checking only the two required headings (`## Build Order`, `## Status`) will miss the missing blockquote. The example will silently fail this requirement.",
+          "suggested_fix": "Add '## Illustrative Notice' (or similar) to the required heading list for tasks files, or explicitly state the blockquote is part of the `## Build Order` section content."
+        },
+        {
+          "section": "Simplicity rule",
+          "category": "needs_clarify",
+          "problem": "References 'Article IV, Simplicity by Default \u2014 see `outputs/constitution.md`' but does not quote or summarize the rule. The constitution may change; the spec should be self-contained for review.",
+          "why_it_matters": "Reviewers cannot verify compliance without fetching another file. If the constitution is updated, the example's compliance becomes ambiguous.",
+          "suggested_fix": "Inline the relevant clause: 'No new dependencies, frameworks, or servers without strong reason. Python stdlib is permitted.'"
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash-0731",
+      "document": "spec_milestone_5.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 7,
+      "scores": {
+        "clarity": 8,
+        "completeness": 7,
+        "edge_case_coverage": 6,
+        "internal_consistency": 7,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements / FR-1",
+          "category": "needs_clarify",
+          "problem": "The phrase 'directly invokable by the kit' is ambiguous. Does it mean the kit can be run against the folder containing PLAN.md with no additional configuration, or does it require the user to set up a Python environment, install dependencies, or follow specific invocation steps? The spec mentions `/sdd` and the critique engine command, but does not specify the exact command or prerequisites for the example.",
+          "why_it_matters": "Without a precise definition of 'directly invokable', testers cannot verify AC-1 unambiguously, and users may be confused about how to run the example.",
+          "suggested_fix": "Clarify that 'directly invokable' means the kit's standard invocation (e.g., `python3 kit/scripts/run_sdd.py` or `/sdd` as documented in AGENTS.md) works against the folder containing PLAN.md, with no additional setup beyond the kit's own installation."
+        },
+        {
+          "section": "Edge Cases & Rules / Non-stub",
+          "category": "needs_clarify",
+          "problem": "The word-count threshold is described as '\u2265200 words of plain text per file, individually, counting words excluding markdown markers \u2014 a rough threshold, not a lint'. This is vague: what counts as a 'word'? Are code blocks, tables, or inline code counted? The spec says 'excluding markdown markers' but does not define whether code spans or fenced blocks are excluded.",
+          "why_it_matters": "Ambiguity in the word-count rule makes it impossible to objectively verify the Non-stub requirement, leading to inconsistent enforcement and potential disputes during review.",
+          "suggested_fix": "Define the counting method explicitly, e.g., 'count all alphanumeric sequences separated by whitespace, excluding markdown syntax characters (#, *, -, etc.), fenced code blocks, and table formatting; inline code spans count as one word each.'"
+        },
+        {
+          "section": "Edge Cases & Rules / Platform-agnostic",
+          "category": "needs_clarify",
+          "problem": "The rule prohibits 'shell-specific export syntax' but does not clarify whether environment variable assignment in the tasks document is allowed if it uses a generic notation (e.g., `QUOTE_DATA_DIR=/path` vs `export QUOTE_DATA_DIR=/path`). The spec mentions documenting an env-var name is permitted, but the boundary between 'documenting' and 'providing shell syntax' is unclear.",
+          "why_it_matters": "Ambiguity could lead to the example tasks document inadvertently including platform-specific commands, violating the platform-agnostic requirement and confusing users on different OSes.",
+          "suggested_fix": "Explicitly state that the tasks document may mention environment variable names but must not include any assignment or export syntax; instead, describe the variable in prose (e.g., 'the tool reads the QUOTE_DATA_DIR environment variable')."
+        },
+        {
+          "section": "Acceptance Criteria / AC-2",
+          "category": "objective",
+          "problem": "AC-2 requires 'the workflow/tests traceability consistent with the spec's FRs and ACs' but does not define a testable method for verifying this consistency. For example, how does a reviewer check that 'every FR has a corresponding workflow node'? Is there a mapping table format that must be followed, or is it sufficient to manually inspect the documents?",
+          "why_it_matters": "Without a concrete verification method, AC-2 is not objectively testable, making it impossible to determine pass/fail during review.",
+          "suggested_fix": "Specify that the workflow document must contain a traceability table listing each FR ID (e.g., FR-1, FR-2) and its corresponding node name, and the tests document must contain a mapping table listing each AC ID (e.g., AC-1) and its test row reference. Provide a checklist for reviewers."
+        },
+        {
+          "section": "Out of Scope",
+          "category": "needs_clarify",
+          "problem": "The Out of Scope section says 'any example source code (e.g., quote.py)' is excluded, but the example brief describes a 'quote CLI that prints programming quotes and manages a plain-text store'. The tasks document is expected to outline build steps that reference files that need not exist. However, it is unclear whether the tasks document may reference source files (e.g., `quote.py`) as part of the build steps, even though those files are not shipped.",
+          "why_it_matters": "If the tasks document references source files that are explicitly out of scope, it may confuse users who expect those files to exist, undermining the example's teaching value.",
+          "suggested_fix": "Clarify that the tasks document may reference hypothetical source files (e.g., `quote.py`) as illustrative build steps, but must include a note that these files are not shipped and are only for demonstration."
+        },
+        {
+          "section": "Internal Consistency",
+          "category": "objective",
+          "problem": "The spec states the example milestone set is for `milestone_1` and lives under `examples/sample-project/outputs/milestones/milestone_1/`. However, the Cross-Reference table lists the example set paths with `milestone_1` but the spec itself is for `milestone_5`. This is consistent, but the spec does not explain why the example uses `milestone_1` instead of `milestone_5` or how the example's milestone numbering relates to the kit's workflow. This could confuse readers.",
+          "why_it_matters": "Users may wonder why the example is for milestone_1 when the current milestone is 5, leading to confusion about the kit's milestone structure.",
+          "suggested_fix": "Add a brief note in the spec or README explaining that the example project is a single-milestone project, so its output is under `milestone_1` by convention, and that this is independent of the kit's own milestone numbering."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_5.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 7,
+        "completeness": 7,
+        "edge_case_coverage": 5,
+        "internal_consistency": 6,
+        "testability": 5
+      },
+      "issues": [
+        {
+          "section": "Functional Requirements \u2013 FR-2",
+          "category": "objective",
+          "problem": "The requirement states that each file must contain \"exactly the kit's section headings\" in a specific order, yet also permits \"additional headings\". This is contradictory and leaves implementers unsure whether extra headings are allowed.",
+          "why_it_matters": "Ambiguity can cause the example files to be rejected by automated validation tools that enforce a strict heading order, breaking the acceptance criteria.",
+          "suggested_fix": "Rephrase to either require only the listed headings (no others) or explicitly allow extra headings but clarify that they must appear after the required ones."
+        },
+        {
+          "section": "Edge Cases & Rules \u2013 Non\u2011stub rule",
+          "category": "needs_clarify",
+          "problem": "The rule defines a \u2265200\u2011word minimum for prose files but then exempts \"structured files\" (tasks, tests) without specifying how to count words in mixed content (e.g., blockquotes, tables).",
+          "why_it_matters": "Implementers may misinterpret the threshold, leading to files that technically pass the word count but contain placeholder text, violating the non\u2011stub intent.",
+          "suggested_fix": "Provide a concrete example of word counting for a file that mixes prose and markdown structures, and state whether blockquotes and table cells are included."
+        },
+        {
+          "section": "Acceptance Criteria \u2013 AC\u20111",
+          "category": "needs_clarify",
+          "problem": "The invocation description \"/sdd run against the folder containing the brief\" lacks detail on required command\u2011line flags or environment setup.",
+          "why_it_matters": "A user may attempt to run the kit with an incorrect command, leading to false negatives in testing and frustration.",
+          "suggested_fix": "Add the exact command syntax (e.g., `sdd run --path examples/sample-project/`) or reference the specific section in `docs/GUIDE.md` that defines the invocation."
+        },
+        {
+          "section": "Cross\u2011Reference \u2013 Milestone\u20115 documents table",
+          "category": "objective",
+          "problem": "The table lists the five documents for milestone\u202f5, but the functional requirement FR\u20112 focuses on an example set for milestone\u202f1. The relationship between these two sets is not explicitly explained, causing potential confusion about which files the spec is describing.",
+          "why_it_matters": "Readers may mistake the spec\u2019s own deliverables for the example deliverables, leading to misplaced implementation effort.",
+          "suggested_fix": "Add a brief explanatory note clarifying that the milestone\u202f5 table refers to this spec\u2019s own artifacts, while FR\u20112 describes the separate example set under `milestone_1`."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 3
+}

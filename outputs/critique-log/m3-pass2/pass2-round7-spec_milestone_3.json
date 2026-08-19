@@ -1,0 +1,140 @@
+{
+  "document": "spec_milestone_3",
+  "pass": 2,
+  "round": 7,
+  "critics": [
+    {
+      "model": "mistralai/mistral-nemotron",
+      "document": "spec_milestone_3.md",
+      "round": 1,
+      "pass": 2,
+      "overall_score": 8,
+      "scores": {
+        "clarity": 9,
+        "completeness": 8,
+        "edge_case_coverage": 8,
+        "internal_consistency": 9,
+        "testability": 7
+      },
+      "issues": [
+        {
+          "section": "User Scenarios",
+          "category": "objective",
+          "problem": "US-2 lacks clarity on how the 'Guide for Pakistani users' is triggered and what happens if the user declines the option.",
+          "why_it_matters": "Ambiguity in user interaction can lead to inconsistent behavior or user confusion.",
+          "suggested_fix": "Explicitly state the behavior when the user declines the option (e.g., 'If declined, the setup continues normally')."
+        },
+        {
+          "section": "Functional Requirements",
+          "category": "objective",
+          "problem": "FR-2 does not specify how errors during `install()` or `confirmEnabled()` are handled beyond throwing an error. No retry logic or user recovery options are mentioned.",
+          "why_it_matters": "Users may encounter transient errors (e.g., permission issues) that could be recoverable with a retry mechanism.",
+          "suggested_fix": "Add a retry mechanism for transient errors (e.g., permission issues) with a clear user prompt."
+        },
+        {
+          "section": "Edge Cases & Rules",
+          "category": "objective",
+          "problem": "The handling of partial installs (e.g., Ctrl-C during `install()`) is mentioned but lacks detail on how the wizard ensures consistency (e.g., atomic operations or rollback).",
+          "why_it_matters": "Partial installs can leave the system in an inconsistent state, which may require manual intervention.",
+          "suggested_fix": "Specify how the wizard ensures atomicity or provides rollback mechanisms for partial installs."
+        },
+        {
+          "section": "Out of Scope",
+          "category": "objective",
+          "problem": "The 'non-interactive/CI mode' is deferred, but no alternative for CI environments is provided (e.g., environment variables or config files).",
+          "why_it_matters": "CI environments often require non-interactive setup, and the lack of an alternative may block adoption.",
+          "suggested_fix": "Provide a basic non-interactive mode (e.g., via environment variables) even if full CI support is deferred."
+        },
+        {
+          "section": "Acceptance Criteria",
+          "category": "objective",
+          "problem": "AC-6 does not specify how to verify that `sdd-setup` is runnable (e.g., expected output or behavior).",
+          "why_it_matters": "Without clear verification steps, acceptance criteria may be ambiguous.",
+          "suggested_fix": "Add specific verification steps (e.g., 'Running `sdd-setup` should prompt for API keys')."
+        },
+        {
+          "section": "Cross-Reference",
+          "category": "objective",
+          "problem": "The cross-reference table lacks a column for version or last updated date, making it hard to track changes.",
+          "why_it_matters": "Version tracking is essential for maintaining consistency across documents.",
+          "suggested_fix": "Add a 'Version' or 'Last Updated' column to the cross-reference table."
+        }
+      ],
+      "verdict": "needs_revision"
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "document": "spec_milestone_3.md",
+      "round": 2,
+      "pass": 2,
+      "overall_score": 6,
+      "scores": {
+        "clarity": 7,
+        "completeness": 6,
+        "edge_case_coverage": 6,
+        "internal_consistency": 6,
+        "testability": 6
+      },
+      "issues": [
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "The spec does not define the exact format of the \"Learn more\" link for the Pakistani\u2011guide slot (e.g., full URL, markdown link, plain text).",
+          "why_it_matters": "Implementers may output an ambiguous string, causing users to be unable to locate the guide or leading to broken documentation links.",
+          "suggested_fix": "Specify the link format explicitly, e.g., \"Print the absolute URL `https://github.com/yourrepo/docs/GUIDE.md#guide-for-pakistani-users`\" or \"Print a markdown link `[Guide](/docs/GUIDE.md#guide-for-pakistani-users)`\"."
+        },
+        {
+          "section": "FR-1",
+          "category": "needs_clarify",
+          "problem": "Behavior on non\u2011TTY stdin is described only as \"key prompts are skipped with the reminder printed instead\", but it is unclear whether the wizard should still attempt tool detection/installation afterwards.",
+          "why_it_matters": "A non\u2011TTY run (e.g., scripted CI) could unintentionally proceed to install tools without the required keys, leading to runtime failures later.",
+          "suggested_fix": "State explicitly whether the wizard aborts, proceeds with detection only, or treats missing keys as fatal in non\u2011TTY mode."
+        },
+        {
+          "section": "FR-2",
+          "category": "needs_clarify",
+          "problem": "The handling of syntax errors or runtime exceptions when requiring adapter files is not described.",
+          "why_it_matters": "A malformed adapter could crash the entire wizard at startup, violating the requirement that detection never aborts the wizard for filesystem errors.",
+          "suggested_fix": "Add that any error while requiring an adapter should be caught, logged as a warning, and the adapter treated as absent (i.e., `installed: false`)."
+        },
+        {
+          "section": "Edge Cases",
+          "category": "objective",
+          "problem": "The spec says the user \"cannot deselect everything\" yet also says \"zero installed tools occurs only when nothing was detected\" which is contradictory.",
+          "why_it_matters": "Implementers may either force the user to select at least one tool (even when none are desired) or allow an empty selection, leading to inconsistent UX and potential dead\u2011ends.",
+          "suggested_fix": "Clarify whether an explicit \"none\" option should be allowed, or rephrase to state that the user may accept an empty selection only when no tools are detected."
+        },
+        {
+          "section": "Edge Cases",
+          "category": "needs_clarify",
+          "problem": "The description of key skipping is ambiguous: it says skipping a key keeps an existing env\u2011var, but also that skipping never affects exit code, yet tools may later fail without the key.",
+          "why_it_matters": "Users might think skipping is safe for all tools, leading to silent failures at runtime.",
+          "suggested_fix": "Explicitly state that skipping a key when no env\u2011var exists results in a warning, and that any tool requiring the missing key will later report a runtime error; optionally provide a `--skip\u2011validation` flag if this behavior is intentional."
+        },
+        {
+          "section": "FR-3",
+          "category": "needs_clarify",
+          "problem": "For Claude Desktop, `detect()` returns `location: null` when the shared folder is absent, yet `install()` is described as \"copies only if the shared folder is absent\" without clarifying that it must create the folder.",
+          "why_it_matters": "Implementers might interpret that no copy should occur when `location` is null, leaving the tool without the kit installed.",
+          "suggested_fix": "State that `install()` must create the shared `~/.claude/skills/sdd-multiagent-kit/` directory if it does not exist, then copy the kit files."
+        },
+        {
+          "section": "Edge Cases",
+          "category": "needs_clarify",
+          "problem": "The spec mentions warnings and errors are \"logged\" but does not specify the output stream (stdout vs stderr) or format.",
+          "why_it_matters": "Consistent logging is essential for automated testing and for users to differentiate normal output from diagnostic messages; leaking secret values would violate security constraints.",
+          "suggested_fix": "Require that all warnings, errors, and diagnostic messages be written to `stderr`, and explicitly state that no key values may appear in any log output."
+        },
+        {
+          "section": "FR-5",
+          "category": "objective",
+          "problem": "The acceptance criteria require the adapters to be \"non\u2011stub\", but the spec does not define a concrete test to verify non\u2011stub behavior (e.g., unit tests or integration checks).",
+          "why_it_matters": "Without a measurable test, reviewers cannot automatically confirm that adapters implement real logic, risking placeholder code passing review.",
+          "suggested_fix": "Add a test requirement that each adapter's exported functions return the correct shape on a mock filesystem, or that a CI job runs a smoke\u2011test invoking `detect()`, `install()`, and `confirmEnabled()`."
+        }
+      ],
+      "verdict": "needs_revision"
+    }
+  ],
+  "n_valid": 2
+}
