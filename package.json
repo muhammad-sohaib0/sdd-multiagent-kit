@@ -26,6 +26,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/sdd-multiagent-kit/sdd-multiagent-kit"
+    "url": "https://github.com/muhammad-sohaib0/sdd-multiagent-kit"
+  },
+  "homepage": "https://github.com/muhammad-sohaib0/sdd-multiagent-kit",
+  "bugs": {
+    "url": "https://github.com/muhammad-sohaib0/sdd-multiagent-kit/issues"
   }
 }
