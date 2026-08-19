@@ -8,15 +8,15 @@ This starter set is meant to be adopted as-is or edited once at project start, n
 
 **Article II — Observable Interfaces:** Every unit exposes its behavior through an interface that can be inspected and scripted from the outside — command-line, API, or equivalent. Behavior that can only be observed by reading source code is a defect, not a design choice.
 
-**Article III — Tests Before Implementation:** No implementation code is written before its tests exist, have been reviewed, and are confirmed to fail first. This is enforced through the task ordering in §7.2's `tasks.md`, not left to discipline alone.
+**Article III — Tests Before Implementation:** No implementation code is written before its tests exist, have been reviewed, and are confirmed to fail first. This is enforced through the task ordering in each milestone's `tasks.md`, not left to discipline alone.
 
-**Article IV — Simplicity by Default:** Start with the smallest structure that could work. Anything more requires the documented justification described in §5.4, not a default assumption that more structure is safer.
+**Article IV — Simplicity by Default:** Start with the smallest structure that could work. Anything more requires a documented justification in the milestone's `plan.md`, not a default assumption that more structure is safer.
 
 **Article V — Framework Trust:** Use the tools and frameworks already in play directly. A wrapper around them needs a specific, stated reason to exist.
 
 **Article VI — Real-World Testing:** Prefer real dependencies over mocks wherever practical. Contract tests are written before the implementation they're testing.
 
-**Article VII — Amendment Process:** Changing this constitution requires a written reason for the change and a note on what it might affect downstream. Amendments are logged as ADRs (§8.2), never made silently.
+**Article VII — Amendment Process:** Changing this constitution requires a written reason for the change and a note on what it might affect downstream. Amendments are logged as ADRs under `outputs/history/adr/`, never made silently.
 
 ---
 

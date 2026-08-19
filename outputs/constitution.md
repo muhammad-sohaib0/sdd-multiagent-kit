@@ -18,7 +18,7 @@ No implementation code is written before its tests exist, have been reviewed, an
 
 ## Article IV — Simplicity by Default
 
-Start with the smallest structure that could work. Anything more requires the documented justification described in `PLAN.md` §5.4, not a default assumption that more structure is safer.
+Start with the smallest structure that could work. Anything more requires a documented justification in the milestone's `plan.md`, not a default assumption that more structure is safer.
 
 ## Article V — Framework Trust
 

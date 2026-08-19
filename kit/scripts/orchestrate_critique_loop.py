@@ -384,7 +384,7 @@ def _as_int(v):
     return None
 
 
-def validate_shape(o):
+def validate_shape(o, ps=None):
     """Full validity check for one critic response.
 
     The response must parse into the PLAN.md section-4.3 schema shape — all
@@ -393,6 +393,15 @@ def validate_shape(o):
     file its own validator rejects) — and satisfy the semantic noise rule
     (overall_score < 10 with zero issues is invalid). Numeric scores are
     coerced to int first, so float emissions from critics still count.
+
+    When ps == 1, testability is normalized to 0 ("not assessed in this pass",
+    PLAN.md section 4.2). Free-tier critics routinely ignore that instruction
+    and score the dimension anyway, so it is corrected here rather than treated
+    as invalid: the rule is a scoping convention, not a correctness test, and
+    rejecting an otherwise-good critique over it would discard real signal.
+    Nothing in the section-4.4 stopping conditions reads testability, so this
+    changes no decision — it only stops the log from claiming a runtime was
+    judged when none existed.
     Returns (normalized_object, None) or (None, reason)."""
     if not isinstance(o, dict):
         return None, "not object"
@@ -408,6 +417,8 @@ def validate_shape(o):
             if v is None:
                 return None, f"{k} not numeric"
             flat[k] = v
+        if ps == 1:
+            flat["testability"] = 0
         o["overall_score"] = flat["overall_score"]
         o.setdefault("scores", {})
         for k in ("clarity", "completeness", "edge_case_coverage",
@@ -522,7 +533,7 @@ def run(doc_path, doc_name, ps, rnd, out_dir, env, timeout, round_cap, config_pa
             try:
                 text = call(m, env_map[m["provider"]], prompt, timeout)
                 last_text = text
-                obj, err = extract_json(text, validate_shape)
+                obj, err = extract_json(text, lambda o: validate_shape(o, ps))
                 if obj is not None:
                     print(f"  [{idx}/{len(models)}] {m['model']}: OK score={obj['overall_score']} "
                           f"verdict={obj['verdict']} issues={len(obj['issues'])}", flush=True)

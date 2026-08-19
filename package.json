@@ -10,8 +10,12 @@
     "kit/",
     "bin/",
     "installers/",
+    "docs/",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "!kit/**/__pycache__",
+    "!**/*.pyc"
   ],
   "engines": {
     "node": ">=18"

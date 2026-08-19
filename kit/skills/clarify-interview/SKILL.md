@@ -21,8 +21,10 @@ Turn the compiled `needs_clarify` list into concise questions and fold the answe
 1. Read the compiled list. If it is empty, **skip gracefully and ask nothing**.
 2. Otherwise ask each question concisely; ask only what an AI could not infer. (Start from the brief's open decisions where relevant.)
 3. Fold each answer into the spec. The plan is drafted afterwards, so it reflects the answers by construction.
+4. Log the PHR either way, and **state which of the two empty cases occurred** — `verified empty` (Pass 1 ran and compiled no items) or `not compiled` (Pass 1 did not run, so no list exists). On disk these look identical; only the PHR can tell them apart, and the difference matters — the first means the human genuinely had nothing to answer, the second means nobody asked.
 
 ## Edge cases / rules
 - A folded answer that breaks consistency elsewhere → surfaced again in Pass 2 (a consistency edit, not a second Clarify round; Clarify runs once per milestone).
 - If the human declines or gives an invalid answer → record the refusal in the PHR, drop that question, and note it in the milestone's Out of Scope rather than silently defaulting.
+- An **absent** `needs_clarify.md` is not the same as an empty one. Never record a skipped Clarify as a clean one.
 - Clarify itself runs **once per milestone**.

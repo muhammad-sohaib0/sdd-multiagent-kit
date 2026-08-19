@@ -37,6 +37,8 @@ Deliver the critique engine that M1's master skill points to: the `critique-loop
 
 **FR-4 — Config-driven panel.** Neither script hard-codes a model list; both load `providers.yaml` (M1). `critic_slots` order is the critique order. Model additions are data-only (US-4).
 
+**Pass-1 `testability` normalization.** Because free-tier critics routinely ignore the "emit `testability: 0`" instruction and score the dimension anyway (observed across the bootstrap's own Pass-1 logs), the orchestrator **normalizes `testability` to 0 on every Pass-1 response** after coercing the numeric fields and before the shape check. A non-conforming value is corrected, never treated as invalid: the rule is a scoping convention rather than a correctness test, and rejecting an otherwise-usable critique over it would discard real signal for the sake of tidiness. Pass 2 is untouched — it scores all five dimensions. No stopping condition reads `testability`, so the normalization changes no control flow; it only keeps the logged round honest about which dimensions were actually assessed.
+
 ## Edge Cases & Rules
 
 - **A "round"** = one full concurrent call to the seven-model panel for a given document+pass invocation. A "session" = the agent's repeated invocation sequence for a document+pass (consecutive rounds across invocations, driven by the critique-loop sub-skill). A **"currently-valid critic"** = a critic whose critique passed the validity rule in that round (a member of that round's `critics` array). A round is **"progressing"** when the document changed in response to it or it surfaced at least one issue triaged as genuinely new and actionable; otherwise it is **non-progressing**; two such rounds back-to-back (no progressing round between them) are "consecutive".
