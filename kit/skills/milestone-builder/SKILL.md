@@ -19,6 +19,8 @@ Turn the Requirement Category Checklist and brief into ordered delivery mileston
 - A decision: single-milestone or ordered multi-milestone.
 - For multi-milestone: an ordered list of milestones with a one-line scope each, in dependency order (nothing depends on a future milestone's artifact).
 
+**Write it to `outputs/milestone-breakdown.md`** — a runtime working artifact (not one of the five milestone documents) recording the split decision, the order, and each milestone's dependencies, so a later session can see why the order is what it is. Also create the milestone folders the layout rules below specify.
+
 ## Procedure
 1. Decide whether the project is large enough to need splitting (computational thinking). Small, single-purpose projects stay as **one milestone**.
 2. If splitting, order the milestones so each depends only on what earlier milestones established.

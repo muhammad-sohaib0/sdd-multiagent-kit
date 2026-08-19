@@ -18,6 +18,8 @@ Produce a Requirement Category Checklist specific to this exact project.
 ## Output
 A Markdown table with columns `category | required (base|conditional) | why needed` (or `n/a` for a rejected conditional category, with the reason). Row order: base categories first (in the fixed order Goal, User Scenarios, Functional Requirements, Edge Cases & Rules, Out of Scope, Acceptance Criteria), then conditional categories in the order derived.
 
+**Write it to `outputs/requirement-checklist.md`.** It is a runtime working artifact, not one of the five milestone documents: `specify` reads it for every milestone, and the Structural Completeness Gate measures each spec against it, so it must be on disk at a fixed path rather than held in the session.
+
 ## Procedure
 1. Read the brief. If it is empty, **HALT and ask the user for a brief**; never fabricate one.
 2. Include the six base categories unconditionally.

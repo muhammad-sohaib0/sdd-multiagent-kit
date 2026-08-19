@@ -27,7 +27,7 @@ None of the kit's automation exists yet to run its own process. There is no `npm
 
 It will be tempting to cut corners on the one build nobody else will ever see the inside of. That temptation is exactly why this section exists. During the bootstrap run:
 
-- The full two-pass critique loop runs, with all six critics, exactly as specified in `PLAN.md` §4.2 — no reduced panel, no skipped rounds.
+- The full two-pass critique loop runs, with every critic on the panel, exactly as specified in `PLAN.md` §4.2 — no reduced panel, no skipped rounds. (The panel was six models when this recipe was written; ADR-001 and ADR-003 revised it to the seven models `PLAN.md` §4.1 now fixes. "Every critic on the panel" is the binding rule, whatever the panel's current size.)
 - The Structural Completeness Gate and the Simplicity Gate in `PLAN.md` §5.3 and §5.4 are not waived. A milestone with a missing section, or with an unjustified extra layer of complexity, is blocked, the same as it would be for anyone else's project — including, pointedly, any temptation to over-build the critique engine itself before it's proven necessary.
 - Every milestone produces the full five-document set from `PLAN.md` §7.2 — `plan.md` and `tasks.md` included, not just spec, workflow, and tests.
 - PHRs and ADRs are logged for real, per `PLAN.md` §8, even though it can feel unnecessary to log decisions about a project only its own builder will read at first. That log is exactly what a future contributor will need.
@@ -43,6 +43,33 @@ Successfully building the kit is not, by itself, proof that the kit works — a 
 
 That is the kit's own Stranger Test, run against the whole system rather than a single milestone. Passing it is what actually confirms the design works, not the fact that it managed to describe itself correctly.
 
+**Status: run and passed, 2026-08-20.** `sdd-setup` was used to install the finished
+kit, and a fresh zero-context session was handed an unrelated brief — a
+grocery-chain stock-reconciliation CLI, with no connection to SDD, agent skills, or
+this plan. It produced a correct four-milestone dependency-ordered breakdown and a
+complete five-document set for the first milestone. The session that built the kit
+did not run the test, because knowing the intended answer is exactly the
+contamination this section warns about.
+
+The test also did what §1 predicted it might: it exposed **13 real gaps** in the
+kit — three outright contradictions (G1 was literally unsatisfiable as written),
+three artifacts the pipeline writes but never gave a path, five rules that three
+documents must agree on but nothing defined, and two places where enforcement was
+weaker than the constitution claimed. Every one was invisible from inside the
+bootstrap, because its author knew conventions the documents never stated. All are
+fixed. Full record: `outputs/critique-log/stranger-test-whole-system.md`.
+
 ## 6. Lifecycle of This Document
 
 This document has a natural end point. Once the bootstrap run succeeds and the kit is self-hosting, this file has done its job — it is not part of the kit's ongoing operation and nothing in the running system depends on it. It stays in the repository under `docs/BOOTSTRAP.md` as a historical record of how the project came to exist, useful to a future contributor who wants to understand the origin of the design, but it is not referenced by the kit itself once v1 is live.
+
+**Status: reached.** The seed was retired on 2026-08-20 per §3.6 —
+`.claude/skills/sdd-multiagent-kit-seed/` and the `.bootstrap/` scratch harness are
+deleted; both still described the pre-ADR-003 six-model panel, so keeping them would
+have left two stale copies of the process in the repository. The kit is self-hosting:
+it installs through `sdd-setup` and runs from `kit/`.
+
+On the two bootstrap documents: this file is the **recipe** (how the first build was
+to be run, kept as the historical instruction set), while `docs/BOOTSTRAP.md` is the
+**record** (what actually happened), which is the file `PLAN.md` §11.2 requires. Both
+are historical and neither is referenced by the running kit.

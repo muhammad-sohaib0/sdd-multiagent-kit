@@ -39,6 +39,13 @@ KEY_NAMES = ["NVIDIA_NIM_API_KEY", "GOOGLE_AISTUDIO_API_KEY", "OLLAMA_API_KEY"]
 KIT_MARK = "name: sdd-multiagent-kit"
 INVOCATION = "Invocation: /sdd"
 
+# A minimal but *valid* kit-marked SKILL.md for fixtures that pre-populate a
+# destination folder. The adapters read the registration marker from inside the
+# '---'-delimited frontmatter block, so a bare `name:` line is NOT kit-marked —
+# a fixture missing the delimiters makes the kit-identity guards read the folder
+# as stale content and re-copy, which is not the state these tests set up.
+KIT_SKILL_STUB = f"---\n{KIT_MARK}\ndescription: fixture\nversion: 0.1.0\n---\n\n# fixture\n"
+
 SECRET_PATTERNS = [
     re.compile(r"sk-[A-Za-z0-9]{20,}"),
     re.compile(r"AIza[0-9A-Za-z_-]{35}"),
@@ -240,7 +247,7 @@ class NT1AdapterInterface(unittest.TestCase):
         home = tempfile.mkdtemp(prefix="m3home-")
         shared = os.path.join(home, ".claude", "skills", "sdd-multiagent-kit")
         os.makedirs(shared)
-        open(os.path.join(shared, "SKILL.md"), "w").write(KIT_MARK + "\n")
+        write_file(os.path.join(shared, "SKILL.md"), KIT_SKILL_STUB)
         d = probe(os.path.join(INSTALLERS, "opencode.js"), home, "detect")
         self.assertIs(d["installed"], False, "no opencode signal must mean not installed")
         self.assertEqual(d["location"], shared, "populated kit folder must still be reported")
@@ -424,7 +431,7 @@ class NT4LocationsAndTrigger(unittest.TestCase):
         # install copies only if the shared folder is not kit-populated
         shared = os.path.join(home, ".claude", "skills", "sdd-multiagent-kit")
         os.makedirs(shared)
-        write_file(os.path.join(shared, "SKILL.md"), KIT_MARK + "\n")
+        write_file(os.path.join(shared, "SKILL.md"), KIT_SKILL_STUB)
         marker = os.path.join(shared, "config", "providers.yaml")
         os.makedirs(os.path.dirname(marker))
         open(marker, "w").write("version: 1\n# MARKERXYZ\n")
@@ -469,7 +476,7 @@ class NT4LocationsAndTrigger(unittest.TestCase):
         # install no-op only when the shared folder is kit-marked
         shared = os.path.join(home, ".claude", "skills", "sdd-multiagent-kit")
         os.makedirs(shared)
-        write_file(os.path.join(shared, "SKILL.md"), KIT_MARK + "\n")
+        write_file(os.path.join(shared, "SKILL.md"), KIT_SKILL_STUB)
         marker = os.path.join(shared, "config", "providers.yaml")
         os.makedirs(os.path.dirname(marker))
         open(marker, "w").write("version: 1\n# MARKERXYZ\n")
@@ -535,6 +542,14 @@ class NT5PackageAndSecrets(unittest.TestCase):
         self.assertIn("installers/", files)
         self.assertIn("LICENSE", files)
         self.assertIn("README.md", files)
+        # docs/ must ship: README links docs/GUIDE.md and the wizard prints the
+        # reserved guide location there, so both dangle in a global install
+        # unless the directory is in the allowlist.
+        self.assertIn("docs/", files)
+        # Python bytecode must not ship. npm honors negations inside "files";
+        # a .npmignore cannot override an allowlist, so the exclusion lives here.
+        self.assertIn("!kit/**/__pycache__", files)
+        self.assertIn("!**/*.pyc", files)
 
     def test_no_secret_writes_anywhere(self):
         scan_dirs = [os.path.join(REPO, "bin"), os.path.join(REPO, "installers"),

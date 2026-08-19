@@ -68,9 +68,25 @@ def single_slot_config(key_env="TEST_KEY"):
     }
 
 
+def model_id(entry):
+    """Normalize a providers.yaml `models:` entry to its model-id string.
+
+    The §4.3 schema form is a map (`- id: <model>`), which is what the shipped
+    config uses; the orchestrator also accepts a plain scalar (`- <model>`).
+    Both forms reach here, so tests compare ids rather than raw entries."""
+    if isinstance(entry, dict):
+        return entry.get("id")
+    return entry
+
+
 def write_temp_config(data):
     """Serialize the small config dict as YAML text (the engine's own reader
-    parses YAML, not JSON) and return the temp file path."""
+    parses YAML, not JSON) and return the temp file path.
+
+    A `models:` entry is re-emitted in the form it came in — map entries as
+    `- id: <model>` (the §4.3 schema form) and scalars as `- <model>` — so a
+    config read from the shipped file round-trips unchanged, and both accepted
+    forms stay covered by the suite."""
     fd, path = tempfile.mkstemp(suffix=".yaml")
     with os.fdopen(fd, "w") as f:
         f.write("version: 1\n")
@@ -81,7 +97,10 @@ def write_temp_config(data):
             f.write(f"    tier: {p.get('tier', 'free')}\n")
             f.write("    models:\n")
             for m in p["models"]:
-                f.write(f"      - {m}\n")
+                if isinstance(m, dict):
+                    f.write(f"      - id: {m['id']}\n")
+                else:
+                    f.write(f"      - {m}\n")
         f.write("critic_slots:\n")
         for s in data["critic_slots"]:
             f.write(f"  - model: {s['model']}\n")
@@ -130,7 +149,7 @@ class NT1ConfigDriven(unittest.TestCase):
         slots = cfg["critic_slots"]
         self.assertEqual([s["model"] for s in slots], REAL_SLOTS)
         self.assertEqual([s["provider"] for s in slots], ["nvidia-nim"] * 5 + ["google-ai-studio", "ollama-cloud"])
-        models = {p["id"]: p["models"] for p in cfg["providers"]}
+        models = {p["id"]: [model_id(m) for m in p["models"]] for p in cfg["providers"]}
         for s in slots:
             self.assertIn(s["model"], models[s["provider"]])
             self.assertIn("key_env", {p["id"]: p for p in cfg["providers"]}[s["provider"]])
@@ -169,6 +188,49 @@ class NT1ConfigDriven(unittest.TestCase):
                          REAL_SLOTS + ["brand-new-model-x"], "critique order = critic_slots order")
         os.unlink(p)
 
+    def test_both_model_entry_schema_forms_accepted(self):
+        # The §4.3 schema form is the map (`- id: X`) the shipped config uses;
+        # the loader also accepts a plain scalar (`- X`). Both must resolve for
+        # the slot-membership check, so neither form can drift out of coverage.
+        for label, entries in (("map", [{"id": "m-a"}, {"id": "m-b"}]),
+                               ("scalar", ["m-a", "m-b"]),
+                               ("mixed", [{"id": "m-a"}, "m-b"])):
+            cfg = {
+                "version": 1,
+                "providers": [{"id": "p1", "key_env": "NVIDIA_NIM_API_KEY",
+                               "tier": "free", "models": entries}],
+                "critic_slots": [{"model": "m-a", "provider": "p1"},
+                                 {"model": "m-b", "provider": "p1"}],
+            }
+            p = write_temp_config(cfg)
+            rc, out_dir, _sleeps, calls = run_round(p, f"nt1form{label}")
+            self.assertEqual(rc, 0, f"{label} form must load")
+            self.assertEqual(sorted(calls), ["m-a", "m-b"], f"{label} form must call both slots")
+            os.unlink(p)
+
+    def test_shipped_config_uses_the_schema_map_form(self):
+        # Pins the shipped config to the §4.3 map form so a silent switch to
+        # bare scalars (or a helper that emits Python reprs) is caught here
+        # rather than surfacing as an unexplained exit-2 later.
+        cfg, err = oc.load_yaml(open(REAL_CONFIG).read())
+        self.assertIsNone(err)
+        for p in cfg["providers"]:
+            for m in p["models"]:
+                self.assertIsInstance(m, dict, "shipped models must use '- id: <model>'")
+                self.assertIsInstance(m.get("id"), str)
+
+    def test_config_round_trips_through_the_suite_helper(self):
+        # write_temp_config must re-emit what load_yaml read; a lossy helper
+        # was the original cause of this suite drifting from the shipped config.
+        cfg, _ = oc.load_yaml(open(REAL_CONFIG).read())
+        p = write_temp_config(cfg)
+        again, err = oc.load_yaml(open(p).read())
+        os.unlink(p)
+        self.assertIsNone(err)
+        self.assertEqual([model_id(m) for pr in again["providers"] for m in pr["models"]],
+                         [model_id(m) for pr in cfg["providers"] for m in pr["models"]])
+        self.assertEqual([s["model"] for s in again["critic_slots"]], REAL_SLOTS)
+
     def test_critics_ordered_by_slot_not_completion(self):
         # Deterministic slot order even when completion order differs.
         real_sleep = time.sleep
@@ -192,6 +254,48 @@ class NT1ConfigDriven(unittest.TestCase):
 
 class NT2ValiditySplit(unittest.TestCase):
     """NT2 — R1/R2 validity rule; shape in the validator, semantic rule in the orchestrator."""
+
+    def _with_testability(self, ps, emitted):
+        """A valid critique whose four objective dims are 7 and testability is `emitted`."""
+        c = make_critique("m", score=7, ps=ps)
+        c["scores"]["testability"] = emitted
+        return c
+
+    def test_pass1_normalizes_testability_to_zero(self):
+        # PLAN.md §4.2: testability is out of Pass-1 scope, so a Pass-1 response
+        # carries testability 0 ("not assessed in this pass"). Free-tier critics
+        # ignore the instruction routinely, so the engine normalizes rather than
+        # rejecting — losing a whole critique over a scoping convention would
+        # trade real signal for tidiness.
+        for emitted in (7, 9, 10, 0):
+            o, err = oc.validate_shape(self._with_testability(1, emitted), 1)
+            self.assertIsNone(err, f"testability {emitted} must not invalidate a Pass-1 critique")
+            self.assertEqual(o["scores"]["testability"], 0,
+                             f"Pass-1 testability {emitted} must normalize to 0")
+            # the other four dimensions and the holistic score are untouched
+            self.assertEqual(o["scores"]["clarity"], 7)
+            self.assertEqual(o["scores"]["internal_consistency"], 7)
+            self.assertEqual(o["overall_score"], 7)
+
+    def test_pass2_preserves_testability(self):
+        # Pass 2 scores every dimension at full strictness — no normalization.
+        for emitted in (7, 0, 10):
+            o, err = oc.validate_shape(self._with_testability(2, emitted), 2)
+            self.assertIsNone(err)
+            self.assertEqual(o["scores"]["testability"], emitted,
+                             "Pass 2 must not rewrite testability")
+
+    def test_pass1_written_log_carries_zero_testability(self):
+        # End-to-end: a mocked Pass-1 round whose critics all score testability
+        # 8 must land on disk as 0, and the file must still pass the validator.
+        rc, out_dir, _s, _c = run_round(REAL_CONFIG, "nt2norm", ps=1)
+        self.assertEqual(rc, 0)
+        data = json.load(open(os.path.join(out_dir, "pass1-round1-nt2norm.json")))
+        self.assertTrue(data["critics"], "round must have produced critics")
+        for c in data["critics"]:
+            self.assertEqual(c["scores"]["testability"], 0,
+                             f"{c['model']} wrote a non-zero Pass-1 testability")
+        self.assertEqual(vc.validate_envelope(data), [])
 
     def _run_validator(self, path, stdin=False):
         cmd = [sys.executable, os.path.join(KIT_SCRIPTS, "validate_critique.py")]

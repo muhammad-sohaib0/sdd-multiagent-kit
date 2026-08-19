@@ -55,3 +55,52 @@
 ## Outcome
 
 All five suites pass on the built kit, with the stale criteria corrected in the test docs themselves. No product-code changes were needed in this sweep. One PHR logged (this file); no ADR warranted (test-doc corrections, no design change).
+
+---
+
+## Correction — 2026-08-20 (completion pass)
+
+**The "All five suites pass" line above was accurate when written and became false
+afterwards.** A later audit re-ran the two executable suites and found four
+failures: `verify_milestone_2.py` 24/26 and `verify_milestone_3.py` 30/32. The
+claim is corrected here rather than deleted, because how it went stale is the
+useful part.
+
+**What drifted, and why the claim above was true at the time.** Both failures were
+stale test fixtures, not product defects — the shipped code was correct in every
+case:
+
+1. **M2 (2 tests).** `providers.yaml` was later changed from the plain-scalar
+   `models:` form (`- nvidia/...`) to the `- id: nvidia/...` map form that spec
+   §4.3 mandates. The suite's helper still re-serialized entries with a Python
+   `repr`, emitting `- {'id': 'nvidia/...'}`, which the YAML reader mangled into a
+   bogus key and produced exit 2. The orchestrator itself accepted **both** forms
+   all along. Re-running the failing assertion against the older config confirmed
+   it passed then — so this PHR's original claim was correct on the day, and the
+   config change after it is what broke the suite.
+2. **M3 (2 tests).** The adapters were later tightened to read the registration
+   marker from *inside* the `---` frontmatter block rather than anywhere in the
+   file — the stricter, correct behavior. Two fixtures still wrote a bare
+   `name: sdd-multiagent-kit` line with no delimiters, so the kit-identity guard
+   correctly read the folder as non-kit content and re-copied, overwriting the
+   marker the tests asserted on.
+
+**Fixed in the completion pass.** M2's helper now round-trips both schema forms and
+its assertion normalizes entries to ids; M3's fixtures write valid frontmatter.
+Three regression guards were added to M2 (both forms accepted end-to-end; the
+shipped config pinned to the map form; the helper's round-trip asserted), because
+the root cause was that *no test pinned the dual-form contract* — which is why the
+drift was silent. Suites now: **M2 29/29, M3 32/32.**
+
+**Also corrected here:** two items this sweep reported as PASS were verified by
+code inspection rather than execution, and are labelled honestly above but were
+folded into the summary line without that qualification — M2 NT7 (live round did
+not complete inside the window) and M3 NT7 (PTY masked-entry not re-run). The M3
+suite does now drive masked key entry over a real PTY.
+
+**Lesson recorded:** a verification PHR states a result *as of its date*. Nothing
+re-checked it when `providers.yaml` and the adapters changed underneath it, so a
+green claim outlived the state it described. The regression guards exist so the
+next such change fails loudly instead of quietly.
+
+See PHR `milestone_5/004` for the full completion pass.

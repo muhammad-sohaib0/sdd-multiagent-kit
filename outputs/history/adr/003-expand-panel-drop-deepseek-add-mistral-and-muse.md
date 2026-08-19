@@ -20,3 +20,20 @@ The critique panel ran seven models but one slot — `deepseek-ai/deepseek-v4-fl
 - Rounds now run five NIM critics concurrently; the stagger (max 12s) plus per-model timeouts keeps rounds bounded by the slowest *reachable* critic instead of a persistently 504-ing one.
 - Panel labs: NVIDIA (nemotron-ultra, gpt-oss, glm-5.2, mistral-nemotron, muse-glimmer-30b), Google (gemini), MiniMax (minimax) — two provider keys are now NVIDIA NIM models; lab diversity is reduced vs. the six-lab baseline, accepted as the maintainer's explicit choice.
 - ADR-001's historical record remains; its DeepSeek slot is superseded by this ADR.
+
+## Errata — numbers superseded after this ADR was written
+
+This ADR records the decision as taken. Two of its figures were tuned upward
+later in the same bootstrap and no longer match the shipped engine. The decision
+itself (panel composition, stagger-plus-adaptive-backoff as the 429 mitigation)
+stands; only these magnitudes changed:
+
+| Recorded above | Shipped value | Where |
+|---|---|---|
+| Stagger `(index-1) × 2s` | `(slot_index-1) × 4s` | `kit/scripts/orchestrate_critique_loop.py:515` |
+| "≤3 tries per round" | ≤5 transport tries (unparseable stays ≤2 attempts) | `kit/scripts/orchestrate_critique_loop.py:521` |
+
+The 4s stagger was adopted when M2 round 6 caught the engine (2s) contradicting
+its own spec (4s) — see PHR `milestone_2/000`. The ≤5 transport budget is the
+figure `PLAN.md` §4.3 and the M2 spec fix as authoritative. Where this ADR and
+those documents disagree on a number, they govern.

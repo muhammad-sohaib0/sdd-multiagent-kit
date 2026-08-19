@@ -22,31 +22,97 @@ Thanks for contributing! This project values small, disciplined, well-documented
 
 The installer supports tools through one adapter each, in `installers/<tool>.js`.
 
-1. **Create the adapter** `installers/mytool.js` exporting three functions:
-   - `detect()` — filesystem-only check that the tool is present → `{ installed: bool, location: string }`.
-   - `install(kitDir)` — copy `kit/` to the tool's config location (create if absent) → the destination path.
-   - `confirmEnabled()` — verify the trigger is active → `bool`.
-2. **Registration is automatic** — there is no central registry to edit. The wizard discovers every `.js` file directly under `installers/` at startup (`bin/setup-wizard.js`), validates that it exports `name`, `detect`, `install`, and `confirmEnabled`, and errors on a duplicate display `name`. Dropping the file in is the whole registration.
+1. **Create the adapter** `installers/mytool.js` exporting one string and three functions. All four exports are mandatory — the wizard validates them at startup and exits `2` if any is missing, so an incomplete adapter blocks *every* tool, not just yours:
+   - `name` — the display name string (e.g. `My Tool`). This is the tool's identifier throughout the wizard UI: the detected list, the selection prompt, and the per-tool result line. Two adapters exporting the same `name` is a configuration error.
+   - `detect()` — filesystem-only check (no network) → `{ installed: bool, location: string|null }`. The two fields are **independent**: `installed` means the *tool* is present (its config directory or its executable on PATH), while `location` is the absolute path of the kit folder and is non-null **only** when that folder is already populated. Catch every filesystem error and return `installed: false` rather than throwing — detection must never abort the wizard.
+   - `install(kitDir)` — copy the whole `kit/` tree to the tool's location (creating the directory if absent) → the absolute destination path. On failure throw an `Error` whose one-line message is prefixed with your tool id (e.g. `mytool: permission denied /path`); the wizard prints it, marks that tool failed, and continues with the others.
+   - `confirmEnabled()` — takes no arguments and re-checks the filesystem itself → `{ installed: bool, location: string|null }`, the **same shape as `detect()`**. Returning a bare boolean here is the most common mistake: the wizard tests `result.installed === true`, so a `true` return reports WARN. Confirm registration by checking that the copied `SKILL.md` carries `name: sdd-multiagent-kit` **inside its `---` frontmatter block**, not merely somewhere in the file.
+2. **Registration is automatic** — there is no central registry to edit. The wizard discovers every `.js` file directly under `installers/` at startup (`bin/setup-wizard.js`), validates the four exports, and errors on a duplicate display `name`. Dropping the file in is the whole registration.
 3. **Document it** in `docs/ARCHITECTURE.md` (§5 install locations) and the README table.
 4. **Add tests** mirroring the existing per-adapter tests (interface, location, trigger, graceful failure).
 
 ### Example
 
+Resolve install paths from `os.homedir()`, not `process.cwd()` — the kit installs per user, not per working directory. This example is a complete, working adapter; copy it and change `FOLDER`'s parent path to your tool's convention.
+
 ```js
 "use strict";
-const fs = require("fs"), path = require("path");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+
 const FOLDER = "sdd-multiagent-kit";
-function destDir() { return path.join(process.cwd(), ".mytool", "skills", FOLDER); }
-exports.detect = () => ({ installed: fs.existsSync(destDir()), location: destDir() });
-exports.install = (kitDir) => {
-  fs.mkdirSync(destDir(), { recursive: true });
-  for (const e of fs.readdirSync(kitDir, { withFileTypes: true }))
-    if (e.isDirectory()) fs.cpSync(path.join(kitDir, e.name), path.join(destDir(), e.name), { recursive: true });
-    else fs.copyFileSync(path.join(kitDir, e.name), path.join(destDir(), e.name));
-  return destDir();
+
+exports.name = "My Tool";
+
+function destDir() {
+  return path.join(os.homedir(), ".mytool", "skills", FOLDER);
+}
+
+function toolPresent() {
+  try {
+    return fs.existsSync(path.join(os.homedir(), ".mytool"));
+  } catch {
+    return false;
+  }
+}
+
+function copyDir(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const ent of fs.readdirSync(src, { withFileTypes: true })) {
+    const s = path.join(src, ent.name);
+    const d = path.join(dest, ent.name);
+    if (ent.isDirectory()) copyDir(s, d);
+    else fs.copyFileSync(s, d);
+  }
+}
+
+// The registration marker lives in the '---'-delimited block at the top of
+// SKILL.md, so the check must look inside that block, not anywhere in the file.
+function frontmatter(text) {
+  const m = text.match(/^---\s*\n([\s\S]*?)\n---/);
+  return m ? m[1] : "";
+}
+
+function kitMarked(dest) {
+  const master = path.join(dest, "SKILL.md");
+  try {
+    return fs.existsSync(master) &&
+      /name:\s*sdd-multiagent-kit/.test(frontmatter(fs.readFileSync(master, "utf8")));
+  } catch {
+    return false;
+  }
+}
+
+exports.detect = function () {
+  try {
+    const dest = destDir();
+    const populated = fs.existsSync(dest) && fs.readdirSync(dest).length > 0;
+    return { installed: toolPresent(), location: populated ? dest : null };
+  } catch (e) {
+    console.warn(`mytool: detect() error (${e.message}) — treated as not installed`);
+    return { installed: false, location: null };
+  }
 };
-exports.confirmEnabled = () => fs.existsSync(path.join(destDir(), "SKILL.md"));
+
+exports.install = function (kitDir) {
+  try {
+    const dest = destDir();
+    copyDir(kitDir, dest);
+    return dest;
+  } catch (e) {
+    throw new Error(`mytool: ${e.message}`);
+  }
+};
+
+exports.confirmEnabled = function () {
+  const dest = destDir();
+  const installed = kitMarked(dest);
+  return { installed, location: installed ? dest : null };
+};
 ```
+
+Verify your adapter end to end before opening a pull request — drop it into `installers/` and run `sdd-setup`. It must appear in the detected list under its `name` and report `[OK]`, not `[WARN]`.
 
 ## Worked example B — add a new critic model
 

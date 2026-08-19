@@ -74,14 +74,14 @@ The loop runs twice around the Clarify phase, not once, because polishing wordin
 
 ### 4.3 Critique Response Schema
 
-Every critic responds only in this structure — a strict rubric, never free-form praise:
+Every critic responds only in this structure — a strict rubric, never free-form praise. The example below is a **Pass-2** response, so all five dimensions carry real scores:
 
 ```json
 {
   "model": "z-ai/glm-5.2",
   "document": "plan_milestone_2",
   "round": 3,
-  "pass": 1,
+  "pass": 2,
   "overall_score": 7,
   "scores": {
     "clarity": 8,
@@ -109,6 +109,8 @@ Every critic responds only in this structure — a strict rubric, never free-for
 }
 ```
 
+**The one Pass-1 difference.** In a `"pass": 1` response every field above is identical except `testability`, which is **always `0`** — "not assessed in this pass", per §4.2. The key is required by the schema, so it cannot be omitted; scoring it would mean judging a runtime that does not exist yet. Because free-tier critics do not reliably follow that instruction, the engine **normalizes `testability` to 0 on every Pass-1 response** rather than rejecting the critic over it: the rule is a scoping convention, not a correctness test, and losing a whole critique to it would trade real signal for tidiness. Nothing in §4.4's stopping conditions reads `testability`, so the normalization changes no decision — it only keeps the logged data honest about what was actually assessed.
+
 **Validity rule:** A response is invalid, and that critic is excluded from that round only, if `overall_score` is below 10 while `issues` is empty — a low score with nothing to fix is not a critique, it's noise — or if the response can't be parsed into this shape after at most one retry (≤2 attempts). A failed critic is excluded from that round only and participates again next round — no critic is ever excluded across rounds — and a round with zero valid critics never counts as advancement (the round is logged and escalated; see §4.4). The loop never stops silently just because scores aren't 10 — only because a specific voice stopped producing usable signal.
 
 ### 4.4 Stopping Conditions
@@ -119,7 +121,36 @@ Every critic responds only in this structure — a strict rubric, never free-for
 | Pass 2: every currently-valid critic returns a perfect score | Advance to the Stranger Test |
 | A round with `n_valid == 0` (no usable signal) | Never counts as advancement — the round is logged and the escalation note `escalation: round produced no valid critics` is printed |
 | A failed or invalid critic | Excluded from that round only; participates again next round — no cross-round exclusion |
+| **Two consecutive non-progressing rounds** | Escalate to the human with a full summary — the loop has asymptoted and must not spin silently |
 | Round count reaches the safety cap (default 25, configurable, can be disabled) | Escalate to the human with a full summary — never stop without telling anyone |
+
+**Why a non-progression condition is necessary.** A perfect-score round is the
+*ideal* Pass-2 exit, not a guaranteed one. Free-tier critics re-raise: past a
+certain point a round returns the same objections it returned before — often
+verbatim — while the scores sit in the 6–8 band and never climb. Waiting for
+all-10s in that state is not rigor, it is an unbounded loop, and the round cap
+alone would burn 25 rounds before admitting it. So the loop watches for
+*progress*, not just for scores.
+
+**Definition.** A round is **progressing** when either the document changed in
+response to it, or it surfaced at least one issue the adjudicator triaged as
+genuinely new and actionable. Otherwise it is **non-progressing**. Two are
+**consecutive** when no progressing round falls between them. Progression is
+tracked at the **session** level — the adjudicator's repeated invocations for one
+document and pass — because a single invocation is one round and cannot see its
+own predecessor.
+
+**What escalation means here.** Escalation is a message to the human containing
+the full summary: the rounds run, the issues accepted and applied, the issues
+rejected *with their written reasons*, and the evidence that the remaining flags
+are repeats rather than new findings. The human disposes of it. This is the point
+of the maker/checker separation in §4.1: the drafter may report that the panel has
+stopped producing new signal, but it may not quietly decide on its own that its
+own document is finished. A conclusion recorded without that summary is a silent
+stop, and silent stops are what every rule in this section exists to prevent.
+
+Non-progression never overrides a gate or the Stranger Test (§4.5). Those are
+frozen nodes; only the *quality-scoring* loop can exit this way.
 
 ### 4.5 Grounding Anchor — the Stranger Test
 
@@ -172,17 +203,19 @@ Every project built with this kit gets a `constitution.md` — a short set of pr
 
 **Article II — Observable Interfaces:** Every unit exposes its behavior through an interface that can be inspected and scripted from the outside — command-line, API, or equivalent. Behavior that can only be observed by reading source code is a defect, not a design choice.
 
-**Article III — Tests Before Implementation:** No implementation code is written before its tests exist, have been reviewed, and are confirmed to fail first. This is enforced through the task ordering in §7.2's `tasks.md`, not left to discipline alone.
+**Article III — Tests Before Implementation:** No implementation code is written before its tests exist, have been reviewed, and are confirmed to fail first. This is enforced through the task ordering in each milestone's `tasks.md`, not left to discipline alone.
 
-**Article IV — Simplicity by Default:** Start with the smallest structure that could work. Anything more requires the documented justification described in §5.4, not a default assumption that more structure is safer.
+**Article IV — Simplicity by Default:** Start with the smallest structure that could work. Anything more requires a documented justification in the milestone's `plan.md`, not a default assumption that more structure is safer.
 
 **Article V — Framework Trust:** Use the tools and frameworks already in play directly. A wrapper around them needs a specific, stated reason to exist.
 
 **Article VI — Real-World Testing:** Prefer real dependencies over mocks wherever practical. Contract tests are written before the implementation they're testing.
 
-**Article VII — Amendment Process:** Changing this constitution requires a written reason for the change and a note on what it might affect downstream. Amendments are logged as ADRs (§8.2), never made silently.
+**Article VII — Amendment Process:** Changing this constitution requires a written reason for the change and a note on what it might affect downstream. Amendments are logged as ADRs under `outputs/history/adr/`, never made silently.
 
 These are immutable within a project once adopted — no milestone's critique loop is allowed to argue its way around them; they're a frozen node in the sense §4.5 uses that term. They can only change through the amendment process in Article VII, which is itself deliberately slower and more visible than any single milestone's revision cycle.
+
+**A note on the article wording.** The seven articles above are what `constitution.template.md` ships to every project, so they are written to stand alone: they refer to a milestone's own `tasks.md` / `plan.md` and to `outputs/history/adr/`, never to a section number of *this* brief. A user who installs the kit never receives this document, so an article citing "§5.4" would be a dangling reference in their repository. The rest of this brief may cross-reference itself freely; these seven paragraphs may not.
 
 ---
 
@@ -257,19 +290,23 @@ Constitution amendments (§6, Article VII) always produce an ADR; there is no si
 ```
 outputs/
 ├── constitution.md
+├── requirement-checklist.md          working artifact — the §5.1 Requirement Category Checklist
+├── milestone-breakdown.md            working artifact — the §7.5 split, order, and dependencies
 ├── milestones/
 │   ├── milestone_1/
 │   │   ├── spec_milestone_1.md
 │   │   ├── plan_milestone_1.md
 │   │   ├── tasks_milestone_1.md
 │   │   ├── workflow_milestone_1.md
-│   │   └── tests_milestone_1.md
+│   │   ├── tests_milestone_1.md
+│   │   └── needs_clarify.md          working artifact — the compiled §4.2 Clarify question set
 │   ├── milestone_2/
 │   │   └── (same five-document set)
 │   └── ...
 ├── history/
 │   ├── prompts/
-│   │   └── milestone_N/...
+│   │   ├── milestone_0/...           pre-milestone phases: CT scan, constitution, breakdown
+│   │   └── milestone_N/...           (single-milestone projects: single-milestone/)
 │   └── adr/
 │       └── NNN-decision-title.md
 └── critique-log/
@@ -277,7 +314,18 @@ outputs/
     └── stranger-test-milestone-N.md
 ```
 
-For a project small enough that the computational thinking scan decides against splitting into milestones, the same five documents sit at the root of `outputs/` instead, following every other rule exactly the same way.
+**Five documents vs. working artifacts.** The five-document set (§7.2) is the milestone's
+deliverable — what the Stranger Test receives and what a build is derived from. The four
+files marked *working artifact* are not part of that set; they are process state the pipeline
+writes so a later phase, or a later session, can read what an earlier phase decided instead
+of re-deriving it. They still have fixed paths, because a working artifact nobody can find is
+process state that lives only in one session's memory.
+
+**Pre-milestone PHRs.** The CT scan, constitution adoption, and milestone breakdown all run
+before milestone 1 exists, so their PHRs go in `milestone_0/`. PHR numbering restarts inside
+each folder; ADR numbering is global across the project and never resets.
+
+For a project small enough that the computational thinking scan decides against splitting into milestones, the same five documents sit at the root of `outputs/` instead (`spec.md`, `plan.md`, `tasks.md`, `workflow.md`, `tests.md` — no `_milestone_N` suffix), with `needs_clarify.md` beside them and milestone PHRs under `history/prompts/single-milestone/`, following every other rule exactly the same way.
 
 ---
 
