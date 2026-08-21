@@ -115,3 +115,45 @@ is precisely how the duplicated literal survived unnoticed.
   publish time, so `CONTRIBUTING.md` names it as the first thing to check.
 - The retired path is not merely deprecated but removed: no token, no manual publish
   step, and `AGENTS.md` says so, so a future agent does not reintroduce one.
+
+## Addendum — CI and publish must run the same npm
+
+**Found by the first real run on `main`.** The merge triggered `publish.yml`, which
+failed — not on authentication, as expected, but on the **packaging check**, with
+`TypeError: Cannot read properties of undefined (reading 'files')`.
+
+`npm pack --json` has two output shapes, and the change is silent:
+
+```
+npm <= 11:  [ { id, name, files: [{path, size}, …] } ]
+npm >= 12:  { "<pkg-name>": { id, name, files: […] } }
+```
+
+Reading `[0].files` works on the first and throws on the second. Verified by installing
+npm 12.0.2 to a temp prefix and comparing: `Object.keys()` is `["sdd-multiagent-kit"]`
+and `[0]` is `undefined`.
+
+**Why CI did not catch it.** `ci.yml` used Node 22's bundled npm (10.9.8); `publish.yml`
+runs `npm install -g npm@latest` because trusted publishing requires ≥ 11.5.1. The two
+workflows therefore exercised different CLIs, and **"CI is green" stopped implying
+"publish will work"** — the one guarantee the two-workflow split is supposed to provide.
+That gap, not the shape change, is the actual defect: npm was always free to change its
+own output format.
+
+**Two corrections, because one would have left the gap open:**
+
+1. `scripts/check-package-contents.js` normalizes both shapes and is called by *both*
+   workflows, replacing two inline copies that had already diverged. It carries a
+   `--selftest` exercising both shapes with no npm installed, since the failure mode was
+   precisely a shape CI could not see.
+2. `ci.yml` now upgrades npm to match `publish.yml`, so a future npm change fails on a
+   branch rather than on `main`.
+
+**Same defect class as the version duplication this ADR already records:** one rule
+written down twice, in two files, drifting apart with nothing asserting they agree. The
+first instance was `0.1.0` in 17 places; this was the packaging contract in two. The
+lesson generalizes — a shared, executable definition beats two copies and a convention.
+
+Also verified while investigating: `npm view <pkg>@<ver> version` behaves identically on
+npm 11 and 12 across all three decision cases, so the publish decision itself was never
+at risk.

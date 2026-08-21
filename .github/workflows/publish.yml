@@ -139,21 +139,7 @@ jobs:
 
       - name: Packaging check
         if: steps.decide.outputs.publish == 'true'
-        run: |
-          npm pack --dry-run --json > /tmp/pack.json
-          node -e '
-            const files = require("/tmp/pack.json")[0].files.map((f) => f.path);
-            const fail = [];
-            for (const dir of ["kit/", "bin/", "installers/", "docs/"]) {
-              if (!files.some((f) => f.startsWith(dir))) fail.push(`missing ${dir}`);
-            }
-            for (const f of files) {
-              if (f.endsWith(".pyc") || f.includes("__pycache__")) fail.push(`bytecode shipped: ${f}`);
-              if (f.startsWith("scripts/") || f.startsWith(".github/")) fail.push(`repo-only file shipped: ${f}`);
-            }
-            if (fail.length) { for (const f of fail) console.error(`error: ${f}`); process.exit(1); }
-            console.log(`OK: ${files.length} files`);
-          '
+        run: node scripts/check-package-contents.js
 
       # No NODE_AUTH_TOKEN. Auth comes from the OIDC id-token above; provenance
       # is automatic. If this step fails with an auth error, the trusted publisher

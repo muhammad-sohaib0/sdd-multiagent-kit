@@ -4,9 +4,22 @@ All notable changes to the SDD Multi-Agent Kit are documented here. The format f
 
 ## [Unreleased]
 
-Nothing yet. Bump the version with `node scripts/bump-version.js <version>`, move the
-entries below this heading into a new `## [<version>]` section, and merging to `main`
-publishes it — see [CONTRIBUTING.md](CONTRIBUTING.md#releasing).
+### Fixed
+
+- **`publish.yml`'s packaging check crashed under npm 12.** `npm pack --json` has two
+  output shapes — `[{files: […]}]` up to npm 11, and `{"<pkg-name>": {files: […]}}` from
+  npm 12 — so reading `[0].files` throws `TypeError: Cannot read properties of
+  undefined`. It surfaced only after merging, because `ci.yml` ran Node 22's bundled npm
+  10 while `publish.yml` upgrades to npm ≥ 11.5.1 for trusted publishing: **CI green did
+  not imply publish green.** Two fixes, not one — the shape is now normalized in
+  `scripts/check-package-contents.js`, shared by both workflows so they cannot drift
+  again, and `ci.yml` upgrades npm to match `publish.yml` so a change like this fails on
+  a branch instead of on `main`. The script carries a `--selftest` that exercises both
+  shapes without either npm installed.
+
+Bump the version with `node scripts/bump-version.js <version>`, move the entries above
+into a new `## [<version>]` section, and merging to `main` publishes it — see
+[CONTRIBUTING.md](CONTRIBUTING.md#releasing).
 
 ## [0.1.0] — 2026-08-21
 
