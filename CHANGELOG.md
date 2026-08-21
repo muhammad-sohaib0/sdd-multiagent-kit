@@ -4,6 +4,20 @@ All notable changes to the SDD Multi-Agent Kit are documented here. The format f
 
 ## [Unreleased]
 
+Nothing yet. Bump the version with `node scripts/bump-version.js <version>`, move the
+entries below this heading into a new `## [<version>]` section, and merging to `main`
+publishes it — see [CONTRIBUTING.md](CONTRIBUTING.md#releasing).
+
+## [0.1.1] — 2026-08-22
+
+Release-pipeline repairs. **Nothing users install behaves differently** — across the
+shipped tree the only changes from `0.1.0` are the thirteen version strings and this
+changelog entry, verified line by line against the published `0.1.0` tarball. The fixes
+are to the CI and publishing machinery; this version exists to carry them into a release
+that is itself published by that machinery. It is the first release published from GitHub
+Actions, so the first to carry
+[provenance](https://docs.npmjs.com/generating-provenance-statements).
+
 ### Fixed
 
 - **`publish.yml`'s packaging check crashed under npm 12.** `npm pack --json` has two
@@ -31,10 +45,6 @@ All notable changes to the SDD Multi-Agent Kit are documented here. The format f
   already exist (`POST …/trust` is **404** while unpublished — npm has no pending
   publisher, so the first release is necessarily manual), and publishing demands 2FA even
   when the account reports it disabled. See ADR-005 addendum 2.
-
-Bump the version with `node scripts/bump-version.js <version>`, move the entries above
-into a new `## [<version>]` section, and merging to `main` publishes it — see
-[CONTRIBUTING.md](CONTRIBUTING.md#releasing).
 
 ## [0.1.0] — 2026-08-21
 

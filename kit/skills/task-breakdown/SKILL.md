@@ -4,7 +4,7 @@ description: >-
   Task-phase sub-skill. Produces the ordered, executable steps for a milestone
   derived from the plan: exact file paths, dependency order, [P] markers for
   parallel tasks, and tests ordered before the code they verify (Article III).
-version: 0.1.0
+version: 0.1.1
 ---
 
 # Task Breakdown — Ordered Executable Steps

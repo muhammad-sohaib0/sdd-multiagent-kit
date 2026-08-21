@@ -5,7 +5,7 @@ description: >-
   interaction and suggests Architecture Decision Records (ADR) when a decision
   meets the significance test. Every milestone's reasoning is preserved in
   written, human-readable form.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # History Logger — PHR and ADR Records

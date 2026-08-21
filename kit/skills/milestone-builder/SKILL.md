@@ -4,7 +4,7 @@ description: >-
   Builds the dependency-ordered milestone breakdown for a project. Decides
   whether a brief is large enough to need splitting and, if so, orders the
   milestones so nothing ever depends on something not yet established.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # Milestone Builder — Split and Order

@@ -4,7 +4,7 @@ description: >-
   Workflow-phase sub-skill. Produces the scenario-branching tree for a milestone:
   every path the milestone must handle, expressed as states and transitions.
   Every feature named in the spec/plan must be traceable to a node here.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # Workflow Builder — the Scenario-Branching Tree

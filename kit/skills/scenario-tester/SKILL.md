@@ -4,7 +4,7 @@ description: >-
   Test-phase sub-skill. Produces one test per node in the workflow tree plus one
   end-to-end real-user walkthrough of the whole tree, and maps each acceptance
   criterion to its covering test. Writes tests_milestone_N.md.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # Scenario Tester — One Test per Workflow Node

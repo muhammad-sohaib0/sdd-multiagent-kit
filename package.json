@@ -1,6 +1,6 @@
 {
   "name": "sdd-multiagent-kit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Spec-Driven Development framework for CLI coding agents: a seven-model multi-lab critique loop, completeness and simplicity gates, dependency-ordered milestones, and a zero-context Stranger Test. Installs into Claude Code, Claude Desktop, OpenCode, and Antigravity.",
   "license": "MIT",
   "bin": {

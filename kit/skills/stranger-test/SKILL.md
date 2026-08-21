@@ -5,7 +5,7 @@ description: >-
   zero-context AI session with a single instruction — implement this, ask no
   questions — and checks contract parity. A failure is fed back as a new loop
   issue. This is the one rule the loop may not reason its way around.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # Stranger Test — Prove the Documents, Not the Agreement
