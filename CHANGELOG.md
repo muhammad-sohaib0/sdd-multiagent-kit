@@ -16,6 +16,21 @@ All notable changes to the SDD Multi-Agent Kit are documented here. The format f
   again, and `ci.yml` upgrades npm to match `publish.yml` so a change like this fails on
   a branch instead of on `main`. The script carries a `--selftest` that exercises both
   shapes without either npm installed.
+- **Both workflows installed a *floating* `npm@latest`,** which is the root cause the
+  fix above only treated the symptom of: a silent major bump to npm 12 changed
+  `npm pack --json`'s shape mid-flight. Both are now pinned to `npm@12`, and
+  `scripts/check-workflows.js` fails the build if the two files disagree on the version
+  or if either drifts back to `latest`.
+
+### Documented
+
+- **Bootstrapping the trusted publisher**, now that it has actually been done.
+  `CONTRIBUTING.md` records the working CLI route (`npm trust github … --allow-publish`)
+  and the three traps found by hitting them: `--allow-publish` is mandatory but **npm 11
+  cannot send it** (the registry answers a bare `400` with no body), the package must
+  already exist (`POST …/trust` is **404** while unpublished — npm has no pending
+  publisher, so the first release is necessarily manual), and publishing demands 2FA even
+  when the account reports it disabled. See ADR-005 addendum 2.
 
 Bump the version with `node scripts/bump-version.js <version>`, move the entries above
 into a new `## [<version>]` section, and merging to `main` publishes it — see

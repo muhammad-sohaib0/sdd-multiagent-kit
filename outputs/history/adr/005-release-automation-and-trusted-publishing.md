@@ -157,3 +157,41 @@ lesson generalizes — a shared, executable definition beats two copies and a co
 Also verified while investigating: `npm view <pkg>@<ver> version` behaves identically on
 npm 11 and 12 across all three decision cases, so the publish decision itself was never
 at risk.
+
+## Addendum 2 — bootstrapping the trusted publisher, and pinning npm
+
+**The chicken-and-egg is real, and now measured.** Decision 8 assumed the first publish
+must be manual because npm's settings page requires an existing package. Tested
+directly: `POST /-/package/sdd-multiagent-kit/trust` returns **404** while the package
+is unpublished. npm has no pre-publication ("pending") publisher of the kind PyPI
+offers, and its docs never address the case. So the manual first publish is a genuine
+requirement, not a limitation of the web UI — and only that first version lacks
+provenance.
+
+**`npm trust` exists, and is better than the web form** — but only from npm 12.
+`npm trust github <pkg> --file publish.yml --repository <owner/repo> --allow-publish`
+creates the configuration from the CLI. Two traps found by hitting them:
+
+- **npm 11's `npm trust` cannot succeed.** npm 12 added a required `--allow-publish`
+  flag and posts `permissions` in the body; npm 11 posts the older shape and the
+  registry answers a bare **`400 Bad Request`** with no body and nothing in the debug
+  log. The cause was only findable by reading npm 12's
+  `lib/commands/trust/github.js`. This is the same "allowed actions" field the docs
+  mention as mandatory for configurations created after May 2026.
+- **Publishing requires 2FA regardless of the account-level setting.** `npm profile get`
+  reported `two-factor auth: disabled`, yet `npm publish` failed with 403 demanding 2FA
+  or a bypass token. The CLI's browser authentication flow enables `auth-and-writes` as
+  a side effect, after which publishing works. OIDC is unaffected either way.
+
+**`npm@latest` was itself the defect, not just the shape change.** Addendum 1 pinned the
+symptom; the cause was two workflows installing a *floating* npm. Both are now pinned to
+`npm@12`, and `scripts/check-workflows.js` fails the build when the two files disagree or
+when either floats back to `latest`.
+
+**Fourth instance of the same class, and the reason the guard is a script rather than a
+convention:** `0.1.0` in 17 places → `--version` test that passed either way → packaging
+contract in two workflows → npm version in two workflows. Every one was a rule recorded
+twice with nothing asserting the copies agreed, and every fix was one shared executable
+definition plus a check that fails on divergence. The pattern is consistent enough to
+treat as a standing rule: **if a fact appears in two files, something executable must
+compare them.**
