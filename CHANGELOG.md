@@ -4,8 +4,30 @@ All notable changes to the SDD Multi-Agent Kit are documented here. The format f
 
 ## [Unreleased]
 
-Completion pass: the whole-system verification `BOOTSTRAP.md` §5 requires was run for
-the first time, and the 13 kit defects it exposed were fixed.
+Nothing yet. Bump the version with `node scripts/bump-version.js <version>`, move the
+entries below this heading into a new `## [<version>]` section, and merging to `main`
+publishes it — see [CONTRIBUTING.md](CONTRIBUTING.md#releasing).
+
+## [0.1.0] — 2026-08-21
+
+First release. **Added — what the package ships** is the section to read if you are
+installing this; the rest records the pre-release completion pass, in which the
+whole-system verification `BOOTSTRAP.md` §5 requires was run for the first time and the
+13 kit defects it exposed were fixed. Those fixes landed before this version was ever
+published, so no user received the broken behavior — the entries are kept because the
+defects are instructive, not because anyone needs to upgrade past them.
+
+### Added — what the package ships
+
+- Master skill (`kit/SKILL.md`) with the `/sdd` trigger and eleven sub-skills (`kit/skills/*`).
+- Adopted constitution (`kit/constitution.template.md`).
+- Locked seven-model critic panel (`kit/config/providers.yaml`): `nvidia/nemotron-3-ultra-550b-a55b`, `openai/gpt-oss-120b`, `z-ai/glm-5.2`, `mistralai/mistral-nemotron`, `meta/muse-glimmer-30b` on NVIDIA NIM, `gemini-3.6-flash` on Google AI Studio, `minimax-m3:cloud` on Ollama Cloud (ADR-001, ADR-003).
+- Critique engine (`kit/scripts/orchestrate_critique_loop.py`) and validator (`kit/scripts/validate_critique.py`), zero runtime dependencies.
+- Engine hardening: per-model `timeout` keys in `providers.yaml`; transport retry ≤5 tries with adaptive backoff (429 → 30s × attempt, others → 8s × attempt); deterministic non-429 4xx break immediately; 200-with-non-JSON treated as transport failure; first-call stagger `(slot_index-1) × 4s`; CLI validation of `--round`, `--round-cap`, `--timeout` (exit 2); no cross-round critic exclusion — a failed critic participates again next round and `n_valid == 0` never counts as advancement; `providers.yaml` read fresh per invocation.
+- Installer (`bin/setup-wizard.js`, bin `sdd-setup`) with adapters for Claude Code, Claude Desktop, OpenCode, and Antigravity.
+- Distribution docs: `README`, `CLAUDE`, `AGENTS`, `CONTRIBUTING`, `SECURITY`, `SUPPORT`, and `docs/` (GUIDE, ARCHITECTURE, BOOTSTRAP).
+- Example project under `examples/`.
+- Bootstrap history under `outputs/` (specs, critique logs, PHRs, ADRs), with the raw critique evidence kept versioned (ADR-002).
 
 ### Fixed
 
@@ -52,7 +74,7 @@ the first time, and the 13 kit defects it exposed were fixed.
   stale fixtures, not product defects. Now M2 29/29 and M3 32/32, with regression
   guards pinning the `providers.yaml` dual-form contract that nothing had covered.
 
-### Added
+### Added — process and records
 
 - **`PLAN.md` §4.4: non-progression stopping condition** (ADR-004). Pass 2 never
   reached perfect scores on any milestone during the bootstrap; it exited when rounds
@@ -62,24 +84,19 @@ the first time, and the 13 kit defects it exposed were fixed.
 - **Stranger Test records** for all five milestones plus the whole system, at the
   `PLAN.md` §9 paths that mandated them.
 - Retrospective Pass-2 escalation summaries for M1–M5 (PHR `milestone_5/003`).
+- **Release automation** (ADR-005). `.github/workflows/ci.yml` verifies every push and
+  pull request — both milestone suites, packaging contents, version consistency, and a
+  secret scan. `.github/workflows/publish.yml` publishes to npm when, and only when,
+  `package.json` carries a version the registry does not have yet; every other push to
+  `main` exits cleanly without publishing. Authentication is npm Trusted Publishing
+  (OIDC), so no token is stored anywhere and provenance is attached automatically.
+- **`scripts/bump-version.js`** — sets the version across `package.json` and all twelve
+  SKILL.md frontmatters in one command, with `--check` to assert they agree. The version
+  now has a single source of truth: `bin/setup-wizard.js` reads it from `package.json`
+  instead of carrying a copy, and M3 asserts that agreement rather than a literal, so a
+  release bump can no longer leave the wizard reporting a stale number.
 
 ### Removed
 
 - The bootstrap seed skill and the `.bootstrap/` scratch harness, per `BOOTSTRAP.md`
   §3.6. Both still described the pre-ADR-003 six-model panel.
-
-## [0.1.0] — 2026-08-18
-
-Initial release.
-
-### Added
-
-- Master skill (`kit/SKILL.md`) with the `/sdd` trigger and eleven sub-skills (`kit/skills/*`).
-- Adopted constitution (`kit/constitution.template.md`).
-- Locked seven-model critic panel (`kit/config/providers.yaml`): `nvidia/nemotron-3-ultra-550b-a55b`, `openai/gpt-oss-120b`, `z-ai/glm-5.2`, `mistralai/mistral-nemotron`, `meta/muse-glimmer-30b` on NVIDIA NIM, `gemini-3.6-flash` on Google AI Studio, `minimax-m3:cloud` on Ollama Cloud (ADR-001, ADR-003).
-- Critique engine (`kit/scripts/orchestrate_critique_loop.py`) and validator (`kit/scripts/validate_critique.py`), zero runtime dependencies.
-- Engine hardening: per-model `timeout` keys in `providers.yaml`; transport retry ≤5 tries with adaptive backoff (429 → 30s × attempt, others → 8s × attempt); deterministic non-429 4xx break immediately; 200-with-non-JSON treated as transport failure; first-call stagger `(slot_index-1) × 4s`; CLI validation of `--round`, `--round-cap`, `--timeout` (exit 2); no cross-round critic exclusion — a failed critic participates again next round and `n_valid == 0` never counts as advancement; `providers.yaml` read fresh per invocation.
-- Installer (`bin/setup-wizard.js`, bin `sdd-setup`) with adapters for Claude Code, Claude Desktop, OpenCode, and Antigravity.
-- Distribution docs: `README`, `CLAUDE`, `AGENTS`, `CONTRIBUTING`, `SECURITY`, `SUPPORT`, and `docs/` (GUIDE, ARCHITECTURE, BOOTSTRAP).
-- Example project under `examples/`.
-- Bootstrap history under `outputs/` (specs, critique logs, PHRs, ADRs), with the raw critique evidence kept versioned (ADR-002).

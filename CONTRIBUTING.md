@@ -129,3 +129,48 @@ The critique panel is pure configuration in `kit/config/providers.yaml`:
 ## Documentation changes
 
 Doc changes (README, `docs/`) are welcomed and expected to stay consistent with the built kit — commands, `/sdd`, env-var names, and paths must match. See `outputs/milestones/milestone_4/` for the doc-layer verification contract.
+
+## Verification
+
+Two executable suites are the contract; both are self-contained (M2 mocks the network, M3 builds a temp package tree under a temp `HOME`), so neither needs provider keys:
+
+```bash
+python3 outputs/milestones/milestone_2/verify_milestone_2.py   # critique engine
+python3 outputs/milestones/milestone_3/verify_milestone_3.py   # installer wizard
+```
+
+`.github/workflows/ci.yml` runs both on every push and pull request, along with the packaging assertions, the version-consistency check, and a secret scan. Run them locally before opening a PR — CI will not tell you anything you could not have learned in under 20 seconds.
+
+## Releasing
+
+Publishing is automated. **You never run `npm publish`** — the workflow does it, and the version number is the trigger.
+
+```bash
+node scripts/bump-version.js 0.1.1   # or 0.2.0 for features
+```
+
+That sets the version in `package.json` and in all twelve `SKILL.md` frontmatters at once. Never edit a version by hand: `bin/setup-wizard.js` reads it from `package.json`, `scripts/bump-version.js --check` asserts every copy agrees, and CI fails the build if they do not.
+
+Then:
+
+1. Move your entries from `## [Unreleased]` in `CHANGELOG.md` into a new `## [<version>] — <date>` section. This is not optional — `publish.yml` refuses to release a version with no changelog section, because the GitHub Release body is built from it and nobody should ship release notes they did not write.
+2. Open a PR, let CI go green, and merge to `main`.
+3. `publish.yml` then checks whether that version is already on npm. If it is not, it re-runs both suites, publishes, tags `v<version>`, and creates the GitHub Release. If it is, the run exits cleanly without publishing — so ordinary doc-only pushes to `main` are no-ops, not failures.
+
+**npm versions are immutable.** A published version can never be replaced or reused, so a mistake is fixed by releasing the next patch, never by re-publishing. Check the diff before merging.
+
+### How it authenticates
+
+npm [Trusted Publishing](https://docs.npmjs.com/trusted-publishers) (OIDC). GitHub proves its identity at publish time with a short-lived token; **no npm token is stored in this repository**, which keeps the rule that only env-var *names* ever live in committed content. Provenance is attached automatically, so the npm page links back to the exact commit and workflow run that built the tarball.
+
+Maintainer setup, done once per package on npmjs.com under *Settings → Trusted Publisher → GitHub Actions* (values are case-sensitive and npm does not validate them on save):
+
+| Field | Value |
+|---|---|
+| Organization or user | `muhammad-sohaib0` |
+| Repository | `sdd-multiagent-kit` |
+| Workflow filename | `publish.yml` |
+| Environment | *(empty)* |
+| Allowed actions | `npm publish` |
+
+If a publish fails with an authentication error, that configuration no longer matches this repository or workflow filename — check it before anything else. `package.json`'s `repository.url` must also match the repo exactly; it is the other common cause.

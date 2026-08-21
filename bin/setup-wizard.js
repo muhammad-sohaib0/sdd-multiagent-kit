@@ -140,6 +140,27 @@ function line(prompt, hidden) {
   });
 }
 
+// The package version has exactly one source of truth: package.json. It is
+// never duplicated here, so a release bump cannot leave the wizard reporting a
+// stale number. Same upward walk as kitDir() but without the kit/SKILL.md
+// requirement — --version must work even where the kit tree is absent. Returns
+// null when no manifest for this package can be read; callers decide what that
+// means rather than substituting an invented version.
+function pkgVersion() {
+  let dir = __dirname;
+  while (true) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
+      if (pkg.name === "sdd-multiagent-kit" && pkg.version) return pkg.version;
+    } catch (e) {
+      /* not this package root — keep walking */
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
 // Kit source discovery: walk parent directories from this file's location
 // until a package.json with name: sdd-multiagent-kit AND a sibling kit/SKILL.md
 // is found (both conditions — robust under npm bin symlinks, local checkouts,
@@ -220,8 +241,9 @@ async function main() {
     console.error(`error: sdd-setup requires Node >= 18 (found ${process.version})`);
     return 2;
   }
+  const version = pkgVersion();
   if (process.argv.includes("--help") || process.argv.includes("-h")) {
-    console.log(`sdd-setup — SDD Multi-Agent Kit setup wizard (v0.1.0)
+    console.log(`sdd-setup — SDD Multi-Agent Kit setup wizard (v${version || "unknown"})
 
 Usage: sdd-setup
   Interactive wizard. Collects the three API keys in one pass
@@ -235,7 +257,11 @@ Options:
     return 0;
   }
   if (process.argv.includes("--version")) {
-    console.log("0.1.0");
+    if (version === null) {
+      console.error("error: could not read the package version (no readable sdd-multiagent-kit package.json above this file)");
+      return 2;
+    }
+    console.log(version);
     return 0;
   }
   if (process.argv.length > 2) {

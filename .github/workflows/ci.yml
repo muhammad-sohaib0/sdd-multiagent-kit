@@ -1,0 +1,111 @@
+# Verification on every change. Runs the two executable milestone suites and
+# the packaging checks. Publishes nothing — see publish.yml for that.
+#
+# Both suites are self-contained: M2 mocks the network entirely and M3 builds a
+# temp package tree with a temp HOME, so no provider API keys and no network
+# access are needed here. Nothing in this workflow reads a secret.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22 satisfies both the package's own engines floor (>=18) and the
+      # npm >= 11.5.1 / Node >= 22.14.0 needed by publish.yml, so CI and publish
+      # exercise the same runtime.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Versions
+        run: |
+          node --version
+          npm --version
+          python3 --version
+
+      # The package declares no dependencies (neither runtime nor dev), so there
+      # is nothing to install. `npm ci` would fail for want of a lockfile; that
+      # absence is the contract, asserted below.
+      - name: Assert no dependencies
+        run: |
+          node -e '
+            const p = require("./package.json");
+            for (const k of ["dependencies", "devDependencies"]) {
+              if (p[k]) { console.error(`error: ${k} present; the package must stay dependency-free`); process.exit(1); }
+            }
+            console.log("OK: no dependencies declared");
+          '
+
+      # One version, one source. Fails the build if package.json and the twelve
+      # SKILL.md frontmatters disagree — a half-finished bump never reaches main.
+      - name: Version consistency
+        run: node scripts/bump-version.js --check
+
+      - name: M2 — critique engine (32 tests, network mocked)
+        run: python3 outputs/milestones/milestone_2/verify_milestone_2.py
+
+      - name: M3 — installer wizard (34 tests, hermetic, PTY-driven)
+        run: python3 outputs/milestones/milestone_3/verify_milestone_3.py
+
+      # Guards the packaging fixes: docs/ must ship (README's guide link and the
+      # wizard's guide pointer both resolve into it) and Python bytecode must not
+      # (the suites import kit/scripts/, leaving .pyc beside it).
+      - name: Packaging — tarball contents
+        run: |
+          npm pack --dry-run --json > /tmp/pack.json
+          node -e '
+            const files = require("/tmp/pack.json")[0].files.map((f) => f.path);
+            const fail = [];
+            for (const dir of ["kit/", "bin/", "installers/", "docs/"]) {
+              if (!files.some((f) => f.startsWith(dir))) fail.push(`missing ${dir}`);
+            }
+            for (const f of ["LICENSE", "README.md", "CHANGELOG.md", "package.json"]) {
+              if (!files.includes(f)) fail.push(`missing ${f}`);
+            }
+            for (const f of files) {
+              if (f.endsWith(".pyc") || f.includes("__pycache__")) fail.push(`bytecode shipped: ${f}`);
+              if (f.startsWith("scripts/")) fail.push(`repo tool shipped: ${f}`);
+              if (f.startsWith(".github/")) fail.push(`workflow shipped: ${f}`);
+            }
+            if (fail.length) { for (const f of fail) console.error(`error: ${f}`); process.exit(1); }
+            console.log(`OK: ${files.length} files, contents as declared`);
+          '
+
+      # The wizard must be directly executable once npm links it as `sdd-setup`.
+      - name: Wizard smoke test
+        run: |
+          test -x bin/setup-wizard.js || { echo "error: wizard is not executable"; exit 1; }
+          expected=$(node -p "require('./package.json').version")
+          actual=$(node bin/setup-wizard.js --version)
+          [ "$actual" = "$expected" ] || { echo "error: --version said $actual, package.json says $expected"; exit 1; }
+          node bin/setup-wizard.js --help > /dev/null
+          if node bin/setup-wizard.js --bogus 2>/dev/null; then
+            echo "error: an unknown flag must exit non-zero"; exit 1
+          fi
+          echo "OK: sdd-setup reports $actual"
+
+      # Defence in depth. The kit's own rule is that only env-var *names* travel
+      # in committed content, never values; M3 asserts this too, but a dedicated
+      # step makes a violation unmissable in the CI log.
+      - name: No secret-shaped values in shipped content
+        run: |
+          if grep -rInE '(sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{35}|Bearer [A-Za-z0-9._-]{20,})' \
+               bin installers kit docs 2>/dev/null; then
+            echo "error: secret-shaped value found in shipped content"; exit 1
+          fi
+          echo "OK: no secret-shaped values"

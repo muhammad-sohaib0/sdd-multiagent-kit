@@ -1,0 +1,189 @@
+# Publishes to npm when — and only when — package.json carries a version that
+# is not on the registry yet. Every other push to main is a no-op that exits 0,
+# because npm versions are immutable and most pushes carry no new version.
+#
+# Authentication is npm Trusted Publishing (OIDC): GitHub proves its identity at
+# publish time with a short-lived token and no NPM_TOKEN is stored anywhere. This
+# keeps the repo's rule that only env-var *names* ever live in committed content.
+# Provenance is applied automatically for a public repo + public package, so no
+# --provenance flag is needed.
+#
+# One-time setup on npmjs.com (Settings -> Trusted Publisher -> GitHub Actions),
+# case-sensitive and not validated on save:
+#   organization/user: muhammad-sohaib0
+#   repository:        sdd-multiagent-kit
+#   workflow filename: publish.yml
+#   allowed actions:   npm publish
+name: Publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-main
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Forks must never attempt to publish this package name.
+    if: github.repository == 'muhammad-sohaib0/sdd-multiagent-kit'
+    permissions:
+      id-token: write # OIDC — the one requirement for trusted publishing
+      contents: write # create the release tag
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags, so an existing one is detected rather than clobbered
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      # Trusted publishing needs npm >= 11.5.1; Node 22 ships npm 10.x, so the
+      # CLI is upgraded explicitly rather than assumed.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      - name: Resolve versions and decide whether to publish
+        id: decide
+        run: |
+          NPM_V=$(npm --version)
+          node -e '
+            const [maj, min, pat] = process.argv[1].split("-")[0].split(".").map(Number);
+            const ok = maj > 11 || (maj === 11 && (min > 5 || (min === 5 && pat >= 1)));
+            if (!ok) { console.error(`error: npm ${process.argv[1]} < 11.5.1, trusted publishing unavailable`); process.exit(1); }
+            console.log(`OK: npm ${process.argv[1]} supports trusted publishing`);
+          ' "$NPM_V"
+
+          VERSION=$(node -p "require('./package.json').version")
+          NAME=$(node -p "require('./package.json').name")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+          # Decide on stdout, never on the exit code. Verified against the live
+          # registry: `npm view <pkg>@<ver> version` exits 1 with empty output
+          # BOTH when the package does not exist at all (the first publish) and
+          # when the package exists but that version does not. It exits 0 and
+          # prints the version only when the version is genuinely published. So
+          # the exit code cannot distinguish "nothing to do" from "go" — only
+          # non-empty output proves the version is already live.
+          #
+          # A transient registry error also produces empty output, which yields
+          # an attempted publish; npm then rejects it with 403 "cannot publish
+          # over previously published versions". That is a loud failure, never a
+          # silent duplicate — the safe direction to fail in.
+          set +e
+          FOUND=$(npm view "$NAME@$VERSION" version 2>/dev/null)
+          set -e
+
+          if [ -n "$FOUND" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::$NAME@$VERSION is already on npm — nothing to publish."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$NAME@$VERSION is not on npm — publishing."
+          fi
+
+      - name: Version consistency
+        if: steps.decide.outputs.publish == 'true'
+        run: node scripts/bump-version.js --check
+
+      - name: Refuse to reuse an existing tag
+        if: steps.decide.outputs.publish == 'true'
+        run: |
+          TAG="v${{ steps.decide.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "error: tag $TAG already exists but the version is not on npm — resolve by hand"
+            exit 1
+          fi
+          echo "OK: $TAG is free"
+
+      # A version with no changelog entry ships release notes nobody wrote, so
+      # the absence is treated as a release blocker rather than papered over.
+      - name: Extract release notes
+        if: steps.decide.outputs.publish == 'true'
+        run: |
+          node -e '
+            const fs = require("fs");
+            const v = process.argv[1];
+            const lines = fs.readFileSync("CHANGELOG.md", "utf8").split("\n");
+            const start = lines.findIndex((l) => l.startsWith(`## [${v}]`));
+            if (start === -1) {
+              console.error(`error: CHANGELOG.md has no "## [${v}]" section — add release notes before publishing`);
+              process.exit(1);
+            }
+            let end = lines.length;
+            for (let i = start + 1; i < lines.length; i++) {
+              if (lines[i].startsWith("## ")) { end = i; break; }
+            }
+            const body = lines.slice(start + 1, end).join("\n").trim();
+            if (!body) { console.error(`error: the [${v}] changelog section is empty`); process.exit(1); }
+            fs.writeFileSync("/tmp/release-notes.md", body + "\n");
+            console.log(`OK: ${body.split("\n").length} lines of release notes`);
+          ' "${{ steps.decide.outputs.version }}"
+
+      - name: M2 — critique engine
+        if: steps.decide.outputs.publish == 'true'
+        run: python3 outputs/milestones/milestone_2/verify_milestone_2.py
+
+      - name: M3 — installer wizard
+        if: steps.decide.outputs.publish == 'true'
+        run: python3 outputs/milestones/milestone_3/verify_milestone_3.py
+
+      - name: Packaging check
+        if: steps.decide.outputs.publish == 'true'
+        run: |
+          npm pack --dry-run --json > /tmp/pack.json
+          node -e '
+            const files = require("/tmp/pack.json")[0].files.map((f) => f.path);
+            const fail = [];
+            for (const dir of ["kit/", "bin/", "installers/", "docs/"]) {
+              if (!files.some((f) => f.startsWith(dir))) fail.push(`missing ${dir}`);
+            }
+            for (const f of files) {
+              if (f.endsWith(".pyc") || f.includes("__pycache__")) fail.push(`bytecode shipped: ${f}`);
+              if (f.startsWith("scripts/") || f.startsWith(".github/")) fail.push(`repo-only file shipped: ${f}`);
+            }
+            if (fail.length) { for (const f of fail) console.error(`error: ${f}`); process.exit(1); }
+            console.log(`OK: ${files.length} files`);
+          '
+
+      # No NODE_AUTH_TOKEN. Auth comes from the OIDC id-token above; provenance
+      # is automatic. If this step fails with an auth error, the trusted publisher
+      # on npmjs.com does not match this repo/workflow exactly.
+      - name: Publish to npm
+        if: steps.decide.outputs.publish == 'true'
+        run: npm publish
+
+      - name: Tag and create the GitHub Release
+        if: steps.decide.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ steps.decide.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$TAG"
+          git push origin "$TAG"
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file /tmp/release-notes.md \
+            --verify-tag
+
+      - name: Summary
+        run: |
+          V="${{ steps.decide.outputs.version }}"
+          if [ "${{ steps.decide.outputs.publish }}" = "true" ]; then
+            echo "### Published \`${{ steps.decide.outputs.name }}@$V\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "Tagged \`v$V\` and created the GitHub Release." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### No publish needed" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`$V\` is already on npm. Bump the version with \`node scripts/bump-version.js <new>\` to release." >> "$GITHUB_STEP_SUMMARY"
+          fi
