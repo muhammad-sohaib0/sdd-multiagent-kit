@@ -167,14 +167,23 @@ Then:
 
 npm [Trusted Publishing](https://docs.npmjs.com/trusted-publishers) (OIDC). GitHub proves its identity at publish time with a short-lived token; **no npm token is stored in this repository**, which keeps the rule that only env-var *names* ever live in committed content. Provenance is attached automatically, so the npm page links back to the exact commit and workflow run that built the tarball.
 
-Maintainer setup, done once per package on npmjs.com under *Settings → Trusted Publisher → GitHub Actions* (values are case-sensitive and npm does not validate them on save):
+Maintainer setup, done once per package. The CLI route is the reliable one:
 
-| Field | Value |
-|---|---|
-| Organization or user | `muhammad-sohaib0` |
-| Repository | `sdd-multiagent-kit` |
-| Workflow filename | `publish.yml` |
-| Environment | *(empty)* |
-| Allowed actions | `npm publish` |
+```bash
+npx -y npm@12 trust github sdd-multiagent-kit \
+  --file publish.yml \
+  --repository muhammad-sohaib0/sdd-multiagent-kit \
+  --allow-publish
+```
 
-If a publish fails with an authentication error, that configuration no longer matches this repository or workflow filename — check it before anything else. `package.json`'s `repository.url` must also match the repo exactly; it is the other common cause.
+It opens a browser for the 2FA challenge and prints the created config with an id. Three things that are easy to get wrong, all learned the hard way:
+
+- **`--allow-publish` is required, and npm 11 cannot send it.** The registry expects a `permissions` field that only npm ≥ 12 includes; npm 11's `npm trust` posts the older body and the registry answers a bare `400 Bad Request` with no explanation. Hence `npx -y npm@12` rather than whatever npm you have installed.
+- **The package must already exist.** `POST /-/package/<name>/trust` returns 404 for an unpublished package — npm has no pre-publication ("pending") publisher, so the very first release is necessarily a manual `npm publish`. Only that first version lacks provenance.
+- **`repository.url` in `package.json` must match the repo exactly**, in `git+https://…​.git` form. A mismatch is the most common authentication failure.
+
+The equivalent web form is *Settings → Trusted Publisher → GitHub Actions* on npmjs.com, with workflow filename `publish.yml` (filename only, no path) and allowed action `npm publish`. Values there are case-sensitive and npm does not validate them on save, so a typo stays silent until a publish fails.
+
+Publishing also requires 2FA on the account (`auth-and-writes`); the browser flow above enables it if it is not already on. This does **not** affect OIDC — CI keeps publishing without a second factor.
+
+If a publish fails with an authentication error, check the trusted-publisher config and `repository.url` before anything else.

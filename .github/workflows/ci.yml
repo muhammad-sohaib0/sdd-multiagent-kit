@@ -32,13 +32,14 @@ jobs:
         with:
           node-version: "22"
 
-      # publish.yml upgrades npm (trusted publishing needs >= 11.5.1, above what
-      # Node 22 bundles). CI must run the SAME npm, or "CI is green" stops
-      # implying "publish will work" — which is exactly how npm 12's changed
-      # `npm pack --json` shape reached main undetected: CI passed on the
-      # bundled npm 10 while publish.yml crashed on npm 12.
-      - name: Upgrade npm to match publish.yml
-        run: npm install -g npm@latest
+      # Pinned to a major, and pinned identically in publish.yml — scripts/
+      # check-workflows.js enforces both. Node 22 bundles npm 10, below the
+      # >= 11.5.1 trusted publishing needs, so an install is required either way.
+      # It is PINNED rather than `npm@latest` because a floating install is how
+      # npm 12's changed `npm pack --json` shape reached main undetected: CI
+      # passed on the bundled npm 10 while publish.yml crashed on npm 12.
+      - name: Install npm (pinned, must match publish.yml)
+        run: npm install -g npm@12
 
       - name: Versions
         run: |
@@ -63,6 +64,11 @@ jobs:
       # SKILL.md frontmatters disagree — a half-finished bump never reaches main.
       - name: Version consistency
         run: node scripts/bump-version.js --check
+
+      # Both workflows must install the same npm, or a green CI stops implying a
+      # working publish. See the comment in check-workflows.js for what that cost.
+      - name: Workflows agree on npm
+        run: node scripts/check-workflows.js
 
       - name: M2 — critique engine (32 tests, network mocked)
         run: python3 outputs/milestones/milestone_2/verify_milestone_2.py

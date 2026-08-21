@@ -46,10 +46,13 @@ jobs:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
-      # Trusted publishing needs npm >= 11.5.1; Node 22 ships npm 10.x, so the
-      # CLI is upgraded explicitly rather than assumed.
-      - name: Upgrade npm
-        run: npm install -g npm@latest
+      # Trusted publishing needs npm >= 11.5.1; Node 22 ships npm 10.x, so an
+      # install is required. Pinned to a major and kept identical to ci.yml —
+      # scripts/check-workflows.js enforces both. `npm@latest` was the original
+      # form and it silently jumped to npm 12, whose changed `npm pack --json`
+      # shape broke this workflow while CI stayed green on npm 10.
+      - name: Install npm (pinned, must match ci.yml)
+        run: npm install -g npm@12
 
       - name: Resolve versions and decide whether to publish
         id: decide
@@ -94,6 +97,10 @@ jobs:
       - name: Version consistency
         if: steps.decide.outputs.publish == 'true'
         run: node scripts/bump-version.js --check
+
+      - name: Workflows agree on npm
+        if: steps.decide.outputs.publish == 'true'
+        run: node scripts/check-workflows.js
 
       - name: Refuse to reuse an existing tag
         if: steps.decide.outputs.publish == 'true'
