@@ -4,7 +4,7 @@ description: >-
   Specify-phase sub-skill. Drafts a milestone's spec — the authoritative "what"
   this milestone needs to do and why, never the "how". Produces the document
   that Pass 1 of the critique loop and the G1 gate are run against.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # Specify — Draft the Milestone Spec

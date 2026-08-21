@@ -5,7 +5,7 @@ description: >-
   thinking to produce a Requirement Category Checklist — the base categories a
   spec always needs plus the conditional categories this specific project calls
   for. Use this first, before any document is written.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # Research — Computational-Thinking Requirement Scan

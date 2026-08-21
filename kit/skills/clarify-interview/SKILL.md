@@ -4,7 +4,7 @@ description: >-
   Clarify-phase sub-skill. Asks the human only the questions an AI genuinely
   could not infer — compiled into a needs_clarify list by Pass 1 — and folds the
   answers back into the spec. Runs once per milestone, after Pass 1.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # Clarify Interview — Ask Only What an AI Cannot Infer

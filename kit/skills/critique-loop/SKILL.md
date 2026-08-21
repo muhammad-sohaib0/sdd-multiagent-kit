@@ -7,7 +7,7 @@ description: >-
   (objective / needs_clarify / false positive), and how to apply the stopping
   conditions. The mechanical scoring lives in the scripts; the judgement lives
   here.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # Critique Loop — Invoke, Triage, Stop

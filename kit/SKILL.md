@@ -8,7 +8,7 @@ description: >-
   Use this when a user furnishes a project brief (PLAN.md, README, prompt) and
   wants an ordered, dependency-safe set of milestones each producing its own
   five-document set (spec, plan, tasks, workflow, tests).
-version: 0.1.0
+version: 0.1.1
 ---
 
 # SDD Multi-Agent Kit — Master Skill

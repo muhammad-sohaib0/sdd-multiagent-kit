@@ -5,7 +5,7 @@ description: >-
   architecture, data model, integration contracts, and rationale for each choice.
   Drafts `plan_milestone_N.md` from the accepted spec, reflecting any Clarify
   answers by construction.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # Plan Builder — the Technical How
