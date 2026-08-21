@@ -32,6 +32,14 @@ jobs:
         with:
           node-version: "22"
 
+      # publish.yml upgrades npm (trusted publishing needs >= 11.5.1, above what
+      # Node 22 bundles). CI must run the SAME npm, or "CI is green" stops
+      # implying "publish will work" — which is exactly how npm 12's changed
+      # `npm pack --json` shape reached main undetected: CI passed on the
+      # bundled npm 10 while publish.yml crashed on npm 12.
+      - name: Upgrade npm to match publish.yml
+        run: npm install -g npm@latest
+
       - name: Versions
         run: |
           node --version
@@ -64,27 +72,12 @@ jobs:
 
       # Guards the packaging fixes: docs/ must ship (README's guide link and the
       # wizard's guide pointer both resolve into it) and Python bytecode must not
-      # (the suites import kit/scripts/, leaving .pyc beside it).
+      # (the suites import kit/scripts/, leaving .pyc beside it). The assertions
+      # live in a script shared with publish.yml so the two cannot drift.
       - name: Packaging — tarball contents
         run: |
-          npm pack --dry-run --json > /tmp/pack.json
-          node -e '
-            const files = require("/tmp/pack.json")[0].files.map((f) => f.path);
-            const fail = [];
-            for (const dir of ["kit/", "bin/", "installers/", "docs/"]) {
-              if (!files.some((f) => f.startsWith(dir))) fail.push(`missing ${dir}`);
-            }
-            for (const f of ["LICENSE", "README.md", "CHANGELOG.md", "package.json"]) {
-              if (!files.includes(f)) fail.push(`missing ${f}`);
-            }
-            for (const f of files) {
-              if (f.endsWith(".pyc") || f.includes("__pycache__")) fail.push(`bytecode shipped: ${f}`);
-              if (f.startsWith("scripts/")) fail.push(`repo tool shipped: ${f}`);
-              if (f.startsWith(".github/")) fail.push(`workflow shipped: ${f}`);
-            }
-            if (fail.length) { for (const f of fail) console.error(`error: ${f}`); process.exit(1); }
-            console.log(`OK: ${files.length} files, contents as declared`);
-          '
+          node scripts/check-package-contents.js --selftest
+          node scripts/check-package-contents.js
 
       # The wizard must be directly executable once npm links it as `sdd-setup`.
       - name: Wizard smoke test

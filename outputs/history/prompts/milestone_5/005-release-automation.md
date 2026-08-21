@@ -138,3 +138,49 @@ first `npm publish` must come from a maintainer's machine, followed by the one-t
 npmjs.com form. Both are documented in `CONTRIBUTING.md` and ADR-005. The first
 publish was left for the maintainer to authorize — it is irreversible, and
 unpublishing is limited to 72 hours with the name+version pair never reusable.
+
+---
+
+## Addendum — the first run on `main` failed, and not where predicted
+
+PR #2 was merged. `publish.yml` ran and **failed at the packaging check**, not at
+authentication as I had told the user to expect:
+
+```
+TypeError: Cannot read properties of undefined (reading 'files')
+```
+
+`npm pack --json` returns `[{files: […]}]` up to npm 11 and
+`{"<pkg-name>": {files: […]}}` from npm 12, so `[0].files` throws on the latter.
+Confirmed by installing npm 12.0.2 to a temp prefix: `Object.keys()` is
+`["sdd-multiagent-kit"]`, `[0]` is `undefined`.
+
+**The real defect was mine, and it was structural, not cosmetic.** `ci.yml` ran Node
+22's bundled npm 10.9.8 while `publish.yml` upgrades to npm ≥ 11.5.1 for trusted
+publishing. The two workflows exercised different CLIs, so **CI green did not imply
+publish green** — which is the entire guarantee the split is supposed to give. npm was
+always free to change its own output format; the gap that let it reach `main` silently
+is the thing that needed fixing.
+
+Fixed in two places, because normalizing the shape alone would have left the gap:
+
+1. `scripts/check-package-contents.js` handles both shapes and is called by both
+   workflows, replacing two inline copies that had already diverged. `--selftest`
+   exercises both shapes with neither npm installed, since the failure mode was
+   exactly a shape CI could not see.
+2. `ci.yml` upgrades npm to match `publish.yml`, so the next npm change fails on a
+   branch instead of on `main`.
+
+**This is the third instance of one defect class in this work:** a rule written down
+twice with nothing asserting the copies agree. `0.1.0` in 17 places; the `--version`
+test that passed either way; now the packaging contract in two workflow files under two
+npm versions. Each time the fix was the same shape — one executable definition, shared,
+with a check that fails when the copies disagree.
+
+Also verified while investigating: `npm view <pkg>@<ver> version` behaves identically on
+npm 11 and 12 across all three decision cases (package absent, version absent, version
+present), so the publish decision was never at risk — only the packaging assertion.
+
+Re-verified after the fix: packaging check passes on **both** npm 11.13.0 and 12.0.2,
+`--selftest` green, M2 32/32, M3 34/34, tarball still 28 files with the new script
+correctly absent.

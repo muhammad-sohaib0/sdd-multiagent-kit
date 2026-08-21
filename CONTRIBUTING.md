@@ -137,9 +137,13 @@ Two executable suites are the contract; both are self-contained (M2 mocks the ne
 ```bash
 python3 outputs/milestones/milestone_2/verify_milestone_2.py   # critique engine
 python3 outputs/milestones/milestone_3/verify_milestone_3.py   # installer wizard
+node scripts/check-package-contents.js                         # tarball contents
+node scripts/bump-version.js --check                           # version agreement
 ```
 
-`.github/workflows/ci.yml` runs both on every push and pull request, along with the packaging assertions, the version-consistency check, and a secret scan. Run them locally before opening a PR — CI will not tell you anything you could not have learned in under 20 seconds.
+`.github/workflows/ci.yml` runs all four on every push and pull request, along with a secret scan. Run them locally before opening a PR — CI will not tell you anything you could not have learned in under 20 seconds.
+
+Both workflows upgrade npm to the same version before running these checks. Keep it that way: when they ran different npm majors, `npm pack --json` changed shape between them and a green CI shipped a broken publish step to `main` (ADR-005).
 
 ## Releasing
 
