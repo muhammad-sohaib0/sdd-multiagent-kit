@@ -56,7 +56,7 @@ Same as the spec/plan. Ordered build plan for the installer. Tests first (Articl
 | T10 | **done** (NT3: absent tools skipped; failing install reported per-tool, run continues, exit 1) |
 | T11 | **done** (NT4: §10.3 destinations + trigger semantics for all four tools) |
 | T12 | **done** (NT5: `package.json` contract; secret scan 0 matches on `bin/`, `installers/`, `kit/`, milestone docs) |
-| T13 | **done** (NT6: bin shebang + exec bit; `--help`/`-h` exit 0; `--version` prints `0.1.0` exit 0; bad arg exit 2) |
+| T13 | **done** (NT6: bin shebang + exec bit; `--help`/`-h` exit 0; `--version` prints the version read from `package.json` and exits 0, proven by a fixture writing a version the wizard has never seen; bad arg exit 2) |
 | T14 | **done** (NT7: PTY — whitespace/control rejection + re-prompt, empty = skip, non-ASCII accepted, masked no-echo, entered-this-session status, non-TTY skips key + guide prompts) |
 | T15 | **done** (NT8: all four discovery guards exit 2 with the offending file(s) named) |
 

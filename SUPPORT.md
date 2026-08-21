@@ -24,4 +24,4 @@ For security-sensitive reports, do not open a public issue. See [SECURITY.md](SE
 
 ## Status
 
-The project is in its initial release (`0.1.0`). See [CHANGELOG.md](CHANGELOG.md) for history and the current version in [package.json](package.json).
+The project's current version is in [package.json](package.json); `sdd-setup --version` prints it, and [CHANGELOG.md](CHANGELOG.md) records the history. Publishing is automated from the version number — see [CONTRIBUTING.md](CONTRIBUTING.md#releasing).

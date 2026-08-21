@@ -39,12 +39,18 @@ KEY_NAMES = ["NVIDIA_NIM_API_KEY", "GOOGLE_AISTUDIO_API_KEY", "OLLAMA_API_KEY"]
 KIT_MARK = "name: sdd-multiagent-kit"
 INVOCATION = "Invocation: /sdd"
 
+# The package version is read from package.json, never hard-coded here. Pinning
+# a literal made a correct release bump fail this suite, which would deadlock
+# version-driven publishing; what these tests must assert instead is that every
+# place carrying a version *agrees with the manifest*, whatever it says.
+PKG_VERSION = json.load(open(PKG))["version"]
+
 # A minimal but *valid* kit-marked SKILL.md for fixtures that pre-populate a
 # destination folder. The adapters read the registration marker from inside the
 # '---'-delimited frontmatter block, so a bare `name:` line is NOT kit-marked —
 # a fixture missing the delimiters makes the kit-identity guards read the folder
 # as stale content and re-copy, which is not the state these tests set up.
-KIT_SKILL_STUB = f"---\n{KIT_MARK}\ndescription: fixture\nversion: 0.1.0\n---\n\n# fixture\n"
+KIT_SKILL_STUB = f"---\n{KIT_MARK}\ndescription: fixture\nversion: {PKG_VERSION}\n---\n\n# fixture\n"
 
 SECRET_PATTERNS = [
     re.compile(r"sk-[A-Za-z0-9]{20,}"),
@@ -75,14 +81,20 @@ def write_file(path, content):
         f.write(content)
 
 
-def make_pkg_tree(adapters=None, with_kit=True, with_installers=True, pkg_name=None):
-    """A hermetic package root: bin/setup-wizard.js + installers/ + kit/."""
+def make_pkg_tree(adapters=None, with_kit=True, with_installers=True, pkg_name=None,
+                  pkg_version=None):
+    """A hermetic package root: bin/setup-wizard.js + installers/ + kit/.
+
+    pkg_version defaults to the real manifest's version. Pass a different value
+    to prove the wizard reads its version from package.json rather than
+    carrying a copy of it.
+    """
     tree = tempfile.mkdtemp(prefix="m3pkg-")
     os.makedirs(os.path.join(tree, "bin"))
     shutil.copy2(WIZARD, os.path.join(tree, "bin", "setup-wizard.js"))
     write_file(os.path.join(tree, "package.json"), json.dumps({
         "name": pkg_name or "sdd-multiagent-kit",
-        "version": "0.1.0",
+        "version": pkg_version or PKG_VERSION,
         "bin": {"sdd-setup": "bin/setup-wizard.js"},
     }))
     if with_kit:
@@ -517,7 +529,7 @@ class NT4LocationsAndTrigger(unittest.TestCase):
         os.makedirs(os.path.join(home2, ".agents", "skills"))
         r = probe(ad, home2, "install", KIT)
         txt = open(os.path.join(home2, ".agents", "skills", "sdd-multiagent-kit", "SKILL.md")).read()
-        self.assertIn("version: 0.1.0\n" + INVOCATION, txt)
+        self.assertIn(f"version: {PKG_VERSION}\n" + INVOCATION, txt)
         self.assertIn(KIT_MARK, txt)
 
 
@@ -530,7 +542,11 @@ class NT5PackageAndSecrets(unittest.TestCase):
     def test_package_json_contract(self):
         pkg = json.load(open(PKG))
         self.assertEqual(pkg["name"], "sdd-multiagent-kit")
-        self.assertEqual(pkg["version"], "0.1.0")
+        # The version is deliberately NOT asserted against a literal. Pinning one
+        # made every correct release bump fail this suite. What matters is that it
+        # is well-formed semver and that every other copy agrees with it — see
+        # test_version_is_consistent_everywhere.
+        self.assertRegex(pkg["version"], r"^\d+\.\d+\.\d+([-+].+)?$")
         self.assertEqual(pkg["license"], "MIT")
         self.assertEqual(pkg["bin"], {"sdd-setup": "bin/setup-wizard.js"})
         self.assertNotIn("dependencies", pkg, "no runtime dependencies allowed")
@@ -604,9 +620,56 @@ class NT6Runnable(unittest.TestCase):
         self.assertEqual(rc, 0)
         rc, out, err = run_wizard(tree, env, stdin="", args=["--version"])
         self.assertEqual(rc, 0)
-        self.assertEqual(out.strip(), "0.1.0")
+        self.assertEqual(out.strip(), PKG_VERSION)
         rc, out, err = run_wizard(tree, env, stdin="", args=["--bogus"])
         self.assertEqual(rc, 2)
+
+    def test_version_comes_from_the_manifest_not_a_copy(self):
+        """FR-5 — `--version` prints *the package version*, read from package.json.
+
+        The fixture writes a version the wizard has never seen, so a wizard
+        carrying its own copy of the number cannot pass. Asserting against the
+        real version instead would pass either way and prove nothing — that is
+        exactly how the previous hard-coded literal survived unnoticed until a
+        release bump broke this suite.
+        """
+        tree = make_pkg_tree(pkg_version="9.9.9")
+        env = base_env(tempfile.mkdtemp(prefix="m3home-"))
+        rc, out, err = run_wizard(tree, env, stdin="", args=["--version"])
+        self.assertEqual(rc, 0, err)
+        self.assertEqual(out.strip(), "9.9.9")
+        rc, out, err = run_wizard(tree, env, stdin="", args=["--help"])
+        self.assertEqual(rc, 0, err)
+        self.assertIn("(v9.9.9)", out)
+        # A version it cannot determine is reported as an error, never invented:
+        # the walk requires a package.json named sdd-multiagent-kit, so a foreign
+        # manifest yields exit 2 rather than a fabricated number.
+        tree = make_pkg_tree(pkg_name="not-the-kit")
+        rc, out, err = run_wizard(tree, env, stdin="", args=["--version"])
+        self.assertEqual(rc, 2, out)
+        self.assertIn("could not read the package version", err)
+
+    def test_version_is_consistent_everywhere(self):
+        """One version, one source. Every shipped copy must match package.json.
+
+        These files ship together in a single tarball, so a mismatch means the
+        installed skill advertises a version the package is not. `scripts/
+        bump-version.js --check` enforces the same rule for the release
+        workflow; this test is the suite-level guarantee.
+        """
+        skills = [os.path.join(KIT, "SKILL.md")] + sorted(
+            os.path.join(KIT, "skills", d, "SKILL.md")
+            for d in os.listdir(os.path.join(KIT, "skills"))
+            if os.path.exists(os.path.join(KIT, "skills", d, "SKILL.md")))
+        self.assertEqual(len(skills), 12, "master skill + 11 sub-skills")
+        for path_ in skills:
+            fm = re.match(r"^---\r?\n(.*?)\r?\n---", open(path_).read(), re.S)
+            self.assertIsNotNone(fm, f"{path_} has no frontmatter block")
+            found = re.search(r"^version:[ \t]*(\S+)[ \t]*$", fm.group(1), re.M)
+            self.assertIsNotNone(found, f"{path_} has no version: key")
+            self.assertEqual(found.group(1), PKG_VERSION,
+                             f"{os.path.relpath(path_, REPO)} is {found.group(1)}, "
+                             f"package.json is {PKG_VERSION}")
 
     def test_wizard_begins(self):
         tree = make_pkg_tree()

@@ -19,7 +19,7 @@ The SDD Multi-Agent Kit is a Spec-Driven Development framework for CLI coding ag
 
 ## Key facts you must keep consistent
 
-- Package name: `sdd-multiagent-kit`; installer bin: `sdd-setup`; version: `0.1.0`; license: MIT.
+- Package name: `sdd-multiagent-kit`; installer bin: `sdd-setup`; license: MIT. The version lives in `package.json` and nowhere else — read it from there, and change it only via `node scripts/bump-version.js <version>`.
 - Trigger: `/sdd` (skill name `sdd-multiagent-kit`).
 - Env vars the wizard collects: `NVIDIA_NIM_API_KEY`, `GOOGLE_AISTUDIO_API_KEY`, `OLLAMA_API_KEY`.
 - Install locations: Claude Code/Desktop → `.claude/skills/sdd-multiagent-kit/`; OpenCode → reads the same shared `.claude/skills/`; Antigravity → `~/.agents/skills/sdd-multiagent-kit/` with the trigger embedded in SKILL.md.
@@ -31,6 +31,8 @@ The SDD Multi-Agent Kit is a Spec-Driven Development framework for CLI coding ag
 - **Standalone-first.** New skills/scripts must work on their own.
 - **Never write secrets** into any file; `.gitignore` excludes `.env`, `node_modules/`, and transient artifacts. `outputs/critique-log/` is deliberately **not** ignored (ADR-002): raw critique evidence stays versioned for auditability.
 - **Log PHRs/ADRs** for design changes under `outputs/history/`.
+- **Verify before pushing.** `python3 outputs/milestones/milestone_2/verify_milestone_2.py` and `.../milestone_3/verify_milestone_3.py` are the two executable suites; neither needs API keys. `.github/workflows/ci.yml` runs both on every push and pull request.
+- **Never hand-edit a version.** `bin/setup-wizard.js` reads it from `package.json`, and twelve `SKILL.md` frontmatters must agree; `node scripts/bump-version.js <version>` sets them together and `--check` asserts agreement. Releasing is automated from the version number — see [CONTRIBUTING.md](CONTRIBUTING.md#releasing). Never run `npm publish` by hand.
 
 ## Invoking the kit while working on it
 

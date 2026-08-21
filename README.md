@@ -1,5 +1,9 @@
 # SDD Multi-Agent Kit
 
+[![npm](https://img.shields.io/npm/v/sdd-multiagent-kit)](https://www.npmjs.com/package/sdd-multiagent-kit)
+[![CI](https://github.com/muhammad-sohaib0/sdd-multiagent-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/muhammad-sohaib0/sdd-multiagent-kit/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 Spec-Driven Development for CLI coding agents: a disciplined, multi-model process that turns a brief into tested, milestone-ordered deliverables you can trust.
 
 ## Why
@@ -52,7 +56,17 @@ Working example projects ship under `examples/`. You can run the kit against any
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) — includes worked examples for adding a new AI tool and a new critic model.
+See [CONTRIBUTING.md](CONTRIBUTING.md) — includes worked examples for adding a new AI tool and a new critic model, plus how releases work.
+
+## Releases
+
+Published to npm from GitHub Actions using [Trusted Publishing](https://docs.npmjs.com/trusted-publishers), so every release carries **provenance**: the npm page links back to the exact commit and workflow run that built the tarball, and you can verify it yourself:
+
+```bash
+npm audit signatures
+```
+
+No publish token exists in the repository — releases are authenticated by a short-lived OIDC token, and no maintainer runs `npm publish` by hand. See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 
 ## Security
 
